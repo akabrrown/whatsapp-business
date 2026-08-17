@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_GH',
     siteName: 'ROSE & DENIM BY KUKUA',
+    images: [{ url: '/og-image.svg', width: 1200, height: 630, alt: 'ROSE & DENIM BY KUKUA' }],
   },
   twitter: {
     card: 'summary_large_image',
