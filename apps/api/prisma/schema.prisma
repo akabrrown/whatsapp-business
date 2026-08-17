@@ -1,0 +1,211 @@
+// ROSE & DENIM — data model (SQLite local; Postgres/Supabase-compatible)
+// Money: integer pesewas. Timestamps: UTC.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  flagship Boolean   @default(false)
+  products Product[]
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  name        String
+  description String           @default("")
+  categoryId  String
+  category    Category         @relation(fields: [categoryId], references: [id])
+  status      String           @default("active") // active | inactive (§3.3, §11.2)
+  images      String           @default("[]") // JSON array of URLs
+  createdAt   DateTime         @default(now())
+  variants    ProductVariant[]
+  orderItems  OrderItem[]
+}
+
+model ProductVariant {
+  id                String         @id @default(cuid())
+  productId         String
+  product           Product        @relation(fields: [productId], references: [id])
+  sku               String         @unique
+  size              String?
+  color             String?
+  priceP            Int // pesewas
+  stockQuantity     Int            @default(0)
+  reservedStock     Int            @default(0) // soft reservations from order tokens (§6.2)
+  lowStockThreshold Int            @default(3)
+  inventoryLogs     InventoryLog[]
+  orderItems        OrderItem[]
+  tokenItems        TokenItem[]
+}
+
+model Customer {
+  id               String           @id @default(cuid())
+  phone            String           @unique
+  name             String?
+  tags             String           @default("[]") // JSON string[] e.g. repeat_buyer, vip
+  totalOrders      Int              @default(0)
+  totalSpentP      Int              @default(0)
+  marketingOptOut  Boolean          @default(false) // STOP opt-out (§16.5)
+  lastOrderAt      DateTime?
+  createdAt        DateTime         @default(now())
+  orders           Order[]
+  conversations    Conversation[]
+  retentionStates  RetentionState[]
+}
+
+model Order {
+  id               String           @id @default(cuid())
+  number           String           @unique // human-facing e.g. RD-1001
+  customerId       String
+  customer         Customer         @relation(fields: [customerId], references: [id])
+  status           String           @default("RESERVED")
+  source           String // website | whatsapp_direct (§9)
+  subtotalP        Int
+  deliveryFeeP     Int              @default(0)
+  totalP           Int
+  deliveryAddress  String           @default("")
+  zoneName         String?
+  riderName        String?
+  riderPhone       String?
+  vip              Boolean          @default(false) // > GHS 1000 (§10.4)
+  needsAdminReview Boolean          @default(false) // late payment on expired token (§5.6)
+  refundDue        Boolean          @default(false) // duplicate payment flagged (§5.8)
+  failCount        Int              @default(0) // consecutive payment failures (§5.5)
+  packedAt         DateTime?
+  deliveredAt      DateTime? // retention anchors (§16)
+  conversationId   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  items            OrderItem[]
+  payments         Payment[]
+  retentionStates  RetentionState[]
+}
+
+model OrderItem {
+  id        String         @id @default(cuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id])
+  productId String?
+  product   Product?       @relation(fields: [productId], references: [id])
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  qty       Int
+  unitPriceP Int // price snapshot at order time (§4 rules)
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  orderId          String?
+  order            Order?   @relation(fields: [orderId], references: [id])
+  paystackRef      String   @unique // idempotency key (§5.7)
+  amountP          Int
+  channel          String   @default("unknown") // card | mobile_money | bank_transfer
+  status           String   @default("pending") // pending | success | failed | refunded
+  tokenCode        String? // order token this payment settles
+  flaggedForRefund Boolean  @default(false) // §5.8
+  createdAt        DateTime @default(now())
+}
+
+model OrderToken {
+  id        String      @id @default(cuid())
+  code      String      @unique
+  phone     String
+  status    String      @default("ACTIVE") // ACTIVE | USED | EXPIRED | CANCELLED
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+  items     TokenItem[]
+}
+
+model TokenItem {
+  id        String         @id @default(cuid())
+  tokenId   String
+  token     OrderToken     @relation(fields: [tokenId], references: [id])
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  qty       Int
+}
+
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  provider  String // paystack | meta
+  ref       String // event id / payment reference
+  payload   String // raw JSON for audit
+  createdAt DateTime @default(now())
+
+  @@unique([provider, ref])
+}
+
+model DeliveryZone {
+  id      String  @id @default(cuid())
+  name    String  @unique
+  city    String  @default("Accra")
+  feeP    Int
+  aliases String  @default("[]") // JSON string[] for fuzzy matching (§7.1)
+  lat     Float?
+  lng     Float?
+}
+
+model Conversation {
+  id           String    @id @default(cuid())
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  status       String    @default("BOT") // BOT | NEEDS_HUMAN | HUMAN (§10)
+  failCount    Int       @default(0) // consecutive unrecognized messages (§10.2)
+  undeliverable Boolean  @default(false) // blocked number (§12.2)
+  sendFailures Int       @default(0)
+  lastMsgAt    DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  messages     Message[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  direction      String // inbound | outbound
+  kind           String       @default("text") // text | voice | location | image
+  body           String       @default("")
+  createdAt      DateTime     @default(now())
+}
+
+model InventoryLog {
+  id         String         @id @default(cuid())
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id])
+  changeType String // purchase | reserve | release | restock | adjustment
+  delta      Int
+  note       String         @default("")
+  createdAt  DateTime       @default(now())
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String   @default("staff") // owner | staff (§11.6)
+  password  String // bcrypt hash
+  createdAt DateTime @default(now())
+}
+
+model RetentionState {
+  id            String    @id @default(cuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  orderId       String?
+  order         Order?    @relation(fields: [orderId], references: [id])
+  checkinSent   Boolean   @default(false) // 3-day check-in (§16.1)
+  crosssellSent Boolean   @default(false) // 14-day cross-sell (§16.2)
+  winbackSent   Boolean   @default(false) // 60-day win-back (§16.3)
+
+  @@unique([customerId, orderId])
+}

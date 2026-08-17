@@ -1,0 +1,23 @@
+{
+  "name": "rose-and-denim",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ROSE & DENIM BY KUKUA — WhatsApp-hybrid e-commerce platform (Accra, Ghana)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web,admin -c blue,magenta,green \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:admin\"",
+    "dev:api": "npm run dev -w @rose/api",
+    "dev:web": "npm run dev -w @rose/web",
+    "dev:admin": "npm run dev -w @rose/admin",
+    "build": "npm run build -w @rose/web && npm run build -w @rose/admin",
+    "test": "npm run test -w @rose/api",
+    "db:push": "npm run db:push -w @rose/api",
+    "db:seed": "npm run db:seed -w @rose/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
