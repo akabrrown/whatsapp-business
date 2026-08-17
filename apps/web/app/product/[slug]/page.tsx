@@ -1,16 +1,50 @@
 // Product detail page: asymmetric two-column, filmstrip incl. detail shot (ux.md §3.3).
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { VariantPicker } from '@/components/VariantPicker';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await api.product(slug);
+  if (!product) return { title: 'Product Not Found' };
+  const price = (product.minPriceP / 100).toFixed(2);
+  return {
+    title: `${product.name} | ROSE & DENIM BY KUKUA`,
+    description: product.description.slice(0, 160),
+    openGraph: {
+      title: product.name,
+      description: product.description.slice(0, 160),
+      images: product.images[0] ? [{ url: product.images[0], alt: product.name }] : [],
+      type: 'website',
+    },
+  };
+}
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = await api.product(slug);
   if (!product) notFound(); // §3.5: unknown slug resolves to a clean 404
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    image: product.images,
+    offers: {
+      '@type': 'Offer',
+      price: (product.minPriceP / 100).toFixed(2),
+      priceCurrency: 'GHS',
+      availability: product.soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+    },
+  };
+
   return (
-    <div className="grid gap-10 py-10 md:grid-cols-[3fr_2fr]">
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <div className="grid gap-10 py-10 md:grid-cols-[3fr_2fr]">
       <div>
         {product.images[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -38,6 +72,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <VariantPicker product={product} />
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

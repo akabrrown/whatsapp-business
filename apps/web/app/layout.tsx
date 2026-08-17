@@ -49,9 +49,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-indigo focus:px-4 focus:py-2 focus:text-cream">
+          Skip to content
+        </a>
         <CartProvider>
           <Navbar categories={categories} />
-          <main className="mx-auto max-w-6xl px-4 md:px-6">{children}</main>
+          <main id="main-content" className="mx-auto max-w-6xl px-4 md:px-6">{children}</main>
           <Footer />
           <MiniCart />
         </CartProvider>

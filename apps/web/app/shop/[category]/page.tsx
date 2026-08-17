@@ -1,7 +1,19 @@
 // Category / catalog grid: broken grid rhythm, text-based category tabs (ux.md §3.2).
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
+
+export async function generateMetadata({ params }: { params: Promise<{ category?: string }> }): Promise<Metadata> {
+  const { category } = await params;
+  const categories = await api.categories();
+  const active = categories.find((c) => c.slug === category);
+  const name = active?.name ?? 'The Collection';
+  return {
+    title: `${name} | ROSE & DENIM BY KUKUA`,
+    description: `Shop ${name.toLowerCase()} from ROSE & DENIM BY KUKUA. Denim, dresses, and bags delivered across Accra.`,
+  };
+}
 
 export default async function ShopPage({ params }: { params: Promise<{ category?: string }> }) {
   const { category } = await params;
