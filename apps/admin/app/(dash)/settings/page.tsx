@@ -2,6 +2,7 @@
 // Settings (owner-only nav) — delivery-zone fees (§7, §11.4), staff
 // management (§11.6), manual retention tick (§16).
 import { useCallback, useEffect, useState } from 'react';
+import { MapPin, RefreshCw, UserPlus } from 'lucide-react';
 import { apiFetch, getUser } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 
@@ -88,7 +89,9 @@ export default function SettingsPage() {
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Delivery zones */}
         <section>
-          <p className="mb-1 text-xs uppercase tracking-wide text-charcoal/50">Delivery zones &amp; fees</p>
+          <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
+            <MapPin size={13} aria-hidden /> Delivery zones &amp; fees
+          </p>
           <p className="mb-3 text-xs text-charcoal/50">New fees apply to new orders only — existing orders keep their quoted fee (§11.4).</p>
           <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
             {zones.map((z) => (
@@ -116,8 +119,8 @@ export default function SettingsPage() {
           <div className="mt-6 rounded border border-sand/30 bg-white/50 p-4">
             <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Retention engine (§16)</p>
             <p className="mb-3 text-xs text-charcoal/60">Runs automatically on schedule; trigger a manual tick for testing.</p>
-            <button onClick={runRetention} className="rounded border border-charcoal/30 px-3 py-1.5 text-xs hover:border-indigo hover:text-indigo">
-              Run retention tick
+            <button onClick={runRetention} className="flex items-center gap-1.5 rounded border border-charcoal/30 px-3 py-1.5 text-xs hover:border-indigo hover:text-indigo">
+              <RefreshCw size={12} aria-hidden /> Run retention tick
             </button>
             {retentionResult && <pre className="mt-3 max-h-32 overflow-auto bg-cream p-2 text-[10px] text-charcoal/70">{retentionResult}</pre>}
           </div>
@@ -156,8 +159,8 @@ export default function SettingsPage() {
                       </label>
                     ))}
                   </div>
-                  <button onClick={addStaff} className="mt-2 w-fit rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">
-                    Create account
+                  <button onClick={addStaff} className="mt-2 flex w-fit items-center gap-1.5 rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">
+                    <UserPlus size={14} aria-hidden /> Create account
                   </button>
                 </div>
               </div>

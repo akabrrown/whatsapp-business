@@ -1,4 +1,6 @@
 // Chat bubbles — customer left/neutral, business right/denim (ux.md §3.9, §3.11).
+import { Mic } from 'lucide-react';
+
 export interface ChatMessage {
   id: string;
   direction: 'inbound' | 'outbound';
@@ -20,7 +22,9 @@ export function ChatBubbles({ messages }: { messages: ChatMessage[] }) {
                 : 'rounded-2xl rounded-tl-sm bg-white text-charcoal shadow-sm'
             }`}
           >
-            <p className="whitespace-pre-wrap">{m.kind === 'voice' ? '🎤 Voice note' : m.body}</p>
+            <p className="flex items-center gap-1.5 whitespace-pre-wrap">
+              {m.kind === 'voice' ? (<><Mic size={13} aria-hidden /> Voice note</>) : m.body}
+            </p>
             <p className={`mt-1 text-[10px] ${m.direction === 'outbound' ? 'text-cream/60' : 'text-charcoal/40'}`}>
               {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>

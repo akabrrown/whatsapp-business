@@ -3,6 +3,7 @@
 // actions, "new orders" indicator (§3.8), stale-PACKED flag (§8.6).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 import { apiFetch, subscribeAdminEvents } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { formatGHS } from '@rose/shared';
@@ -24,16 +25,25 @@ const NEXT_ACTION: Record<string, string> = {
   SHIPPED: 'DELIVERED',
 };
 
+const STATUSES = ['RESERVED', 'PAID', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [source, setSource] = useState('');
+  const [status, setStatus] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [newCount, setNewCount] = useState(0);
 
   const load = useCallback(async (silent = false) => {
-    const r = await apiFetch<{ orders: OrderRow[] }>(`/api/admin/orders${source ? `?source=${source}` : ''}`);
+    const qs = new URLSearchParams();
+    if (source) qs.set('source', source);
+    if (status) qs.set('status', status);
+    const q = qs.toString();
+    const r = await apiFetch<{ orders: OrderRow[] }>(`/api/admin/orders${q ? `?${q}` : ''}`);
     setOrders(r.orders);
     if (silent) setNewCount(0);
-  }, [source]);
+  }, [source, status]);
 
   useEffect(() => {
     load().catch(() => {});
@@ -54,7 +64,11 @@ export default function OrdersPage() {
   };
 
   const exportCsv = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/admin/export/orders.csv`, {
+    const qs = new URLSearchParams();
+    if (from) qs.set('from', from);
+    if (to) qs.set('to', to);
+    const q = qs.toString();
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/admin/export/orders.csv${q ? `?${q}` : ''}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('rd-admin-token') ?? ''}` },
     });
     const blob = await res.blob();
@@ -90,9 +104,21 @@ export default function OrdersPage() {
             {newCount} new order{newCount > 1 ? 's' : ''} — refresh
           </button>
         )}
-        <button onClick={exportCsv} className="text-xs text-charcoal/50 underline">
-          Export CSV
-        </button>
+        <div className="flex items-center gap-2 text-xs text-charcoal/60">
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo">
+            <option value="">All statuses</option>
+            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <label className="flex items-center gap-1">
+            from <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo" />
+          </label>
+          <label className="flex items-center gap-1">
+            to <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo" />
+          </label>
+          <button onClick={exportCsv} className="flex items-center gap-1 text-charcoal/50 underline hover:text-indigo">
+            <Download size={13} aria-hidden /> Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded border border-sand/30 bg-white/50">

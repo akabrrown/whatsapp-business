@@ -3,6 +3,7 @@
 // a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Minus, Plus, X } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -78,7 +79,9 @@ export function MiniCart() {
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l-4 border-sand bg-cream shadow-xl">
         <div className="flex items-center justify-between border-b border-sand/40 px-6 py-4">
           <h2 className="headline text-xl">Your Selection</h2>
-          <button aria-label="Close" className="text-2xl text-indigo" onClick={() => setDrawerOpen(false)}>×</button>
+          <button aria-label="Close" className="text-indigo" onClick={() => setDrawerOpen(false)}>
+            <X size={24} aria-hidden />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -99,9 +102,13 @@ export function MiniCart() {
                   {[l.size, l.color].filter(Boolean).join(' · ') || 'One style'}
                 </p>
                 <div className="mt-2 flex items-center gap-3 text-sm">
-                  <button aria-label="Less" className="text-indigo" onClick={() => setQty(l.variantId, l.qty - 1)}>−</button>
+                  <button aria-label="Less" className="text-indigo" onClick={() => setQty(l.variantId, l.qty - 1)}>
+                    <Minus size={16} aria-hidden />
+                  </button>
                   <span>{l.qty}</span>
-                  <button aria-label="More" className="text-indigo" onClick={() => setQty(l.variantId, l.qty + 1)}>+</button>
+                  <button aria-label="More" className="text-indigo" onClick={() => setQty(l.variantId, l.qty + 1)}>
+                    <Plus size={16} aria-hidden />
+                  </button>
                   <span className="ml-auto font-medium text-indigo">{formatGHS(l.priceP * l.qty)}</span>
                 </div>
               </div>

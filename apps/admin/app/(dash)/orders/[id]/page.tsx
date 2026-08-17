@@ -3,6 +3,7 @@
 // embedded WhatsApp thread (§3.9), fulfillment actions incl. failed delivery.
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { Timeline } from '@/components/Timeline';
@@ -34,19 +35,25 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [zones, setZones] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState('');
   const [rider, setRider] = useState({ name: '', phone: '' });
   const [address, setAddress] = useState('');
+  const [zoneName, setZoneName] = useState('');
 
   const load = useCallback(async () => {
     const r = await apiFetch<{ order: OrderDetail; messages: ChatMessage[] }>(`/api/admin/orders/${id}`);
     setOrder(r.order);
     setMessages(r.messages);
     setAddress(r.order.deliveryAddress ?? '');
+    setZoneName(r.order.zoneName ?? '');
   }, [id]);
 
   useEffect(() => {
     load().catch((e: Error) => setError(e.message));
+    apiFetch<{ zones: { id: string; name: string }[] }>('/api/admin/zones')
+      .then((r) => setZones(r.zones))
+      .catch(() => {});
   }, [load]);
 
   const act = async (path: string, body?: unknown) => {
@@ -65,7 +72,9 @@ export default function OrderDetailPage() {
 
   return (
     <div>
-      <button onClick={() => router.back()} className="mb-4 text-sm text-charcoal/50 underline">← back</button>
+      <button onClick={() => router.back()} className="mb-4 flex items-center gap-1 text-sm text-charcoal/50 underline">
+        <ChevronLeft size={14} aria-hidden /> back
+      </button>
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <h1 className="font-serif text-2xl text-indigo">{order.number}</h1>
         <StatusPill status={order.status} />
@@ -152,22 +161,32 @@ export default function OrderDetailPage() {
 
           <section>
             <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Delivery address (§7.5 — admin only)</p>
-            <div className="flex gap-2">
-              <input value={address} onChange={(e) => setAddress(e.target.value)} className="flex-1 border-b border-charcoal/30 bg-transparent py-1 text-sm outline-none focus:border-indigo" />
+            <div className="flex flex-col gap-2">
+              <input value={address} onChange={(e) => setAddress(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-1 text-sm outline-none focus:border-indigo" />
+              <select
+                value={zoneName}
+                onChange={(e) => setZoneName(e.target.value)}
+                disabled={order.status === 'SHIPPED'}
+                className="border-b border-charcoal/30 bg-transparent py-1 text-sm outline-none focus:border-indigo disabled:opacity-50"
+              >
+                <option value="">No zone</option>
+                {zones.map((z) => <option key={z.id} value={z.name}>{z.name}</option>)}
+              </select>
               <button
                 onClick={async () => {
                   setError('');
                   try {
-                    await apiFetch(`/api/admin/orders/${id}/address`, { method: 'PATCH', body: JSON.stringify({ deliveryAddress: address }) });
+                    await apiFetch(`/api/admin/orders/${id}/address`, { method: 'PATCH', body: JSON.stringify({ deliveryAddress: address, ...(zoneName ? { zoneName } : {}) }) });
                     await load();
                   } catch (e) {
                     setError((e as Error).message);
                   }
                 }}
-                className="text-xs text-indigo underline"
+                className="w-fit text-xs text-indigo underline"
               >
-                Save
+                Save address + zone
               </button>
+              {order.status === 'SHIPPED' && <p className="text-[10px] text-charcoal/50">Already shipped — address is locked (§7.6).</p>}
             </div>
           </section>
         </div>

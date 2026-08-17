@@ -2,6 +2,7 @@
 // Inbox — two-panel WhatsApp console (§3.11): conversation list with status
 // dots, full thread, take-over / release (§10.6, §10.7), send-as-Kukua.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bot, Hand, Send } from 'lucide-react';
 import { apiFetch, subscribeAdminEvents } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { ChatBubbles, type ChatMessage } from '@/components/ChatBubbles';
@@ -121,12 +122,12 @@ export default function InboxPage() {
                 </div>
                 <div className="ml-auto flex gap-2">
                   {current.status !== 'HUMAN' ? (
-                    <button onClick={() => convAction('take-over')} className="rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep">
-                      Take over from bot
+                    <button onClick={() => convAction('take-over')} className="flex items-center gap-1.5 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep">
+                      <Hand size={13} aria-hidden /> Take over from bot
                     </button>
                   ) : (
-                    <button onClick={() => convAction('release')} className="rounded border border-charcoal/30 px-3 py-1.5 text-xs hover:border-indigo hover:text-indigo">
-                      Release back to bot
+                    <button onClick={() => convAction('release')} className="flex items-center gap-1.5 rounded border border-charcoal/30 px-3 py-1.5 text-xs hover:border-indigo hover:text-indigo">
+                      <Bot size={13} aria-hidden /> Release back to bot
                     </button>
                   )}
                 </div>
@@ -143,8 +144,8 @@ export default function InboxPage() {
                   placeholder={current.status === 'HUMAN' ? 'Reply as Kukua…' : 'Take over before replying manually'}
                   className="flex-1 rounded border border-charcoal/20 bg-white px-3 py-2 text-sm outline-none focus:border-indigo"
                 />
-                <button onClick={send} className="rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">
-                  Send
+                <button onClick={send} className="flex items-center gap-1.5 rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">
+                  <Send size={14} aria-hidden /> Send
                 </button>
               </div>
             </>

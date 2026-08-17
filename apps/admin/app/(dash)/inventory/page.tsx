@@ -1,7 +1,9 @@
 'use client';
 // Inventory — variant-level stock with low-stock flags (§3.10, §6),
 // inline restock (§11.3) and manual adjustment (§6.6), product hide/show (§11.2).
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { Plus, SlidersHorizontal } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 
@@ -23,6 +25,7 @@ interface VariantRow {
 export default function InventoryPage() {
   const [variants, setVariants] = useState<VariantRow[]>([]);
   const [qty, setQty] = useState<Record<string, string>>({});
+  const [adjust, setAdjust] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -47,6 +50,19 @@ export default function InventoryPage() {
     }
   };
 
+  const adjustStock = async (id: string) => {
+    const n = Number(adjust[id] ?? 0);
+    if (!Number.isInteger(n) || n === 0) return;
+    setError('');
+    try {
+      await apiFetch(`/api/admin/inventory/${id}/adjust`, { method: 'POST', body: JSON.stringify({ delta: n, note: 'dashboard adjustment' }) });
+      setAdjust((a) => ({ ...a, [id]: '' }));
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   const toggleProduct = async (productId: string, current: string) => {
     setError('');
     try {
@@ -65,9 +81,12 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-baseline gap-4">
+      <div className="mb-5 flex flex-wrap items-center gap-4">
         <h1 className="font-serif text-2xl text-indigo">Inventory</h1>
         {lowCount > 0 && <span className="bg-sand/40 px-2 py-0.5 text-xs text-charcoal">{lowCount} low-stock variant{lowCount > 1 ? 's' : ''}</span>}
+        <Link href="/products/new" className="ml-auto flex items-center gap-1.5 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep">
+          <Plus size={14} aria-hidden /> Add product
+        </Link>
       </div>
       {error && <p className="mb-4 text-sm text-rose">{error}</p>}
 
@@ -81,6 +100,7 @@ export default function InventoryPage() {
               <th className="px-4 py-3">Stock</th>
               <th className="px-4 py-3">Available</th>
               <th className="px-4 py-3">Restock</th>
+              <th className="px-4 py-3">Adjust (§6.6)</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -123,6 +143,19 @@ export default function InventoryPage() {
                       <button onClick={() => restock(v.id)} className="text-xs text-indigo underline">add</button>
                     </div>
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <SlidersHorizontal size={12} className="text-charcoal/30" aria-hidden />
+                      <input
+                        type="number"
+                        value={adjust[v.id] ?? ''}
+                        onChange={(e) => setAdjust((a) => ({ ...a, [v.id]: e.target.value }))}
+                        placeholder="±n"
+                        className="w-16 border-b border-charcoal/30 bg-transparent px-1 py-0.5 text-sm outline-none focus:border-indigo"
+                      />
+                      <button onClick={() => adjustStock(v.id)} className="text-xs text-charcoal/60 underline hover:text-indigo">apply</button>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-right">
                     {firstOfProduct && (
                       <button
@@ -136,6 +169,9 @@ export default function InventoryPage() {
                 </tr>
               );
             })}
+            {variants.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-charcoal/50">No products yet — add your first product to open the store.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { ArrowRight, ChevronLeft } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { ChatBubbles, type ChatMessage } from '@/components/ChatBubbles';
@@ -45,7 +46,9 @@ export default function CustomerDetailPage() {
 
   return (
     <div>
-      <button onClick={() => router.back()} className="mb-4 text-sm text-charcoal/50 underline">← back</button>
+      <button onClick={() => router.back()} className="mb-4 flex items-center gap-1 text-sm text-charcoal/50 underline">
+        <ChevronLeft size={14} aria-hidden /> back
+      </button>
       {error && <p className="mb-4 text-sm text-rose">{error}</p>}
 
       <div className="mb-6 flex flex-wrap items-baseline gap-3">
@@ -112,7 +115,9 @@ export default function CustomerDetailPage() {
                 <div className="max-h-72 overflow-y-auto">
                   <ChatBubbles messages={c.messages} />
                 </div>
-                <Link href="/inbox" className="mt-3 inline-block text-xs text-indigo underline">Open in inbox →</Link>
+                <Link href="/inbox" className="mt-3 inline-flex items-center gap-1 text-xs text-indigo underline">
+                  Open in inbox <ArrowRight size={12} aria-hidden />
+                </Link>
               </div>
             ))}
           </div>

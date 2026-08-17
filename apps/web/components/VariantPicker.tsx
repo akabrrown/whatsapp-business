@@ -2,6 +2,7 @@
 // stock label, denim CTA + quiet WhatsApp sizing touchpoint (ux.md §3.3).
 'use client';
 import { useMemo, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
 import { AddToBag } from './AddToBag';
@@ -78,9 +79,9 @@ export function VariantPicker({ product }: { product: CatalogProduct }) {
         href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hi! Question about sizing for ${product.name} 🙈`)}`}
         target="_blank"
         rel="noreferrer"
-        className="block text-sm text-charcoal/60 underline decoration-charcoal/30 hover:text-indigo"
+        className="flex items-center gap-1.5 text-sm text-charcoal/60 underline decoration-charcoal/30 hover:text-indigo"
       >
-        Questions about sizing? Chat with us
+        <MessageCircle size={14} aria-hidden /> Questions about sizing? Chat with us
       </a>
     </div>
   );

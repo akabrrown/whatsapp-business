@@ -1,5 +1,6 @@
 // Homepage — asymmetric hero, editorial category strip, irregular "New In" (ux.md §3.1).
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
 
@@ -31,9 +32,9 @@ export default async function HomePage() {
             </p>
             <Link
               href="/shop"
-              className="mt-8 w-fit border-b-2 border-indigo pb-1 text-sm font-medium text-indigo hover:border-rose hover:text-rose"
+              className="mt-8 flex w-fit items-center gap-2 border-b-2 border-indigo pb-1 text-sm font-medium text-indigo hover:border-rose hover:text-rose"
             >
-              Shop the Collection →
+              Shop the Collection <ArrowRight size={16} strokeWidth={2.5} aria-hidden />
             </Link>
           </div>
           <div className="relative min-h-[320px] bg-indigo md:min-h-[520px]">
@@ -71,7 +72,16 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* New In — one featured + two smaller */}
+      {/* New In — one featured + two smaller; graceful empty state when catalog is bare */}
+      {newIn.length === 0 && (
+        <section className="mt-20 rounded border border-sand/30 bg-white/50 px-6 py-16 text-center">
+          <h2 className="headline text-2xl">The collection is arriving soon</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm text-charcoal/60">
+            Kukua is hand-picking the first drop. Check back shortly, or say hi on
+            WhatsApp and we&apos;ll tell you the moment it lands.
+          </p>
+        </section>
+      )}
       {newIn.length > 0 && (
         <section className="mt-20">
           <div className="mb-6 flex items-baseline justify-between">

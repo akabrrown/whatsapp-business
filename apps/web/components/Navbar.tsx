@@ -2,6 +2,7 @@
 // Site header + mobile menu (ux.md §3.6 — serif category links, warm base).
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Menu, Search, ShoppingBag, X } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import type { Category } from '@/lib/api';
 
@@ -23,10 +24,10 @@ export function Navbar({ categories }: { categories: Category[] }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <button
             aria-label="Menu"
-            className="mr-3 text-2xl leading-none text-indigo md:hidden"
+            className="mr-3 text-indigo md:hidden"
             onClick={() => setMenuOpen(true)}
           >
-            ≡
+            <Menu size={24} aria-hidden />
           </button>
           <Link href="/" className="headline text-xl tracking-wide md:text-2xl">
             ROSE <span className="text-rose">&amp;</span> DENIM
@@ -39,13 +40,14 @@ export function Navbar({ categories }: { categories: Category[] }) {
             ))}
           </nav>
           <div className="flex items-center gap-4">
-            <form action="/search" className="hidden md:block">
+            <form action="/search" className="relative hidden md:block">
+              <Search size={13} aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-charcoal/40" />
               <input
                 name="q"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search…"
-                className="w-36 border-b border-charcoal/30 bg-transparent py-1 text-sm outline-none focus:border-indigo"
+                className="w-36 border-b border-charcoal/30 bg-transparent py-1 pl-5 text-sm outline-none focus:border-indigo"
               />
             </form>
             <button
@@ -53,7 +55,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
               onClick={() => setDrawerOpen(true)}
               className="relative text-indigo"
             >
-              <span className="text-xl">🧺</span>
+              <ShoppingBag size={22} aria-hidden />
               {count > 0 && (
                 <span className="absolute -right-2 -top-2 rounded-full bg-rose px-1.5 text-xs text-cream">
                   {count}
@@ -68,8 +70,8 @@ export function Navbar({ categories }: { categories: Category[] }) {
         <div className="fixed inset-0 z-50 bg-cream md:hidden">
           <div className="flex items-center justify-between px-4 py-4">
             <span className="headline text-xl">ROSE <span className="text-rose">&amp;</span> DENIM</span>
-            <button aria-label="Close menu" className="text-2xl text-indigo" onClick={() => setMenuOpen(false)}>
-              ×
+            <button aria-label="Close menu" className="text-indigo" onClick={() => setMenuOpen(false)}>
+              <X size={26} aria-hidden />
             </button>
           </div>
           <nav className="mt-8 flex flex-col gap-6 px-8">
