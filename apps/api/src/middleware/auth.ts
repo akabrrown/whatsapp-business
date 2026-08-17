@@ -41,3 +41,29 @@ export function requireOwner(req: Request, res: Response, next: NextFunction) {
   }
   next();
 }
+
+/** Simple in-memory rate limiter for sensitive endpoints (login, etc). */
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const LOGIN_MAX = 5;
+const LOGIN_WINDOW_MS = 15 * 60_000; // 15 minutes
+
+export function resetLoginRateLimit() {
+  loginAttempts.clear();
+}
+
+export function rateLimitLogin(req: Request, res: Response, next: NextFunction) {
+  const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+  const email = (req.body?.email as string | undefined)?.toLowerCase() ?? '';
+  const key = `${ip}:${email}`;
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return next();
+  }
+  if (entry.count >= LOGIN_MAX) {
+    return res.status(429).json({ ok: false, error: 'too_many_attempts', retryAfter: Math.ceil((entry.resetAt - now) / 1000) });
+  }
+  entry.count += 1;
+  next();
+}

@@ -10,6 +10,7 @@ import { kv } from '../src/sessionStore.js';
 import { whatsapp as waRaw, type SimSender } from '../src/adapters/whatsapp.js';
 import { paystack as psRaw, type SimPaystack } from '../src/adapters/paystack.js';
 import { hub } from '../src/services/realtime.js';
+import { resetLoginRateLimit } from '../src/middleware/auth.js';
 // Tests always run WHATSAPP_MODE=sim / PAYSTACK_MODE=sim (vitest.config.ts),
 // so expose the concrete simulator types for ergonomic assertions.
 export const whatsapp = waRaw as SimSender;
@@ -28,6 +29,7 @@ export function resetRuntime() {
   paystack.outage = false;
   paystack.refunds.splice(0);
   hub.log.length = 0;
+  resetLoginRateLimit();
 }
 
 /** Clear all rows between scenarios. */

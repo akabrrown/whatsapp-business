@@ -3,9 +3,19 @@ import 'dotenv/config';
 const bool = (v: string | undefined, dflt = false) =>
   v === undefined ? dflt : ['1', 'true', 'yes', 'real', 'cloudinary'].includes(v.toLowerCase());
 
+const isProd = process.env.NODE_ENV === 'production';
+const jwtSecret = process.env.JWT_SECRET ?? '';
+if (isProd && (!jwtSecret || jwtSecret === 'dev-secret' || jwtSecret === 'change-me-in-production')) {
+  throw new Error('JWT_SECRET must be set to a strong, unique value in production');
+}
+const ownerPassword = process.env.OWNER_PASSWORD ?? '';
+if (isProd && (!ownerPassword || ownerPassword === 'denim-rose-2026')) {
+  throw new Error('OWNER_PASSWORD must be set to a strong, unique value in production');
+}
+
 export const config = {
   port: Number(process.env.PORT ?? 4000),
-  jwtSecret: process.env.JWT_SECRET ?? 'dev-secret',
+  jwtSecret: jwtSecret || 'dev-secret',
   whatsappNumber: process.env.WHATSAPP_NUMBER ?? '233200000000',
 
   paystack: {
@@ -29,7 +39,7 @@ export const config = {
   },
   redisUrl: process.env.REDIS_URL ?? '',
   ownerEmail: process.env.OWNER_EMAIL ?? 'kukua@roseanddenim.com',
-  ownerPassword: process.env.OWNER_PASSWORD ?? 'denim-rose-2026',
+  ownerPassword: ownerPassword || 'denim-rose-2026',
 };
 
 export type Config = typeof config;

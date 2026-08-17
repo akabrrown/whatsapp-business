@@ -43,7 +43,26 @@ export async function getOrCreateCustomer(phone: string, name?: string) {
   });
 }
 
-let orderSeq = 1000;
+// §8 — order numbers derived from DB max, not in-memory counter.
+// Protected by a promise chain to serialize concurrent creates.
+let orderSeq: number | null = null;
+let orderSeqLock: Promise<void> = Promise.resolve();
+
+async function nextOrderNumber(): Promise<string> {
+  await new Promise<void>((resolve) => {
+    orderSeqLock = orderSeqLock.then(resolve);
+  });
+  try {
+    if (orderSeq === null) {
+      const last = await db.order.findFirst({ orderBy: { id: 'desc' }, select: { number: true } });
+      orderSeq = last ? parseInt(last.number.replace('RD-', ''), 10) : 1000;
+    }
+    orderSeq += 1;
+    return `RD-${orderSeq}`;
+  } finally {
+    orderSeqLock = orderSeqLock.then(() => {});
+  }
+}
 
 export interface CreateOrderInput {
   phone: string;
@@ -74,9 +93,10 @@ export async function createOrder(input: CreateOrderInput & { paid: boolean }): 
   const totalP = subtotalP + feeP;
   const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
 
+  const number = await nextOrderNumber();
   const order = await db.order.create({
     data: {
-      number: `RD-${++orderSeq}`,
+      number,
       customerId: customer.id,
       status: input.paid ? OrderStatus.PAID : OrderStatus.RESERVED,
       source: input.source,

@@ -57,7 +57,9 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
   let closed = false;
   let retry: ReturnType<typeof setTimeout>;
   const connect = () => {
-    const url = `${API.replace(/^http/, 'ws')}/ws?channel=admin`;
+    const token = getToken();
+    const qs = token ? `?channel=admin&token=${encodeURIComponent(token)}` : '?channel=admin';
+    const url = `${API.replace(/^http/, 'ws')}/ws${qs}`;
     ws = new WebSocket(url);
     ws.onmessage = (m) => {
       try {

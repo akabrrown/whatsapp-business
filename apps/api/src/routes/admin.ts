@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
-import { requireAuth, requireOwner, issueToken } from '../middleware/auth.js';
+import { requireAuth, requireOwner, issueToken, rateLimitLogin } from '../middleware/auth.js';
 import * as orders from '../services/orders.js';
 import * as inventory from '../services/inventory.js';
 import * as retention from '../services/retention.js';
@@ -16,7 +16,7 @@ import { STALE_PACKED_HOURS } from '@rose/shared';
 export const admin = Router();
 
 // ---- Auth -----------------------------------------------------------------
-admin.post('/login', async (req, res) => {
+admin.post('/login', rateLimitLogin, async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
   const user = await db.adminUser.findUnique({ where: { email: email?.toLowerCase() ?? '' } });
   if (!user || !(await bcrypt.compare(password ?? '', user.password))) {
@@ -190,10 +190,10 @@ admin.patch('/products/:id', async (req, res) => {
 });
 
 // ---- Delivery zones (§11.4 — new fees apply to new orders only by design) ----
-admin.get('/zones', async (_req, res) => {
+admin.get('/zones', requireOwner, async (_req, res) => {
   res.json({ ok: true, zones: await db.deliveryZone.findMany() });
 });
-admin.patch('/zones/:id', async (req, res) => {
+admin.patch('/zones/:id', requireOwner, async (req, res) => {
   const { feeP } = req.body as { feeP?: number };
   if (typeof feeP !== 'number') return res.status(400).json({ ok: false, error: 'feeP required' });
   await db.deliveryZone.update({ where: { id: req.params.id }, data: { feeP } });
@@ -242,7 +242,7 @@ admin.post('/inbox/:conversationId/messages', async (req, res) => {
 });
 
 // ---- Analytics (§11.5) -----------------------------------------------------------
-admin.get('/analytics', async (req, res) => {
+admin.get('/analytics', requireOwner, async (req, res) => {
   const days = Number(req.query.days ?? 30);
   const since = new Date(now().getTime() - days * DAY);
   const ordersIn = await db.order.findMany({

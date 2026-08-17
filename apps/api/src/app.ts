@@ -6,9 +6,14 @@ import { storefront } from './routes/storefront.js';
 import { webhooks } from './routes/webhooks.js';
 import { admin } from './routes/admin.js';
 
+const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 export function createApp() {
   const app = express();
-  app.use(cors());
+  app.use(cors({ origin: allowedOrigins, credentials: true }));
   // NOTE: /webhooks/paystack mounts its own raw() parser for HMAC verification.
   app.use(express.json({ limit: '1mb' }));
 

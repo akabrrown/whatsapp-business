@@ -48,10 +48,12 @@ webhooks.post('/whatsapp', async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-/** Local sim console — inject an inbound WhatsApp message without Meta (dev mode). */
-webhooks.post('/whatsapp/sim-inbound', async (req, res) => {
-  const { phone, text, kind, lat, lng } = req.body as { phone?: string; text?: string; kind?: 'text' | 'voice' | 'location'; lat?: number; lng?: number };
-  if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
-  const result = await handleInbound({ phone, text, kind: kind ?? 'text', lat, lng });
-  res.json({ ok: true, result });
-});
+/** Local sim console — inject an inbound WhatsApp message without Meta (dev mode only). */
+if (config.whatsapp.mode === 'sim') {
+  webhooks.post('/whatsapp/sim-inbound', async (req, res) => {
+    const { phone, text, kind, lat, lng } = req.body as { phone?: string; text?: string; kind?: 'text' | 'voice' | 'location'; lat?: number; lng?: number };
+    if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
+    const result = await handleInbound({ phone, text, kind: kind ?? 'text', lat, lng });
+    res.json({ ok: true, result });
+  });
+}
