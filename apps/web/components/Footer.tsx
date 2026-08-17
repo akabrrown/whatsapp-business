@@ -5,7 +5,7 @@ const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '233200000000';
 export function Footer() {
   return (
     <footer className="mt-24 border-t border-sand/40 bg-cream">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-[2fr_1fr_1fr] md:px-6">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-[2fr_1fr_1fr_1fr] md:px-6">
         <div>
           <p className="headline text-2xl">ROSE &amp; DENIM</p>
           <p className="mt-2 max-w-sm text-sm text-charcoal/70">
@@ -34,6 +34,13 @@ export function Footer() {
             Chat with Kukua on WhatsApp
           </a>
           <p className="mt-3 text-xs text-charcoal/50">We reply fast — promise.</p>
+        </div>
+        <div className="text-sm">
+          <p className="mb-3 font-medium text-indigo">Legal</p>
+          <ul className="space-y-2 text-charcoal/70">
+            <li><a className="hover:text-indigo" href="/privacy">Privacy Policy</a></li>
+            <li><a className="hover:text-indigo" href="/terms">Terms of Service</a></li>
+          </ul>
         </div>
       </div>
       <div className="border-t border-sand/30 py-4 text-center text-xs text-charcoal/50">

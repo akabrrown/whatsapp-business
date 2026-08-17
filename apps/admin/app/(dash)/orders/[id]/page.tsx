@@ -99,12 +99,12 @@ export default function OrderDetailPage() {
               </button>
             )}
             {['PAID', 'PACKED', 'SHIPPED'].includes(order.status) && (
-              <button onClick={() => act('cancel')} className="block w-full rounded border border-charcoal/30 px-4 py-2 text-charcoal/70 hover:border-rose hover:text-rose">
+              <button onClick={() => { if (window.confirm('Cancel this order and issue a refund? This cannot be undone.')) act('cancel'); }} className="block w-full rounded border border-charcoal/30 px-4 py-2 text-charcoal/70 hover:border-rose hover:text-rose">
                 Cancel + refund
               </button>
             )}
             {order.refundDue && (
-              <button onClick={() => act('refund')} className="block w-full rounded bg-rose px-4 py-2 text-cream">
+              <button onClick={() => { if (window.confirm('Issue a refund for this order? This cannot be undone.')) act('refund'); }} className="block w-full rounded bg-rose px-4 py-2 text-cream">
                 Issue refund
               </button>
             )}

@@ -89,6 +89,10 @@ model Order {
   items            OrderItem[]
   payments         Payment[]
   retentionStates  RetentionState[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -101,6 +105,9 @@ model OrderItem {
   variant   ProductVariant @relation(fields: [variantId], references: [id])
   qty       Int
   unitPriceP Int // price snapshot at order time (§4 rules)
+
+  @@index([orderId])
+  @@index([variantId])
 }
 
 model Payment {
@@ -114,6 +121,8 @@ model Payment {
   tokenCode        String? // order token this payment settles
   flaggedForRefund Boolean  @default(false) // §5.8
   createdAt        DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model OrderToken {
@@ -166,6 +175,9 @@ model Conversation {
   lastMsgAt    DateTime  @default(now())
   createdAt    DateTime  @default(now())
   messages     Message[]
+
+  @@index([customerId])
+  @@index([lastMsgAt])
 }
 
 model Message {
@@ -176,6 +188,8 @@ model Message {
   kind           String       @default("text") // text | voice | location | image
   body           String       @default("")
   createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
 }
 
 model InventoryLog {
@@ -186,6 +200,8 @@ model InventoryLog {
   delta      Int
   note       String         @default("")
   createdAt  DateTime       @default(now())
+
+  @@index([variantId])
 }
 
 model AdminUser {
@@ -208,4 +224,6 @@ model RetentionState {
   winbackSent   Boolean   @default(false) // 60-day win-back (§16.3)
 
   @@unique([customerId, orderId])
+  @@index([customerId])
+  @@index([orderId])
 }

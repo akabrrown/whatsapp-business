@@ -2,7 +2,7 @@
 // Slide-out mini-cart (ux.md §3.4) — the one place WhatsApp green appears as
 // a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Minus, Plus, X } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
@@ -19,6 +19,46 @@ export function MiniCart() {
   const [error, setError] = useState('');
   const [confirmDup, setConfirmDup] = useState(false);
   const [busy, setBusy] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  // Focus trap + Escape to close (§7 a11y)
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDrawerOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    [setDrawerOpen],
+  );
+
+  useEffect(() => {
+    if (drawerOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      closeRef.current?.focus();
+      // Prevent body scroll while drawer is open
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen, handleKeyDown]);
 
   if (!drawerOpen) return null;
 
@@ -75,11 +115,17 @@ export function MiniCart() {
 
   return (
     <div className="fixed inset-0 z-50">
-      <button aria-label="Close cart" className="absolute inset-0 bg-charcoal/30" onClick={() => setDrawerOpen(false)} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l-4 border-sand bg-cream shadow-xl">
+      <button aria-label="Close cart" className="absolute inset-0 bg-charcoal/30" onClick={() => setDrawerOpen(false)} tabIndex={-1} />
+      <aside
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Shopping cart"
+        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l-4 border-sand bg-cream shadow-xl"
+      >
         <div className="flex items-center justify-between border-b border-sand/40 px-6 py-4">
           <h2 className="headline text-xl">Your Selection</h2>
-          <button aria-label="Close" className="text-indigo" onClick={() => setDrawerOpen(false)}>
+          <button ref={closeRef} aria-label="Close" className="text-indigo" onClick={() => setDrawerOpen(false)}>
             <X size={24} aria-hidden />
           </button>
         </div>

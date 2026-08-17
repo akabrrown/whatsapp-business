@@ -1,5 +1,6 @@
 // Webhook endpoints — Paystack (HMAC-verified) + Meta WhatsApp (verify handshake + inbound).
 import { Router, raw } from 'express';
+import crypto from 'node:crypto';
 import { handlePaystackWebhook } from '../services/payments.js';
 import { handleInbound } from '../services/bot.js';
 import { config } from '../config.js';
@@ -27,9 +28,23 @@ webhooks.get('/whatsapp', (req, res) => {
 });
 
 // Meta inbound message webhook → bot engine. Always ACK 200 fast (§12.5).
-webhooks.post('/whatsapp', async (req, res) => {
+// Uses raw body for X-Hub-Signature-256 verification in real mode (§14.3).
+const metaRaw = raw({ type: 'application/json' });
+webhooks.post('/whatsapp', metaRaw, async (req, res) => {
+  // §14 — verify Meta signature in real mode
+  if (config.whatsapp.mode === 'real' && config.whatsapp.appSecret) {
+    const sig = req.headers['x-hub-signature-256'] as string | undefined;
+    const rawBody = req.body.toString('utf8');
+    const expected = `sha256=${crypto.createHmac('sha256', config.whatsapp.appSecret).update(rawBody).digest('hex')}`;
+    if (!sig || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+      return res.status(401).json({ ok: false, error: 'invalid_signature' });
+    }
+  }
+
   try {
-    const entry = req.body?.entry?.[0];
+    const rawStr = req.body.toString('utf8');
+    const body = JSON.parse(rawStr);
+    const entry = body?.entry?.[0];
     const change = entry?.changes?.[0]?.value;
     const msg = change?.messages?.[0];
     if (msg) {

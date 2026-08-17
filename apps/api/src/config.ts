@@ -32,6 +32,7 @@ export const config = {
     accessToken: process.env.META_ACCESS_TOKEN ?? '',
     phoneNumberId: process.env.META_PHONE_NUMBER_ID ?? '',
     verifyToken: process.env.META_VERIFY_TOKEN ?? 'rose-denim-verify',
+    appSecret: process.env.META_APP_SECRET ?? '',
   },
   images: {
     mode: (process.env.IMAGES_MODE ?? 'sim') as 'sim' | 'cloudinary',
