@@ -1,4 +1,4 @@
-// Scenario suite §16 — Post-Purchase & Retention (5 scenarios).
+// Scenario suite §16: Post-Purchase & Retention (5 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, advance, DAY, whatsapp, resetRuntime } from '../helpers.js';
 import * as orders from '../../src/services/orders.js';
@@ -27,7 +27,7 @@ describe('§16 Post-Purchase & Retention', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §16.1 — 3-day check-in fires after delivery', async () => {
+  it('Scenario §16.1: 3-day check-in fires after delivery', async () => {
     await deliveredOrder(PHONE, data.v.id);
     advance(2 * DAY);
     expect((await tick()).checkins).toBe(0); // not yet
@@ -35,11 +35,11 @@ describe('§16 Post-Purchase & Retention', () => {
     const result = await tick();
     expect(result.checkins).toBe(1);
     expect(whatsapp.lastTo(PHONE)?.body).toContain("Hope you're loving your new items");
-    // idempotent — never double-sends:
+    // idempotent: never double-sends:
     expect((await tick()).checkins).toBe(0);
   });
 
-  it('Scenario §16.2 — 14-day cross-sell picks a related category', async () => {
+  it('Scenario §16.2: 14-day cross-sell picks a related category', async () => {
     await deliveredOrder(PHONE, data.v.id); // bought jeans
     advance(3 * DAY + 3_600_000);
     await tick(); // check-in consumed
@@ -52,7 +52,7 @@ describe('§16 Post-Purchase & Retention', () => {
     expect(msg).toContain('bags'); // related category
   });
 
-  it('Scenario §16.3 — 60-day win-back with discount code', async () => {
+  it('Scenario §16.3: 60-day win-back with discount code', async () => {
     await deliveredOrder(PHONE, data.v.id);
     advance(59 * DAY);
     expect((await tick()).winbacks).toBe(0); // not yet
@@ -63,7 +63,7 @@ describe('§16 Post-Purchase & Retention', () => {
     expect(whatsapp.lastTo(PHONE)?.body).toContain('WELCOMEBACK10');
   });
 
-  it('Scenario §16.4 — reorder at day 45 resets the win-back timer', async () => {
+  it('Scenario §16.4: reorder at day 45 resets the win-back timer', async () => {
     await deliveredOrder(PHONE, data.v.id);
     advance(45 * DAY);
     await orders.createOrder({ phone: PHONE, items: [{ variantId: data.vBag.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true });
@@ -74,7 +74,7 @@ describe('§16 Post-Purchase & Retention', () => {
     expect(whatsapp.outbox.some((m) => m.body.includes('We miss you'))).toBe(false);
   });
 
-  it('Scenario §16.5 — STOP opts out of marketing; transactional messages continue', async () => {
+  it('Scenario §16.5: STOP opts out of marketing; transactional messages continue', async () => {
     const order = await deliveredOrder(PHONE, data.v.id);
     await handleInbound({ phone: PHONE, text: 'STOP' });
     const customer = await db.customer.findUniqueOrThrow({ where: { phone: PHONE } });

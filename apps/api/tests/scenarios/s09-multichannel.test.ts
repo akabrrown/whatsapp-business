@@ -1,4 +1,4 @@
-// Scenario suite §9 — Multi-Channel & Returning Customers (5 scenarios).
+// Scenario suite §9: Multi-Channel & Returning Customers (5 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, advance, MIN, paystack, resetRuntime, payTokenViaSim } from '../helpers.js';
 import * as handoff from '../../src/services/handoff.js';
@@ -18,14 +18,14 @@ describe('§9 Multi-Channel & Returning Customers', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §9.1 — browses website, orders via token handoff: source tagged website', async () => {
+  it('Scenario §9.1: browses website, orders via token handoff: source tagged website', async () => {
     const { code } = await handoff.createToken({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }] });
     await payTokenViaSim(code);
     const order = await db.order.findFirstOrThrow({ where: { payments: { some: { tokenCode: code } } } });
     expect(order.source).toBe(OrderSource.WEBSITE);
   });
 
-  it('Scenario §9.2 — direct WhatsApp chat end-to-end: source tagged whatsapp_direct', async () => {
+  it('Scenario §9.2: direct WhatsApp chat end-to-end: source tagged whatsapp_direct', async () => {
     await handleInbound({ phone: PHONE, text: 'hi' });
     await handleInbound({ phone: PHONE, text: 'add 1' });
     await handleInbound({ phone: PHONE, text: 'checkout' });
@@ -39,7 +39,7 @@ describe('§9 Multi-Channel & Returning Customers', () => {
     expect(order.status).toBe('PAID');
   });
 
-  it('Scenario §9.3 — returning customer: counters increment, repeat-buyer tag, personalized greeting', async () => {
+  it('Scenario §9.3: returning customer: counters increment, repeat-buyer tag, personalized greeting', async () => {
     await orders.createOrder({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true });
     await orders.createOrder({ phone: PHONE, items: [{ variantId: data.vBag.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true });
     const customer = await db.customer.findUniqueOrThrow({ where: { phone: PHONE } });
@@ -50,7 +50,7 @@ describe('§9 Multi-Channel & Returning Customers', () => {
     expect(reply.replies[0]).toContain('Welcome back');
   });
 
-  it('Scenario §9.4 — abandoned website cart expires quietly while direct chat proceeds', async () => {
+  it('Scenario §9.4: abandoned website cart expires quietly while direct chat proceeds', async () => {
     await cart.add('web-session', data.v.id, 1);
     advance(31 * MIN);
     expect(cart.get('web-session')).toBeNull(); // cart simply expires
@@ -61,7 +61,7 @@ describe('§9 Multi-Channel & Returning Customers', () => {
     expect(reply.replies[0]).toContain('Added');
   });
 
-  it('Scenario §9.5 — same customer, two devices: one continuous conversation thread', async () => {
+  it('Scenario §9.5: same customer, two devices: one continuous conversation thread', async () => {
     await handleInbound({ phone: PHONE, text: 'hi' }); // from phone
     await handleInbound({ phone: PHONE, text: 'menu' }); // later, from tablet (same number)
     const customer = await db.customer.findUniqueOrThrow({ where: { phone: PHONE } });

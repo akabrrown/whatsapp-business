@@ -1,4 +1,4 @@
-// Reliable WhatsApp delivery — retries, template fallback, undeliverable flags (§12.1–12.4).
+// Reliable WhatsApp delivery: retries, template fallback, undeliverable flags (§12.1–12.4).
 import { whatsapp } from '../adapters/whatsapp.js';
 import { db } from '../db.js';
 
@@ -25,7 +25,7 @@ export async function sendReliable(to: string, body: string, opts: SendOptions =
       : await whatsapp.sendText(to, body);
 
     if (!res.ok && res.error === 'template_required' && opts.templateName) {
-      // §12.4 — fall back to pre-approved template.
+      // §12.4: fall back to pre-approved template.
       res = await whatsapp.sendTemplate(to, opts.templateName, body);
     }
     if (res.ok) {

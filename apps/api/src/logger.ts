@@ -1,4 +1,4 @@
-// Structured logging helper — JSON format for production observability.
+// Structured logging helper: JSON format for production observability.
 // In production, logs are JSON-parseable for easy ingestion by log aggregators.
 
 const isProduction = process.env.NODE_ENV === 'production';

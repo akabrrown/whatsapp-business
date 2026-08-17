@@ -1,4 +1,4 @@
-// Product card — placeholder-safe image (§3.4), restrained stock tags (§3.2).
+// Product card: placeholder-safe image (§3.4), restrained stock tags (§3.2).
 import Link from 'next/link';
 import { formatGHS } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
@@ -24,7 +24,7 @@ export function ProductCard({ product, large = false }: { product: CatalogProduc
         )}
         {product.soldOut && (
           <span className="absolute left-3 top-3 bg-charcoal/80 px-2 py-1 text-xs tracking-wide text-cream">
-            Sold out — chat to pre-order
+            Sold out: chat to pre-order
           </span>
         )}
       </Link>

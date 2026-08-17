@@ -1,4 +1,4 @@
-// Paystack adapter — real REST integration + in-process simulator.
+// Paystack adapter: real REST integration + in-process simulator.
 // Env switch: PAYSTACK_MODE=sim|real (see src/config.ts).
 import crypto from 'node:crypto';
 import { config } from '../config.js';
@@ -49,7 +49,7 @@ export class RealPaystack implements PaystackAdapter {
       if (!json.status || !json.data) return { ok: false, error: json.message ?? 'Paystack initialization failed' };
       return { ok: true, authorizationUrl: json.data.authorization_url };
     } catch (e) {
-      // §13.1 — Paystack down: caller surfaces friendly message, no order created.
+      // §13.1: Paystack down: caller surfaces friendly message, no order created.
       return { ok: false, error: 'paystack_unreachable' };
     }
   }

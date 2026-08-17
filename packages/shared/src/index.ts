@@ -1,5 +1,5 @@
 // ============================================================
-// ROSE & DENIM — shared types & constants (used by api/web/admin)
+// ROSE & DENIM: shared types & constants (used by api/web/admin)
 // Money is always integer pesewas (GHS 1 = 100).
 // ============================================================
 

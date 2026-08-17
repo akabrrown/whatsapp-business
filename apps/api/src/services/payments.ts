@@ -1,4 +1,4 @@
-// Payments — Paystack webhook processing with HMAC verification and full
+// Payments: Paystack webhook processing with HMAC verification and full
 // idempotency (§5, §14.3). Money taken is ALWAYS honored (§5.6).
 import crypto from 'node:crypto';
 import { db } from '../db.js';
@@ -17,7 +17,7 @@ export interface WebhookOutcome {
   body: { ok: boolean; detail?: string };
 }
 
-/** §14.3 — constant-time HMAC-SHA512 verification. */
+/** §14.3: constant-time HMAC-SHA512 verification. */
 export function verifySignature(rawBody: string, signature: string | undefined): boolean {
   if (!signature) return false;
   const expected = crypto.createHmac('sha512', config.paystack.webhookSecret).update(rawBody).digest('hex');
@@ -29,14 +29,14 @@ export function verifySignature(rawBody: string, signature: string | undefined):
 /** Entry point for POST /webhooks/paystack (raw body + x-paystack-signature). */
 export async function handlePaystackWebhook(rawBody: string, signature: string | undefined): Promise<WebhookOutcome> {
   if (!verifySignature(rawBody, signature)) {
-    // §14.3 — never mutate state from an unverified webhook; log security event.
+    // §14.3: never mutate state from an unverified webhook; log security event.
     await db.webhookEvent.create({ data: { provider: 'paystack', ref: `rejected:${crypto.randomUUID()}`, payload: rawBody } }).catch(() => {});
     hub.broadcastAdmin('alert.security', { type: 'forged_webhook', at: now().toISOString() });
     return { status: 401, body: { ok: false, detail: 'invalid_signature' } };
   }
 
   const payload = JSON.parse(rawBody) as { event: string; data: { reference: string; amount?: number; channel?: string; metadata?: Record<string, unknown> } };
-  // §5.7 / §12.5 — idempotency ledger: duplicate or delayed deliveries are safe.
+  // §5.7 / §12.5: idempotency ledger: duplicate or delayed deliveries are safe.
   const ledgerKey = `${payload.event}:${payload.data.reference}`;
   const seen = await db.webhookEvent.findFirst({ where: { provider: 'paystack', ref: ledgerKey } });
   if (seen) return { status: 200, body: { ok: true, detail: 'duplicate_noop' } };
@@ -57,7 +57,7 @@ async function chargeSuccess(data: { reference: string; amount?: number; channel
   const tokenCode = (data.metadata?.tokenCode as string | undefined) ?? null;
   const token = tokenCode ? await db.orderToken.findUnique({ where: { code: tokenCode }, include: { items: true } }) : null;
 
-  // §5.8 — token already settled by a previous payment: flag the extra payment for refund.
+  // §5.8: token already settled by a previous payment: flag the extra payment for refund.
   if (token && token.status === TokenStatus.USED) {
     await db.payment.upsert({
       where: { paystackRef: data.reference },
@@ -68,7 +68,7 @@ async function chargeSuccess(data: { reference: string; amount?: number; channel
     return { status: 200, body: { ok: true, detail: 'duplicate_payment_flagged' } };
   }
 
-  // §5.6 — payment arriving after token expiry: money is still honored.
+  // §5.6: payment arriving after token expiry: money is still honored.
   const tokenExpired = token ? token.status !== TokenStatus.ACTIVE || token.expiresAt.getTime() <= now().getTime() : true;
 
   const source: OrderSource =
@@ -87,7 +87,7 @@ async function chargeSuccess(data: { reference: string; amount?: number; channel
     deliveryFeeP: feeP,
     zoneName,
     deliveryAddress: address,
-    needsAdminReview: tokenExpired, // §5.6 — manual review flag
+    needsAdminReview: tokenExpired, // §5.6: manual review flag
   });
 
   // upsert: initPaymentForToken already holds a PENDING row for this reference.
@@ -98,7 +98,7 @@ async function chargeSuccess(data: { reference: string; amount?: number; channel
   });
   if (token) await db.orderToken.update({ where: { id: token.id }, data: { status: TokenStatus.USED } });
 
-  // §6.4 — race lost: stock went to someone else → refund the later payer.
+  // §6.4: race lost: stock went to someone else → refund the later payer.
   if (stockShortfall) {
     await db.order.update({ where: { id: order.id }, data: { refundDue: true } });
     await refundByRef(data.reference, data.amount ?? order.totalP);
@@ -107,10 +107,10 @@ async function chargeSuccess(data: { reference: string; amount?: number; channel
     return { status: 200, body: { ok: true, detail: 'paid_but_out_of_stock' } };
   }
 
-  // §5.1/§5.2 — identical confirmation regardless of channel; §5.10 bank-transfer note.
+  // §5.1/§5.2: identical confirmation regardless of channel; §5.10 bank-transfer note.
   let confirmation = `Payment Received! Your order ${order.number} is confirmed. Thank you!`;
   if (data.channel === 'bank_transfer') {
-    confirmation += " Bank transfers can take a little longer to confirm — we'll notify you the moment it clears.";
+    confirmation += " Bank transfers can take a little longer to confirm: we'll notify you the moment it clears.";
   }
   await sendReliable(phone, confirmation, { templateName: 'order_paid' });
   return { status: 200, body: { ok: true, detail: 'order_created' } };
@@ -126,7 +126,7 @@ async function chargeFailure(data: { reference: string; metadata?: Record<string
     create: { paystackRef: data.reference, amountP: 0, status: PaymentStatus.FAILED, tokenCode },
   });
 
-  // §5.3/§5.4 — reservation retained for exactly one retry.
+  // §5.3/§5.4: reservation retained for exactly one retry.
   const failKey = `payfail:${tokenCode}`;
   const failures = (kv.get<number>(failKey) ?? 0) + 1;
   kv.set(failKey, failures, 3_600_000);
@@ -140,7 +140,7 @@ async function chargeFailure(data: { reference: string; metadata?: Record<string
     const retry = await initPaymentForToken(tokenCode);
     await sendReliable(phone, `Your payment didn't go through. Try again here: ${retry ?? 'your payment link'}`, { templateName: 'payment_retry' });
   } else {
-    // §5.5 — stop auto-retrying; offer human assistance.
+    // §5.5: stop auto-retrying; offer human assistance.
     await sendReliable(phone, "Having trouble? I can connect you with our team.", { templateName: 'payment_help' });
     const conv = await db.conversation.findFirst({ where: { customer: { phone } }, orderBy: { lastMsgAt: 'desc' } });
     if (conv) await db.conversation.update({ where: { id: conv.id }, data: { status: 'NEEDS_HUMAN' } });
@@ -168,10 +168,10 @@ export async function initPaymentForToken(tokenCode: string, extra?: { phone?: s
       zoneName: extra?.zoneName,
       deliveryFeeP: extra?.deliveryFeeP ?? 0,
       address: extra?.address,
-      channel: extra?.channel, // §9.1/§9.2 — tag the originating channel
+      channel: extra?.channel, // §9.1/§9.2: tag the originating channel
     },
   });
-  if (!res.ok) return null; // §13.1 — surfaced by caller
+  if (!res.ok) return null; // §13.1: surfaced by caller
   await db.payment.create({ data: { paystackRef: reference, amountP: totalP, status: PaymentStatus.PENDING, tokenCode } });
   return res.authorizationUrl ?? reference;
 }
@@ -184,7 +184,7 @@ export async function refundByRef(paystackRef: string, amountP: number): Promise
   return res.ok;
 }
 
-/** §5.9 — owner-approved refund from the dashboard. */
+/** §5.9: owner-approved refund from the dashboard. */
 export async function refundOrder(orderId: string): Promise<{ ok: boolean; message?: string }> {
   const payment = await db.payment.findFirst({ where: { orderId, status: PaymentStatus.SUCCESS } });
   if (!payment) return { ok: false, message: 'no_successful_payment' };

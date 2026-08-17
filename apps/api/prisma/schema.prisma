@@ -1,4 +1,4 @@
-// ROSE & DENIM — data model (PostgreSQL/Supabase production; SQLite for tests)
+// ROSE & DENIM: data model (PostgreSQL/Supabase production; SQLite for tests)
 // Money: integer pesewas. Timestamps: UTC.
 
 generator client {

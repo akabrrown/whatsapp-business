@@ -1,5 +1,5 @@
 'use client';
-// Authenticated shell — sidebar nav, owner-only sections, live alert toasts.
+// Authenticated shell: sidebar nav, owner-only sections, live alert toasts.
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -44,7 +44,7 @@ export default function DashLayout({ children }: { children: ReactNode }) {
       if (e.type === 'inbox.alert')
         setToast({ icon: <MessageCircle size={15} aria-hidden />, text: `${p?.phone ?? 'Customer'} needs Kukua (${p?.reason ?? 'question'})` });
       else if (e.type === 'alert.low_stock')
-        setToast({ icon: <Package size={15} aria-hidden />, text: `Low stock — ${p?.sku ?? 'variant'}` });
+        setToast({ icon: <Package size={15} aria-hidden />, text: `Low stock: ${p?.sku ?? 'variant'}` });
       else if (e.type === 'alert.vip')
         setToast({ icon: <Sparkles size={15} aria-hidden />, text: 'VIP order in progress (GHS 1,000+)' });
       else if (e.type === 'alert.security')

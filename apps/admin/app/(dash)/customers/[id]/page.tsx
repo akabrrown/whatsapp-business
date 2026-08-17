@@ -1,5 +1,5 @@
 'use client';
-// Customer 360 (§3.13) — profile + tags, order history, conversation threads.
+// Customer 360 (§3.13): profile + tags, order history, conversation threads.
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';

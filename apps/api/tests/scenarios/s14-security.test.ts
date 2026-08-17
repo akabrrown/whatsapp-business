@@ -1,4 +1,4 @@
-// Scenario suite §14 — Security & Abuse (6 scenarios).
+// Scenario suite §14: Security & Abuse (6 scenarios).
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -33,7 +33,7 @@ describe('§14 Security & Abuse', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §14.1 — token spam: 6th request within an hour is rate-limited (429)', async () => {
+  it('Scenario §14.1: token spam: 6th request within an hour is rate-limited (429)', async () => {
     for (let i = 0; i < 5; i++) {
       await handoff.createToken({ phone: PHONE, items: [{ variantId: data.vBag.id, qty: 1 }] });
     }
@@ -49,7 +49,7 @@ describe('§14 Security & Abuse', () => {
     expect(((await res.json()) as { message: string }).message).toContain('Too many order attempts');
   });
 
-  it('Scenario §14.2 — guessed token: generic message, zero order data exposed', async () => {
+  it('Scenario §14.2: guessed token: generic message, zero order data exposed', async () => {
     const res = await fetch(`${base}/api/orders/by-token/RD-000000`);
     expect(res.status).toBe(404);
     const body = (await res.json()) as { ok: boolean; message: string; token?: unknown; order?: unknown };
@@ -58,7 +58,7 @@ describe('§14 Security & Abuse', () => {
     expect(body.order).toBeUndefined();
   });
 
-  it('Scenario §14.3 — forged webhook: rejected, logged, never mutates state', async () => {
+  it('Scenario §14.3: forged webhook: rejected, logged, never mutates state', async () => {
     const { code } = await handoff.createToken({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }] });
     const forged = JSON.stringify({ event: 'charge.success', data: { reference: 'rd_forged', amount: 32000, metadata: { tokenCode: code } } });
     const outcome = await handlePaystackWebhook(forged, 'deadbeef'.repeat(16));
@@ -69,7 +69,7 @@ describe('§14 Security & Abuse', () => {
     expect(hub.log.some((e) => e.type === 'alert.security')).toBe(true);
   });
 
-  it('Scenario §14.4 — admin login: JWT issued only for valid credentials', async () => {
+  it('Scenario §14.4: admin login: JWT issued only for valid credentials', async () => {
     await db.adminUser.create({
       data: { email: 'kukua@roseanddenim.com', name: 'Kukua', role: 'owner', password: await bcrypt.hash('owner-pass-1', 10) },
     });
@@ -92,7 +92,7 @@ describe('§14 Security & Abuse', () => {
     expect(noToken.status).toBe(401);
   });
 
-  it('Scenario §14.5 — duplicate order within 10 minutes: confirmation required', async () => {
+  it('Scenario §14.5: duplicate order within 10 minutes: confirmation required', async () => {
     await orders.createOrder({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true });
     await expect(
       handoff.createToken({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }] }),
@@ -102,7 +102,7 @@ describe('§14 Security & Abuse', () => {
     expect(ok.code).toMatch(/^RD-\d{6}$/);
   });
 
-  it('Scenario §14.6 — malicious upload: rejected at validation, nothing stored', async () => {
+  it('Scenario §14.6: malicious upload: rejected at validation, nothing stored', async () => {
     expect(validateUpload('application/pdf', 100).ok).toBe(false);
     expect(validateUpload('image/png', 6 * 1024 * 1024).ok).toBe(false); // > 5MB
     expect(validateUpload('image/png', 1024 * 1024).ok).toBe(true);

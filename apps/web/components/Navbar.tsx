@@ -1,5 +1,5 @@
 'use client';
-// Site header + mobile menu (ux.md §3.6 — serif category links, warm base).
+// Site header + mobile menu (ux.md §3.6: serif category links, warm base).
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Menu, Search, ShoppingBag, X } from 'lucide-react';

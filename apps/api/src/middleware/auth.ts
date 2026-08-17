@@ -33,7 +33,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-/** §11.6 — staff can use orders/inventory/chat but NOT staff mgmt/full analytics/settings. */
+/** §11.6: staff can use orders/inventory/chat but NOT staff mgmt/full analytics/settings. */
 export function requireOwner(req: Request, res: Response, next: NextFunction) {
   if (req.admin?.role !== 'owner') {
     res.status(403).json({ ok: false, error: 'owner_only' });

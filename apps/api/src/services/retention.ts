@@ -16,7 +16,7 @@ const MAX_TICK_SENDS = 100; // Cap sends per tick to avoid cost bursts (§16 cos
 export async function tick(t: Date = now()): Promise<TickResult> {
   const result: TickResult = { checkins: 0, crosssells: 0, winbacks: 0 };
 
-  // §16.1/§16.2 — anchored to delivery date, per order. Bounded to 500 rows.
+  // §16.1/§16.2: anchored to delivery date, per order. Bounded to 500 rows.
   const states = await db.retentionState.findMany({
     where: { order: { status: 'DELIVERED', deliveredAt: { not: null } } },
     include: { order: { include: { customer: true, items: { include: { variant: { include: { product: { include: { category: true } } } } } } } } },
@@ -43,7 +43,7 @@ export async function tick(t: Date = now()): Promise<TickResult> {
     }
 
     if (!s.crosssellSent && days >= CROSSSELL_DAYS) {
-      // §16.2 — related category from the purchased item.
+      // §16.2: related category from the purchased item.
       const boughtCat = order.items[0]?.variant.product.category.slug ?? 'jeans';
       const related = boughtCat === 'bags' ? 'accessories' : 'bags';
       const sent = await sendReliable(
@@ -58,7 +58,7 @@ export async function tick(t: Date = now()): Promise<TickResult> {
     }
   }
 
-  // §16.3/§16.4 — win-back anchored to the customer's LATEST order date,
+  // §16.3/§16.4: win-back anchored to the customer's LATEST order date,
   // so any newer order resets the timer automatically. Bounded to 200 customers.
   const customers = await db.customer.findMany({
     where: { marketingOptOut: false, lastOrderAt: { not: null } },
@@ -73,7 +73,7 @@ export async function tick(t: Date = now()): Promise<TickResult> {
       where: { customerId: c.id, winbackSent: true, order: { createdAt: { gte: c.lastOrderAt } } },
     });
     if (lastState) continue; // already sent for this cycle
-    const sent = await sendReliable(c.phone, "We miss you! Here's 10% off your next order — code WELCOMEBACK10.", {
+    const sent = await sendReliable(c.phone, "We miss you! Here's 10% off your next order: code WELCOMEBACK10.", {
       templateName: 'retention_winback',
     });
     if (sent.ok) {

@@ -11,8 +11,8 @@ const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'ROSE & DENIM BY KUKUA — Denim, Dresses & Bags in Accra',
-  description: 'Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra. Shop the collection online or chat with us directly.',
+  title: 'ROSE & DENIM BY KUKUA: Denim, Dresses & Bags in Accra',
+  description: 'Denim, dresses, bags and the little things, ordered over WhatsApp and delivered across Accra. Shop the collection online or chat with us directly.',
   keywords: ['denim', 'dresses', 'bags', 'fashion', 'Accra', 'Ghana', 'WhatsApp shopping', 'rose and denim'],
   authors: [{ name: 'Kukua', url: 'https://roseanddenim.com' }],
   icons: {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   openGraph: {
     title: 'ROSE & DENIM BY KUKUA',
-    description: 'Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra.',
+    description: 'Denim, dresses, bags and the little things, ordered over WhatsApp and delivered across Accra.',
     type: 'website',
     locale: 'en_GH',
     siteName: 'ROSE & DENIM BY KUKUA',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'ROSE & DENIM BY KUKUA',
-    description: 'Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra.',
+    description: 'Denim, dresses, bags and the little things, ordered over WhatsApp and delivered across Accra.',
   },
   robots: {
     index: true,
@@ -43,7 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   try {
     categories = await api.categories();
   } catch {
-    // API down — the storefront still renders its shell (§13.3 browsing resilience).
+    // API down, storefront still renders its shell (§13.3 browsing resilience).
   }
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>

@@ -1,4 +1,4 @@
-// Product detail purchase panel — tactile size/color selectors, restrained
+// Product detail purchase panel: tactile size/color selectors, restrained
 // stock label, denim CTA + quiet WhatsApp sizing touchpoint (ux.md §3.3).
 'use client';
 import { useMemo, useState } from 'react';
@@ -70,7 +70,7 @@ export function VariantPicker({ product }: { product: CatalogProduct }) {
         <p className="inline-block bg-sand/30 px-2 py-1 text-xs text-charcoal/80">Only {available} left in this one</p>
       )}
       {available === 0 && (
-        <p className="inline-block bg-charcoal/80 px-2 py-1 text-xs text-cream">Sold out — chat to pre-order</p>
+        <p className="inline-block bg-charcoal/80 px-2 py-1 text-xs text-cream">Sold out: chat to pre-order</p>
       )}
 
       {selected && <AddToBag product={product} variantId={selected.id} />}

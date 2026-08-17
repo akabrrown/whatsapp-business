@@ -1,4 +1,4 @@
-// WhatsApp bot engine — menu-driven direct ordering + handoff rules (§9, §10).
+// WhatsApp bot engine: menu-driven direct ordering + handoff rules (§9, §10).
 import { db } from '../db.js';
 import { kv } from '../sessionStore.js';
 import { now } from '../clock.js';
@@ -56,23 +56,23 @@ async function handoff(conv: { id: string; customerId: string }, phone: string, 
   hub.broadcastAdmin('inbox.alert', { phone, reason });
   if (opts?.quiet) return { replies: [], handoff: true };
   const msg = /voice/.test(reason)
-    ? "I can't listen to voice notes yet — let me get Kukua to help."
+    ? "I can't listen to voice notes yet: let me get Kukua to help."
     : "Let me get Kukua for you. She'll reply shortly.";
   await sendReliable(phone, msg, { conversationId: conv.id });
   await recordOutbound(conv.id, msg);
   return { replies: [msg], handoff: true };
 }
 
-/** Main inbound entry point — called from the Meta webhook route or the sim console. */
+/** Main inbound entry point: called from the Meta webhook route or the sim console. */
 export async function handleInbound(input: { phone: string; text?: string; kind?: 'text' | 'voice' | 'location'; lat?: number; lng?: number }): Promise<BotReply> {
   const phone = input.phone;
   const conv = await conversationFor(phone);
   await recordInbound(conv.id, input.kind ?? 'text', input.text ?? `[${input.kind}]`);
 
-  // §10.6 — staff has taken over: bot stays silent.
+  // §10.6: staff has taken over: bot stays silent.
   if (conv.status === ConversationStatus.HUMAN) return { replies: [] };
 
-  // §10.3 — voice notes cannot be parsed.
+  // §10.3: voice notes cannot be parsed.
   if (input.kind === 'voice') return handoff(conv, phone, 'voice note');
 
   if (input.kind === 'location') {
@@ -83,22 +83,22 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
   const text = (input.text ?? '').trim();
   const st = getState(phone);
 
-  // Intent: marketing opt-out (§16.5) — transactional messages continue.
+  // Intent: marketing opt-out (§16.5): transactional messages continue.
   if (/^(stop|unsubscribe|opt ?out)\b/i.test(text)) {
     await db.customer.update({ where: { phone }, data: { marketingOptOut: true } }).catch(() => {});
-    const msg = "Done — we'll only send you order updates from now on.";
+    const msg = "Done: we'll only send you order updates from now on.";
     await sendReliable(phone, msg, { conversationId: conv.id });
     await recordOutbound(conv.id, msg);
     return { replies: [msg] };
   }
 
-  // §10.1 — explicit human request.
+  // §10.1: explicit human request.
   if (HANDOFF_WORDS.test(text)) return handoff(conv, phone, 'explicit request');
 
-  // §10.5 — the bot never negotiates pricing.
+  // §10.5: the bot never negotiates pricing.
   if (NEGOTIATE.test(text)) return handoff(conv, phone, 'negotiation');
 
-  // §15.3/§15.4 — exchanges & damage reports go straight to a human.
+  // §15.3/§15.4: exchanges & damage reports go straight to a human.
   if (SUPPORT.test(text)) {
     const msg = /damaged|broken|defect|torn/.test(text)
       ? "So sorry about that! Let me get Kukua to sort this out right away."
@@ -110,7 +110,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
     return handoff(conv, phone, 'support request');
   }
 
-  // §7.5 — post-payment address changes are never auto-applied; human handles them.
+  // §7.5: post-payment address changes are never auto-applied; human handles them.
   if (/\b(change|update)\b.*\baddress\b|\bnew address\b/i.test(text)) {
     const msg = "I'll get Kukua to update that for you.";
     await db.conversation.update({ where: { id: conv.id }, data: { status: ConversationStatus.NEEDS_HUMAN, failCount: 0 } });
@@ -137,9 +137,9 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
     if (/^(menu|start|hi|hello|hey)\b/i.test(text) && st.cart.length === 0) {
       const products = await listActive();
       const returning = await db.customer.findUnique({ where: { phone } });
-      // §9.3 — personalize returning customers.
+      // §9.3: personalize returning customers.
       const headline = returning && returning.totalOrders > 0 ? 'Welcome back to ROSE & DENIM 🌹' : 'Welcome to ROSE & DENIM 🌹';
-      const lines = products.slice(0, 8).map((p, i) => `${i + 1}. ${p.name} — ${formatGHS(p.minPriceP)}${p.soldOut ? ' (Sold Out)' : ''}`);
+      const lines = products.slice(0, 8).map((p, i) => `${i + 1}. ${p.name}: ${formatGHS(p.minPriceP)}${p.soldOut ? ' (Sold Out)' : ''}`);
       const msg = `${headline}\nWhat would you like?\n\n${lines.join('\n')}\n\nReply with a number to view it, "add <number>" to add to your bag, or "checkout" when ready.`;
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
@@ -157,7 +157,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
     if (p) {
       const variant = p.variants.find((v) => v.available > 0);
       if (!variant) {
-        const msg = `So sorry — ${p.name} just sold out. Can I show you something similar?`;
+        const msg = `So sorry: ${p.name} just sold out. Can I show you something similar?`;
         await sendReliable(phone, msg, { conversationId: conv.id });
         await recordOutbound(conv.id, msg);
         return { replies: [msg] };
@@ -168,7 +168,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
         else st.cart.push({ variantId: variant.id, qty: 1, name: p.name, priceP: variant.priceP });
         setState(phone, st);
         const subtotal = st.cart.reduce((s, c) => s + c.priceP * c.qty, 0);
-        // §10.4 — VIP carts alert the owner silently.
+        // §10.4: VIP carts alert the owner silently.
         if (subtotal >= VIP_THRESHOLD_PESWAS) hub.broadcastAdmin('alert.vip', { phone, subtotalP: subtotal });
         const msg = `Added ${p.name} to your bag. Total so far: ${formatGHS(subtotal)}.\nSay "checkout" to continue or keep browsing.`;
         await sendReliable(phone, msg, { conversationId: conv.id });
@@ -185,7 +185,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
 
   if (/^checkout\b/i.test(text)) {
     if (st.cart.length === 0) {
-      const msg = 'Your bag is empty — reply "menu" to browse the collection.';
+      const msg = 'Your bag is empty: reply "menu" to browse the collection.';
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
@@ -207,7 +207,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
   if (st.stage === 'CONFIRM_PHONE') {
     const phoneOk = text.replace(/\D/g, '');
     if (phoneOk.length < 9) {
-      const msg = "That doesn't look like a phone number — please send it again.";
+      const msg = "That doesn't look like a phone number: please send it again.";
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
@@ -221,20 +221,20 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
       });
       const link = await initPaymentForToken(result.code, { zoneName: st.zoneName, deliveryFeeP: st.deliveryFeeP, channel: OrderSource.WHATSAPP_DIRECT });
       if (!link) {
-        // §13.1 — payment provider down: friendly message, reservation kept until TTL.
-        const msg = "We're having trouble processing payments right now — please try again shortly, or Kukua can assist.";
+        // §13.1: payment provider down: friendly message, reservation kept until TTL.
+        const msg = "We're having trouble processing payments right now: please try again shortly, or Kukua can assist.";
         setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
         await sendReliable(phone, msg, { conversationId: conv.id });
         await recordOutbound(conv.id, msg);
         return { replies: [msg] };
       }
       setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
-      const msg = `Order summary:\n${result.items.map((l) => `• ${l.name} ×${l.qty} — ${formatGHS(l.lineP)}`).join('\n')}\nDelivery (${result.zoneName}): ${formatGHS(result.deliveryFeeP ?? 0)}\nTotal: ${formatGHS(result.totalP)}\n\nPay here to confirm: ${link}`;
+      const msg = `Order summary:\n${result.items.map((l) => `• ${l.name} ×${l.qty}: ${formatGHS(l.lineP)}`).join('\n')}\nDelivery (${result.zoneName}): ${formatGHS(result.deliveryFeeP ?? 0)}\nTotal: ${formatGHS(result.totalP)}\n\nPay here to confirm: ${link}`;
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
     } catch (e) {
-      const msg = e instanceof HandoffError ? e.message : 'Something went wrong — Kukua has been notified.';
+      const msg = e instanceof HandoffError ? e.message : 'Something went wrong: Kukua has been notified.';
       if (e instanceof HandoffError && e.code === 'SOLD_OUT') {
         await sendReliable(phone, `${msg} Reply "menu" to see similar items.`, { conversationId: conv.id });
       } else {
@@ -245,7 +245,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
     }
   }
 
-  // §10.2 — three consecutive unrecognized messages → human handoff.
+  // §10.2: three consecutive unrecognized messages → human handoff.
   const fails = conv.failCount + 1;
   await db.conversation.update({ where: { id: conv.id }, data: { failCount: fails } });
   if (fails >= 3) return handoff(conv, phone, '3 unrecognized messages');
@@ -271,25 +271,25 @@ async function addressResult(
     return { replies: [msg] };
   }
   if (match.reason === 'out_of_zone') {
-    // §7.3 — manual quote + human handoff.
-    const msg = "This is outside our standard delivery zones — Kukua will confirm your delivery fee shortly.";
+    // §7.3: manual quote + human handoff.
+    const msg = "This is outside our standard delivery zones: Kukua will confirm your delivery fee shortly.";
     await sendReliable(phone, msg, { conversationId: conv.id });
     await recordOutbound(conv.id, msg);
     return handoff(conv, phone, 'out-of-zone address', { quiet: true });
   }
-  // §7.4 — re-prompt with the expected format.
+  // §7.4: re-prompt with the expected format.
   const msg = "I couldn't recognize that address. Please send it as: [Area], [City]";
   await sendReliable(phone, msg, { conversationId: conv.id });
   await recordOutbound(conv.id, msg);
   return { replies: [msg] };
 }
 
-/** §10.6 — staff takes over: bot stops replying to this thread. */
+/** §10.6: staff takes over: bot stops replying to this thread. */
 export async function takeOver(conversationId: string) {
   await db.conversation.update({ where: { id: conversationId }, data: { status: ConversationStatus.HUMAN, failCount: 0 } });
 }
 
-/** §10.7 — staff releases: bot resumes from last known state. */
+/** §10.7: staff releases: bot resumes from last known state. */
 export async function releaseToBot(conversationId: string) {
   await db.conversation.update({ where: { id: conversationId }, data: { status: ConversationStatus.BOT, failCount: 0 } });
 }

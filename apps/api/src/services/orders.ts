@@ -1,4 +1,4 @@
-// Order lifecycle — status machine, customer stats, notifications (§8, §9, §15).
+// Order lifecycle: status machine, customer stats, notifications (§8, §9, §15).
 import { db } from '../db.js';
 import { now, HOUR, STALE_PACKED_HOURS } from '../clock.js';
 import { hardDeduct, restock, release } from './inventory.js';
@@ -26,7 +26,7 @@ const ALLOWED: Record<string, string[]> = {
 
 const STATUS_MESSAGES: Record<string, (o: { number: string; riderName?: string | null; riderPhone?: string | null; totalP: number }) => string> = {
   PAID: (o) => `Payment Received! Your order ${o.number} is confirmed (${formatGHS(o.totalP)}). We'll start packing right away.`,
-  PACKED: (o) => `Good news — order ${o.number} is packed and ready. It ships soon!`,
+  PACKED: (o) => `Good news: order ${o.number} is packed and ready. It ships soon!`,
   SHIPPED: (o) =>
     `Your order ${o.number} is on the way!` +
     (o.riderName ? ` Rider: ${o.riderName}${o.riderPhone ? `, ${o.riderPhone}` : ''}` : ''),
@@ -43,7 +43,7 @@ export async function getOrCreateCustomer(phone: string, name?: string) {
   });
 }
 
-// §8 — order numbers derived from DB max, not in-memory counter.
+// §8: order numbers derived from DB max, not in-memory counter.
 // Protected by a promise chain to serialize concurrent creates.
 let orderSeq: number | null = null;
 let orderSeqLock: Promise<void> = Promise.resolve();
@@ -114,7 +114,7 @@ export async function createOrder(input: CreateOrderInput & { paid: boolean }): 
   });
 
   if (input.paid) {
-    // §6.1 — hard-deduct at payment. If stock vanished (race, §6.4) flag shortfall.
+    // §6.1: hard-deduct at payment. If stock vanished (race, §6.4) flag shortfall.
     let shortfall = false;
     for (const line of lines) {
       try {
@@ -144,7 +144,7 @@ async function afterPaid(orderId: string) {
     where: { id: customer.id },
     data: { totalOrders, totalSpentP: customer.totalSpentP + order.totalP, tags: JSON.stringify(tags), lastOrderAt: now() },
   });
-  // §16.4 — retention timers reset from the new order.
+  // §16.4: retention timers reset from the new order.
   await db.retentionState.upsert({
     where: { customerId_orderId: { customerId: customer.id, orderId: order.id } },
     update: {},
@@ -173,29 +173,29 @@ export async function setStatus(orderId: string, next: string, opts: { notify?: 
   }
 }
 
-/** §8.5 — rider reassignment notifies the customer. */
+/** §8.5: rider reassignment notifies the customer. */
 export async function reassignRider(orderId: string, riderName: string, riderPhone: string) {
   const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { customer: true } });
   await db.order.update({ where: { id: orderId }, data: { riderName, riderPhone } });
   if (order.status === OrderStatus.SHIPPED) {
-    await sendReliable(order.customer.phone, `Slight update — your order ${order.number} is now with ${riderName}, contact: ${riderPhone}`, {
+    await sendReliable(order.customer.phone, `Slight update: your order ${order.number} is now with ${riderName}, contact: ${riderPhone}`, {
       conversationId: order.conversationId ?? undefined,
     });
   }
 }
 
-/** §8.2 — failed delivery attempt: order stays SHIPPED, bot follows up with the customer. */
+/** §8.2: failed delivery attempt: order stays SHIPPED, bot follows up with the customer. */
 export async function failedDelivery(orderId: string): Promise<void> {
   const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { customer: true } });
   if (order.status !== OrderStatus.SHIPPED) throw new InvalidTransition(order.status, 'FAILED_DELIVERY_NOTE');
   await sendReliable(
     order.customer.phone,
-    `Our rider tried to reach you about order ${order.number} — when's a good time to try again?`,
+    `Our rider tried to reach you about order ${order.number}: when's a good time to try again?`,
     { conversationId: order.conversationId ?? undefined },
   );
 }
 
-/** §8.6 — orders sitting in PACKED for 24+ hours (dashboard flag only). */
+/** §8.6: orders sitting in PACKED for 24+ hours (dashboard flag only). */
 export async function stalePacked() {
   const cutoff = new Date(now().getTime() - STALE_PACKED_HOURS * HOUR);
   return db.order.findMany({ where: { status: OrderStatus.PACKED, packedAt: { lt: cutoff } }, include: { customer: true } });
@@ -207,10 +207,10 @@ export async function cancelOrder(orderId: string, opts: { refund?: boolean; not
   if (!(ALLOWED[order.status] ?? []).includes(OrderStatus.CANCELLED)) throw new InvalidTransition(order.status, OrderStatus.CANCELLED);
 
   if (order.status === OrderStatus.RESERVED) {
-    // Unpaid — reservations were held by the token; release them (§15.1).
+    // Unpaid: reservations were held by the token; release them (§15.1).
     for (const item of order.items) await release(item.variantId, item.qty, `cancel ${order.number}`);
   } else {
-    // Paid-or-later — stock was hard-deducted; put it back (§15.2, §8.3).
+    // Paid-or-later: stock was hard-deducted; put it back (§15.2, §8.3).
     for (const item of order.items) await restock(item.variantId, item.qty, `cancel ${order.number}`);
   }
 

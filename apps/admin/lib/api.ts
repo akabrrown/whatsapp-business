@@ -1,4 +1,4 @@
-// Admin API client — JWT in localStorage, typed responses, WS subscribe helper.
+// Admin API client: JWT in localStorage, typed responses, WS subscribe helper.
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export function getToken(): string {

@@ -1,5 +1,5 @@
 'use client';
-// Split-screen login (ux.md §3.7) — brand panel + minimal form.
+// Split-screen login (ux.md §3.7): brand panel + minimal form.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, setAuth } from '@/lib/api';
@@ -38,7 +38,7 @@ export default function LoginPage() {
           The studio behind<br />ROSE <span className="text-rose">&amp;</span> DENIM.
         </p>
         <p className="mt-4 max-w-sm text-sm text-cream/70">
-          Orders, chats, stock and numbers — everything Kukua needs to run the label, in one calm place.
+          Orders, chats, stock and numbers: everything Kukua needs to run the label, in one calm place.
         </p>
       </div>
       <div className="flex items-center justify-center px-6">

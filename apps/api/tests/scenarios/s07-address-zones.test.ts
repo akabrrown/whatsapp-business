@@ -1,4 +1,4 @@
-// Scenario suite §7 — Delivery Address & Zones (6 scenarios).
+// Scenario suite §7: Delivery Address & Zones (6 scenarios).
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -45,7 +45,7 @@ describe('§7 Delivery Address & Zones', () => {
     await adminLogin();
   });
 
-  it('Scenario §7.1 — known zone typed clearly: fee applied automatically', async () => {
+  it('Scenario §7.1: known zone typed clearly: fee applied automatically', async () => {
     const match = await matchZone('East Legon, Accra');
     expect(match.ok).toBe(true);
     expect(match.zone).toEqual(expect.objectContaining({ name: 'East Legon', feeP: 2500 })); // GHS 25
@@ -53,7 +53,7 @@ describe('§7 Delivery Address & Zones', () => {
     expect(viaAlias.ok).toBe(true);
   });
 
-  it('Scenario §7.2 — location pin: matched to the nearest known zone', async () => {
+  it('Scenario §7.2: location pin: matched to the nearest known zone', async () => {
     const match = await matchPin(5.636, -0.184); // East Legon coordinates
     expect(match.ok).toBe(true);
     expect(match.zone?.name).toBe('East Legon');
@@ -61,10 +61,10 @@ describe('§7 Delivery Address & Zones', () => {
     expect(osu.zone?.name).toBe('Osu');
   });
 
-  it('Scenario §7.3 — address outside defined zones: manual quote + human handoff', async () => {
+  it('Scenario §7.3: address outside defined zones: manual quote + human handoff', async () => {
     const match = await matchZone('Kasoa, Accra');
     expect(match).toEqual({ ok: false, reason: 'out_of_zone' });
-    const far = await matchPin(6.688, -1.624); // Kumasi — far from any mapped zone
+    const far = await matchPin(6.688, -1.624); // Kumasi: far from any mapped zone
     expect(far).toEqual({ ok: false, reason: 'out_of_zone' });
     // bot flow: checkout then out-of-zone address → handoff message
     await handleInbound({ phone: '233203333333', text: 'hi' });
@@ -75,7 +75,7 @@ describe('§7 Delivery Address & Zones', () => {
     expect(whatsapp.lastTo('233203333333')?.body).toContain('outside our standard delivery zones');
   });
 
-  it('Scenario §7.4 — unrecognizable address: format re-prompt', async () => {
+  it('Scenario §7.4: unrecognizable address: format re-prompt', async () => {
     const match = await matchZone('xyzzy qqq');
     expect(match).toEqual({ ok: false, reason: 'unrecognized' });
     await handleInbound({ phone: '233203333334', text: 'hi' });
@@ -85,7 +85,7 @@ describe('§7 Delivery Address & Zones', () => {
     expect(whatsapp.lastTo('233203333334')?.body).toContain("couldn't recognize that address");
   });
 
-  it('Scenario §7.5 — address change after payment: admin-only update + human handoff', async () => {
+  it('Scenario §7.5: address change after payment: admin-only update + human handoff', async () => {
     const { order } = await createOrder({ phone: '233203333335', items: [{ variantId: data.v.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true });
     // customer messages a new address → bot hands off, never auto-applies
     const reply = await handleInbound({ phone: '233203333335', text: 'I need to change my address please' });
@@ -102,7 +102,7 @@ describe('§7 Delivery Address & Zones', () => {
     expect(fresh.deliveryAddress).toBe('New street 12, East Legon');
   });
 
-  it('Scenario §7.6 — address change after shipping: rejected', async () => {
+  it('Scenario §7.6: address change after shipping: rejected', async () => {
     const { order } = await createOrder({ phone: '233203333336', items: [{ variantId: data.v.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true });
     await setStatus(order.id, 'PACKED', { notify: false });
     await setStatus(order.id, 'SHIPPED', { notify: false });

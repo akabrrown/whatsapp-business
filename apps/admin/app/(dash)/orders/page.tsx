@@ -1,5 +1,5 @@
 'use client';
-// Orders list — dense table, restrained pills, source tabs, inline quick
+// Orders list: dense table, restrained pills, source tabs, inline quick
 // actions, "new orders" indicator (§3.8), stale-PACKED flag (§8.6).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -101,7 +101,7 @@ export default function OrdersPage() {
         </div>
         {newCount > 0 && (
           <button onClick={() => load(true)} className="ml-auto bg-sand/40 px-3 py-1 text-xs text-charcoal hover:bg-sand/60">
-            {newCount} new order{newCount > 1 ? 's' : ''} — refresh
+            {newCount} new order{newCount > 1 ? 's' : ''}: refresh
           </button>
         )}
         <div className="flex items-center gap-2 text-xs text-charcoal/60">
@@ -160,7 +160,7 @@ export default function OrdersPage() {
               </tr>
             ))}
             {orders.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-charcoal/50">No orders yet — they&apos;ll appear here the moment someone pays.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-charcoal/50">No orders yet: they&apos;ll appear here the moment someone pays.</td></tr>
             )}
           </tbody>
         </table>

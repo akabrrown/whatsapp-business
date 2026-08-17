@@ -1,4 +1,4 @@
-// Vertical order timeline — connected dots, sand accent on current stage (ux.md §3.9).
+// Vertical order timeline: connected dots, sand accent on current stage (ux.md §3.9).
 const STAGES = ['RESERVED', 'PAID', 'PACKED', 'SHIPPED', 'DELIVERED'];
 
 export function Timeline({ current, cancelled = false }: { current: string; cancelled?: boolean }) {

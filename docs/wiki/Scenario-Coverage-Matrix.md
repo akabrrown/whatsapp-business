@@ -23,7 +23,7 @@ Test file per category:
 
 ---
 
-## §3 Discovery — `s03-discovery.test.ts` · impl `services/catalog.ts`
+## §3 Discovery: `s03-discovery.test.ts` · impl `services/catalog.ts`
 
 | # | Behavior |
 |---|---|
@@ -34,7 +34,7 @@ Test file per category:
 | §3.5 | Direct link resolves a specific product by slug |
 | §3.6 | Search with no results returns empty set |
 
-## §4 Cart & Checkout — `s04-cart-checkout.test.ts` · impl `services/cart.ts`, `services/handoff.ts`
+## §4 Cart & Checkout: `s04-cart-checkout.test.ts` · impl `services/cart.ts`, `services/handoff.ts`
 
 | # | Behavior |
 |---|---|
@@ -47,7 +47,7 @@ Test file per category:
 | §4.7 | Successful handoff: token created, stock soft-reserved, 15-min TTL, WhatsApp redirect |
 | §4.8 | Customer closes WhatsApp: token remains valid until TTL |
 
-## §5 Payments — `s05-payment.test.ts` · impl `services/payments.ts`, `adapters/paystack.ts`
+## §5 Payments: `s05-payment.test.ts` · impl `services/payments.ts`, `adapters/paystack.ts`
 
 | # | Behavior |
 |---|---|
@@ -62,7 +62,7 @@ Test file per category:
 | §5.9 | Owner-approved refund: Paystack refund issued, status refunded, customer notified |
 | §5.10 | Bank transfer: same flow plus longer-settlement note |
 
-## §6 Inventory — `s06-inventory.test.ts` · impl `services/inventory.ts`
+## §6 Inventory: `s06-inventory.test.ts` · impl `services/inventory.ts`
 
 | # | Behavior |
 |---|---|
@@ -74,7 +74,7 @@ Test file per category:
 | §6.6 | Manual adjustment: inventory_logs entry, no customer message |
 | §6.7 | Low-stock threshold crossed: admin alert, customers see nothing |
 
-## §7 Delivery Zones & Addresses — `s07-address-zones.test.ts` · impl `services/address.ts`, `services/bot.ts`
+## §7 Delivery Zones & Addresses: `s07-address-zones.test.ts` · impl `services/address.ts`, `services/bot.ts`
 
 | # | Behavior |
 |---|---|
@@ -85,7 +85,7 @@ Test file per category:
 | §7.5 | Address change after payment: admin-only update + human handoff |
 | §7.6 | Address change after shipping: rejected |
 
-## §8 Fulfillment — `s08-orders-fulfillment.test.ts` · impl `services/orders.ts`
+## §8 Fulfillment: `s08-orders-fulfillment.test.ts` · impl `services/orders.ts`
 
 | # | Behavior |
 |---|---|
@@ -96,7 +96,7 @@ Test file per category:
 | §8.5 | Rider reassigned mid-delivery: customer notified |
 | §8.6 | Order stuck in PACKED 24+ hours: flagged, no automatic customer message |
 
-## §9 Multi-Channel — `s09-multichannel.test.ts` · impl `services/handoff.ts`, `services/bot.ts`
+## §9 Multi-Channel: `s09-multichannel.test.ts` · impl `services/handoff.ts`, `services/bot.ts`
 
 | # | Behavior |
 |---|---|
@@ -106,7 +106,7 @@ Test file per category:
 | §9.4 | Abandoned website cart expires quietly while direct chat proceeds |
 | §9.5 | Same customer, two devices: one continuous conversation thread |
 
-## §10 Human Handoff — `s10-human-handoff.test.ts` · impl `services/bot.ts`
+## §10 Human Handoff: `s10-human-handoff.test.ts` · impl `services/bot.ts`
 
 | # | Behavior |
 |---|---|
@@ -118,7 +118,7 @@ Test file per category:
 | §10.6 | Staff takes over: bot goes silent |
 | §10.7 | Staff releases: bot resumes automated handling |
 
-## §11 Admin Operations — `s11-admin-actions.test.ts` · impl `routes/admin.ts`
+## §11 Admin Operations: `s11-admin-actions.test.ts` · impl `routes/admin.ts`
 
 | # | Behavior |
 |---|---|
@@ -129,7 +129,7 @@ Test file per category:
 | §11.5 | Export & analytics: CSV download and aggregated numbers |
 | §11.6 | Staff account: scoped permissions (no staff management) |
 
-## §12 Messaging Failures — `s12-messaging-failures.test.ts` · impl `services/messaging.ts`
+## §12 Messaging Failures: `s12-messaging-failures.test.ts` · impl `services/messaging.ts`
 
 | # | Behavior |
 |---|---|
@@ -139,7 +139,7 @@ Test file per category:
 | §12.4 | Outside 24h window: free-form rejected, falls back to pre-approved template |
 | §12.5 | Webhook arrives late: processed on arrival, never a lost order |
 
-## §13 Outages — `s13-outages.test.ts` · impl adapters + `sessionStore.ts`
+## §13 Outages: `s13-outages.test.ts` · impl adapters + `sessionStore.ts`
 
 | # | Behavior |
 |---|---|
@@ -149,7 +149,7 @@ Test file per category:
 | §13.4 | Database unreachable: API errors out, never fabricates data |
 | §13.5 | Cache layer down: sessions lost, orders/payments in the DB survive |
 
-## §14 Security — `s14-security.test.ts` · impl `services/handoff.ts`, `routes/webhooks.ts`, `middleware/auth.ts`
+## §14 Security: `s14-security.test.ts` · impl `services/handoff.ts`, `routes/webhooks.ts`, `middleware/auth.ts`
 
 | # | Behavior |
 |---|---|
@@ -160,7 +160,7 @@ Test file per category:
 | §14.5 | Duplicate order within 10 minutes: confirmation required |
 | §14.6 | Malicious upload: rejected at validation, nothing stored |
 
-## §15 Cancel & Refund — `s15-cancel-refund.test.ts` · impl `services/orders.ts`, `services/payments.ts`
+## §15 Cancel & Refund: `s15-cancel-refund.test.ts` · impl `services/orders.ts`, `services/payments.ts`
 
 | # | Behavior |
 |---|---|
@@ -170,7 +170,7 @@ Test file per category:
 | §15.4 | Item damaged in transit: apology + immediate human handoff |
 | §15.5 | Partial refund on a multi-item order: logged against the payment |
 
-## §16 Retention — `s16-retention.test.ts` · impl `services/retention.ts`
+## §16 Retention: `s16-retention.test.ts` · impl `services/retention.ts`
 
 | # | Behavior |
 |---|---|
@@ -184,6 +184,6 @@ Test file per category:
 
 ### Test infrastructure notes
 
-- **Time control** — `clock.ts` exposes an injectable clock; tests advance time instead of sleeping (30-min carts, 15-min tokens, 24-h stale-packed, retention windows).
-- **Simulators are the test doubles** — WhatsApp/Paystack simulators provide deterministic inbound events (`emitChargeSuccess`, `sim-inbound`) while exercising the exact webhook/adapter code paths used in production.
-- **Isolation** — each suite runs against a fresh `prisma/test.db` (see `tests/globalSetup.ts`).
+- **Time control**: `clock.ts` exposes an injectable clock; tests advance time instead of sleeping (30-min carts, 15-min tokens, 24-h stale-packed, retention windows).
+- **Simulators are the test doubles**: WhatsApp/Paystack simulators provide deterministic inbound events (`emitChargeSuccess`, `sim-inbound`) while exercising the exact webhook/adapter code paths used in production.
+- **Isolation**: each suite runs against a fresh `prisma/test.db` (see `tests/globalSetup.ts`).

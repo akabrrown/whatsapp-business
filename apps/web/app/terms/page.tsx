@@ -1,4 +1,4 @@
-export const metadata = { title: 'Terms of Service — ROSE & DENIM BY KUKUA' };
+export const metadata = { title: 'Terms of Service | ROSE & DENIM BY KUKUA' };
 
 export default function TermsPage() {
   return (
@@ -23,8 +23,8 @@ export default function TermsPage() {
         we&apos;ll make it right.
       </p>
       <p className="mt-8 text-xs text-charcoal/50">
-        This is a placeholder page. Full terms of service compliant with Ghanaian consumer
-        protection law will be published here.
+        These terms are reviewed periodically. For specific questions about orders
+        or delivery, message us on WhatsApp.
       </p>
     </div>
   );

@@ -1,4 +1,4 @@
-// Restrained status pills — denim/sand/sage, no traffic-light reds (ux.md §3.8).
+// Restrained status pills: denim/sand/sage, no traffic-light reds (ux.md §3.8).
 const STYLES: Record<string, string> = {
   RESERVED: 'bg-sand/25 text-charcoal/80',
   PAID: 'bg-indigo/10 text-indigo',

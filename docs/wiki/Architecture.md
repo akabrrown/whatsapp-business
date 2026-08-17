@@ -18,8 +18,8 @@
 
 One backend, two frontends, two sales channels that converge on the same order pipeline:
 
-- **Website channel** — visitor builds a cart on the storefront, taps *Checkout on WhatsApp*. The API creates a short-lived checkout token (`RD-XXXXXX`), soft-reserves stock, and returns a `wa.me` deep link. The customer lands in WhatsApp with the cart pre-confirmed; Kukua collects the delivery address and sends the Paystack payment link. Orders are tagged `source = website`.
-- **WhatsApp Direct channel** — the customer messages the business number and chats through catalog, cart, address, and payment entirely with the bot. Orders are tagged `source = whatsapp_direct`.
+- **Website channel**: visitor builds a cart on the storefront, taps *Checkout on WhatsApp*. The API creates a short-lived checkout token (`RD-XXXXXX`), soft-reserves stock, and returns a `wa.me` deep link. The customer lands in WhatsApp with the cart pre-confirmed; Kukua collects the delivery address and sends the Paystack payment link. Orders are tagged `source = website`.
+- **WhatsApp Direct channel**: the customer messages the business number and chats through catalog, cart, address, and payment entirely with the bot. Orders are tagged `source = whatsapp_direct`.
 
 ## Backend structure (`apps/api/src`)
 
@@ -59,9 +59,9 @@ Tests exercise the simulators; the production code paths share the same interfac
 
 - **Money is integer pesewas** everywhere (`*P` fields). `formatGHS()` in `@rose/shared` is the only formatter.
 - **Stock**: `available = stockQuantity − reservedStock`. Handoff *soft-reserves* (15-min TTL); webhook success *hard-deducts*. Expired reservations release automatically (§4.7, §6.3).
-- **Server cart is source of truth** — the storefront sync its local bag to `/api/cart/:sessionId` and trusts the server response (§4.5).
+- **Server cart is source of truth**: the storefront sync its local bag to `/api/cart/:sessionId` and trusts the server response (§4.5).
 - **Webhooks are idempotent** by `paystackRef`; late webhooks are honored, never lost (§5.6, §12.5, §13.2).
-- **Human-first escalation** — the bot never negotiates, never fabricates, and hands off on any of: explicit request, 3 unrecognized messages, voice note, VIP cart (≥ GHS 1,000), out-of-zone address, post-payment address change (§10, §7).
+- **Human-first escalation**: the bot never negotiates, never fabricates, and hands off on any of: explicit request, 3 unrecognized messages, voice note, VIP cart (≥ GHS 1,000), out-of-zone address, post-payment address change (§10, §7).
 
 ## Realtime
 
@@ -80,5 +80,5 @@ Frontends also poll as a fallback so a dropped socket never hides data.
 
 ## Frontends
 
-- **`apps/web`** — Next.js 15 App Router, client-rendered against the API. Editorial asymmetric layouts per `figma.ui/ux.md`; WhatsApp green reserved exclusively for the handoff CTA. Session ID `web-*` in `localStorage`; cart metadata mirrored locally, server state authoritative.
-- **`apps/admin`** — Next.js 15 App Router. JWT stored in `localStorage` after `POST /api/admin/login`; every request carries `Authorization: Bearer`. Owner-only surfaces (Settings, staff management) are gated client-side and server-side (`requireOwner`).
+- **`apps/web`**: Next.js 15 App Router, client-rendered against the API. Editorial asymmetric layouts per `figma.ui/ux.md`; WhatsApp green reserved exclusively for the handoff CTA. Session ID `web-*` in `localStorage`; cart metadata mirrored locally, server state authoritative.
+- **`apps/admin`**: Next.js 15 App Router. JWT stored in `localStorage` after `POST /api/admin/login`; every request carries `Authorization: Bearer`. Owner-only surfaces (Settings, staff management) are gated client-side and server-side (`requireOwner`).

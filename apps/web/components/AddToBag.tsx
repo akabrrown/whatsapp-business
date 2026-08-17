@@ -1,5 +1,5 @@
 'use client';
-// Add-to-bag button — picks the first in-stock variant (compact) or a chosen
+// Add-to-bag button: picks the first in-stock variant (compact) or a chosen
 // variant (PDP). Reports sold-out races with the server's friendly message (§4.2).
 import { useState } from 'react';
 import { Plus, ShoppingBag } from 'lucide-react';

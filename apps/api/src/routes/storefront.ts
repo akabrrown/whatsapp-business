@@ -1,4 +1,4 @@
-// Public storefront routes — catalog, cart sessions, handoff, token status.
+// Public storefront routes: catalog, cart sessions, handoff, token status.
 import { Router } from 'express';
 import * as catalog from '../services/catalog.js';
 import * as cart from '../services/cart.js';
@@ -45,7 +45,7 @@ storefront.post('/cart/:sessionId/items', async (req, res) => {
     const c = await cart.add(req.params.sessionId, variantId, qty);
     res.json({ ok: true, cart: c });
   } catch (e) {
-    // §4.2 — race to sold-out is a 409 with a friendly message upstream.
+    // §4.2: race to sold-out is a 409 with a friendly message upstream.
     if (e instanceof InsufficientStock) return res.status(409).json({ ok: false, error: 'SOLD_OUT', message: 'Sorry, this just sold out' });
     res.status(400).json({ ok: false, error: (e as Error).message });
   }
@@ -73,7 +73,7 @@ storefront.post('/handoff', async (req, res) => {
     confirmedDuplicate?: boolean;
   };
   if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
-  // §4.5 — reconcile: server cart wins when a session is provided.
+  // §4.5: reconcile: server cart wins when a session is provided.
   const cartItems = sessionId ? (cart.get(sessionId)?.items ?? items ?? []) : items ?? [];
   try {
     const result = await handoff.createToken({ phone, items: cartItems, zoneName, deliveryFeeP, confirmedDuplicate });
@@ -97,7 +97,7 @@ storefront.post('/pay/token/:code', async (req, res) => {
   res.json({ ok: true, paymentUrl: link });
 });
 
-// ---- Public token status (§14.2 — never expose data for unknown tokens) ---
+// ---- Public token status (§14.2: never expose data for unknown tokens) ---
 storefront.get('/orders/by-token/:code', async (req, res) => {
   const token = await findActiveToken(req.params.code);
   if (!token) {

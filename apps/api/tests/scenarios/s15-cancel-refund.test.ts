@@ -1,4 +1,4 @@
-// Scenario suite §15 — Cancellation, Refund & Returns (5 scenarios).
+// Scenario suite §15: Cancellation, Refund & Returns (5 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, whatsapp, paystack, resetRuntime, payTokenViaSim } from '../helpers.js';
 import * as handoff from '../../src/services/handoff.js';
@@ -17,7 +17,7 @@ describe('§15 Cancellation, Refund & Returns', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §15.1 — cancel before payment: reservation released, token invalidated', async () => {
+  it('Scenario §15.1: cancel before payment: reservation released, token invalidated', async () => {
     await handleInbound({ phone: PHONE, text: 'hi' });
     await handleInbound({ phone: PHONE, text: 'add 1' });
     await handleInbound({ phone: PHONE, text: 'checkout' });
@@ -33,7 +33,7 @@ describe('§15 Cancellation, Refund & Returns', () => {
     expect(v.reservedStock).toBe(0); // released immediately
   });
 
-  it('Scenario §15.2 — cancel after payment: approval → refund issued, stock returned', async () => {
+  it('Scenario §15.2: cancel after payment: approval → refund issued, stock returned', async () => {
     const { code } = await handoff.createToken({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }] });
     await payTokenViaSim(code);
     const order = await db.order.findFirstOrThrow({ where: { payments: { some: { tokenCode: code } } } });
@@ -50,14 +50,14 @@ describe('§15 Cancellation, Refund & Returns', () => {
     expect(v.stockQuantity).toBe(5); // stock released back
   });
 
-  it('Scenario §15.3 — exchange request (wrong size): human handoff, no automated flow', async () => {
+  it('Scenario §15.3: exchange request (wrong size): human handoff, no automated flow', async () => {
     const reply = await handleInbound({ phone: PHONE, text: 'The jeans are the wrong size, I need an exchange' });
     expect(reply.handoff).toBe(true); // manual process in Phase 1
     const conv = await db.conversation.findFirst({ where: { customer: { phone: PHONE } } });
     expect(conv?.status).toBe('NEEDS_HUMAN');
   });
 
-  it('Scenario §15.4 — item damaged in transit: apology + immediate human handoff', async () => {
+  it('Scenario §15.4: item damaged in transit: apology + immediate human handoff', async () => {
     const reply = await handleInbound({ phone: PHONE, text: 'My order arrived damaged' });
     expect(reply.handoff).toBe(true);
     expect(whatsapp.outbox.some((m) => m.to === PHONE && m.body.includes('So sorry about that'))).toBe(true);
@@ -65,7 +65,7 @@ describe('§15 Cancellation, Refund & Returns', () => {
     expect(conv?.status).toBe('NEEDS_HUMAN');
   });
 
-  it('Scenario §15.5 — partial refund on a multi-item order: logged against the payment', async () => {
+  it('Scenario §15.5: partial refund on a multi-item order: logged against the payment', async () => {
     const { code } = await handoff.createToken({
       phone: PHONE,
       items: [{ variantId: data.v.id, qty: 1 }, { variantId: data.vBag.id, qty: 1 }],

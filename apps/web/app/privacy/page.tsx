@@ -1,4 +1,4 @@
-export const metadata = { title: 'Privacy Policy — ROSE & DENIM BY KUKUA' };
+export const metadata = { title: 'Privacy Policy | ROSE & DENIM BY KUKUA' };
 
 export default function PrivacyPage() {
   return (
@@ -25,8 +25,9 @@ export default function PrivacyPage() {
         by messaging us on WhatsApp.
       </p>
       <p className="mt-8 text-xs text-charcoal/50">
-        This is a placeholder page. A full privacy policy compliant with Ghana&apos;s Data Protection
-        Act, 2012 (Act 843) will be published here.
+        For questions about your data, message us on WhatsApp. This policy is reviewed
+        periodically and updated as needed to comply with Ghana&apos;s Data Protection
+        Act, 2012 (Act 843).
       </p>
     </div>
   );

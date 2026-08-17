@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss';
 
-// Admin design tokens — same brand palette, Linear-style restraint (ux.md §2).
+// Admin design tokens: same brand palette, Linear-style restraint (ux.md §2).
 export default {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
   theme: {

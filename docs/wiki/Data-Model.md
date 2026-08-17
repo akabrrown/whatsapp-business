@@ -29,7 +29,7 @@ Prisma schema: `apps/api/prisma/schema.prisma` · SQLite (`prisma/dev.db`, tests
 | `TokenItem` | `variantId`, `qty` | Cart snapshot at handoff |
 | `Order` | `number`, `status`, `source` (`website`\|`whatsapp_direct`), `subtotalP`/`deliveryFeeP`/`totalP`, `zoneName`, `riderName`, `vip`, `needsAdminReview`, `refundDue`, `failCount`, `packedAt`, `deliveredAt`, `conversationId` | Flags: `vip` ≥ GHS 1,000 (§10.4); `needsAdminReview` = late webhook on expired token (§5.6); `refundDue` = double payment (§5.8) |
 | `OrderItem` | `variantId`, `qty`, `unitPriceP` | Price snapshot |
-| `Payment` | `paystackRef` (unique — idempotency key §5.7), `amountP`, `channel` (`card`\|`mobile_money`\|`bank_transfer`), `status`, `tokenCode`, `flaggedForRefund` | |
+| `Payment` | `paystackRef` (unique: idempotency key §5.7), `amountP`, `channel` (`card`\|`mobile_money`\|`bank_transfer`), `status`, `tokenCode`, `flaggedForRefund` | |
 | `WebhookEvent` | `provider`+`ref` unique, raw `payload` | Dedupe store; audit trail (§14.3) |
 
 ## Delivery & operations

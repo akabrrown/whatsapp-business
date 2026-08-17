@@ -1,4 +1,4 @@
-// Test harness — shared baseline data, table reset, re-exports for scenario suites.
+// Test harness: shared baseline data, table reset, re-exports for scenario suites.
 import type { PrismaClient } from '@prisma/client';
 
 export { db } from '../src/db.js';

@@ -1,5 +1,5 @@
 'use client';
-// Inbox — two-panel WhatsApp console (§3.11): conversation list with status
+// Inbox: two-panel WhatsApp console (§3.11): conversation list with status
 // dots, full thread, take-over / release (§10.6, §10.7), send-as-Kukua.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bot, Hand, Send } from 'lucide-react';
@@ -117,7 +117,7 @@ export default function InboxPage() {
                   <p className="text-sm font-medium text-charcoal">{current.customer.name ?? '—'} · {current.customer.phone}</p>
                   {current.undeliverable && <p className="text-xs text-rose">Number blocked / undeliverable (§12.2)</p>}
                   {!current.undeliverable && current.failCount >= 2 && (
-                    <p className="text-xs text-charcoal/60">Bot has missed {current.failCount} messages in a row — consider taking over (§10.2)</p>
+                    <p className="text-xs text-charcoal/60">Bot has missed {current.failCount} messages in a row: consider taking over (§10.2)</p>
                   )}
                 </div>
                 <div className="ml-auto flex gap-2">

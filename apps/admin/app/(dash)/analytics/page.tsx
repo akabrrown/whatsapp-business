@@ -1,5 +1,5 @@
 'use client';
-// Analytics — revenue-first hierarchy (§3.12, §11.5): headline revenue,
+// Analytics: revenue-first hierarchy (§3.12, §11.5): headline revenue,
 // order count, website-vs-WhatsApp split, status mix, top products.
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
@@ -56,7 +56,7 @@ export default function AnalyticsPage() {
           {/* Revenue headline */}
           <div className="space-y-6">
             <section className="rounded border border-sand/30 bg-indigo px-8 py-10 text-cream">
-              <p className="text-xs uppercase tracking-widest text-cream/60">Revenue — last {data.days} days</p>
+              <p className="text-xs uppercase tracking-widest text-cream/60">Revenue: last {data.days} days</p>
               <p className="mt-2 font-serif text-5xl">{formatGHS(data.revenueP)}</p>
               <p className="mt-3 text-sm text-cream/70">
                 {data.orderCount} order{data.orderCount === 1 ? '' : 's'} placed (excluding cancellations)

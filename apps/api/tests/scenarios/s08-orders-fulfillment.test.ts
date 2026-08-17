@@ -1,4 +1,4 @@
-// Scenario suite §8 — Order Status & Fulfillment (6 scenarios).
+// Scenario suite §8: Order Status & Fulfillment (6 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, advance, HOUR, whatsapp, resetRuntime } from '../helpers.js';
 import * as orders from '../../src/services/orders.js';
@@ -25,7 +25,7 @@ describe('§8 Order Status & Fulfillment', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §8.1 — pack → ship → deliver: customer messaged at every stage', async () => {
+  it('Scenario §8.1: pack → ship → deliver: customer messaged at every stage', async () => {
     const order = await paidOrder(data);
     expect(order.status).toBe('PAID');
     await orders.setStatus(order.id, 'PACKED');
@@ -41,7 +41,7 @@ describe('§8 Order Status & Fulfillment', () => {
     expect(fresh.deliveredAt).not.toBeNull();
   });
 
-  it('Scenario §8.2 — rider fails to deliver: order stays SHIPPED, bot follows up', async () => {
+  it('Scenario §8.2: rider fails to deliver: order stays SHIPPED, bot follows up', async () => {
     const order = await paidOrder(data);
     await orders.setStatus(order.id, 'PACKED', { notify: false });
     await orders.setStatus(order.id, 'SHIPPED', { notify: false });
@@ -51,7 +51,7 @@ describe('§8 Order Status & Fulfillment', () => {
     expect(fresh.status).toBe('SHIPPED'); // no state change
   });
 
-  it('Scenario §8.3 — customer refuses delivery: cancelled + refund initiated + stock returned', async () => {
+  it('Scenario §8.3: customer refuses delivery: cancelled + refund initiated + stock returned', async () => {
     const order = await paidOrder(data);
     await orders.setStatus(order.id, 'PACKED', { notify: false });
     await orders.setStatus(order.id, 'SHIPPED', { notify: false });
@@ -66,17 +66,17 @@ describe('§8 Order Status & Fulfillment', () => {
     expect(whatsapp.lastTo(PHONE)?.body).toContain('refund');
   });
 
-  it('Scenario §8.4 — wrong item packed: silent PACKED → PAID revert', async () => {
+  it('Scenario §8.4: wrong item packed: silent PACKED → PAID revert', async () => {
     const order = await paidOrder(data);
     await orders.setStatus(order.id, 'PACKED', { notify: false });
     whatsapp.clear!();
-    await orders.setStatus(order.id, 'PAID', { notify: false }); // caught quickly — silent correction
+    await orders.setStatus(order.id, 'PAID', { notify: false }); // caught quickly: silent correction
     const fresh = await db.order.findUniqueOrThrow({ where: { id: order.id } });
     expect(fresh.status).toBe('PAID');
     expect(whatsapp.outbox).toHaveLength(0); // no customer message
   });
 
-  it('Scenario §8.5 — rider reassigned mid-delivery: customer notified', async () => {
+  it('Scenario §8.5: rider reassigned mid-delivery: customer notified', async () => {
     const order = await paidOrder(data);
     await orders.setStatus(order.id, 'PACKED', { notify: false });
     await orders.setStatus(order.id, 'SHIPPED', { notify: false, riderName: 'Kofi' });
@@ -88,7 +88,7 @@ describe('§8 Order Status & Fulfillment', () => {
     expect(msg).toContain('0550000000');
   });
 
-  it('Scenario §8.6 — order stuck in PACKED 24+ hours: flagged, no automatic customer message', async () => {
+  it('Scenario §8.6: order stuck in PACKED 24+ hours: flagged, no automatic customer message', async () => {
     const order = await paidOrder(data);
     await orders.setStatus(order.id, 'PACKED', { notify: false });
     whatsapp.clear!();

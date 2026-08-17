@@ -1,4 +1,4 @@
-// Scenario suite §5 — Payment (10 scenarios).
+// Scenario suite §5: Payment (10 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, advance, MIN, whatsapp, paystack, hub, resetRuntime, payTokenViaSim } from '../helpers.js';
 import * as handoff from '../../src/services/handoff.js';
@@ -20,7 +20,7 @@ describe('§5 Payment', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §5.1 — successful card payment: order PAID, stock hard-deducted, confirmation sent', async () => {
+  it('Scenario §5.1: successful card payment: order PAID, stock hard-deducted, confirmation sent', async () => {
     const code = await newToken(data.v.id, 1);
     await payTokenViaSim(code);
     const order = await db.order.findFirst({ where: { payments: { some: { tokenCode: code } } } });
@@ -33,7 +33,7 @@ describe('§5 Payment', () => {
     expect(whatsapp.lastTo(PHONE)?.body).toContain('Payment Received!');
   });
 
-  it('Scenario §5.2 — successful MoMo payment: identical confirmation regardless of channel', async () => {
+  it('Scenario §5.2: successful MoMo payment: identical confirmation regardless of channel', async () => {
     const code = await newToken(data.v.id, 1);
     const url = await payments.initPaymentForToken(code);
     const reference = url!.split('/').pop()!;
@@ -44,7 +44,7 @@ describe('§5 Payment', () => {
     expect(whatsapp.lastTo(PHONE)?.body).toContain('Payment Received!'); // same message as card
   });
 
-  it('Scenario §5.3 — wrong MoMo PIN: one retry with fresh link, reservation retained', async () => {
+  it('Scenario §5.3: wrong MoMo PIN: one retry with fresh link, reservation retained', async () => {
     const code = await newToken(data.v.id, 1);
     await payTokenViaSim(code, { fail: true });
     const msg = whatsapp.lastTo(PHONE)?.body ?? '';
@@ -56,7 +56,7 @@ describe('§5 Payment', () => {
     expect(token.status).toBe('ACTIVE');
   });
 
-  it('Scenario §5.4 — insufficient funds: same retry handling as any failed charge', async () => {
+  it('Scenario §5.4: insufficient funds: same retry handling as any failed charge', async () => {
     const code = await newToken(data.v.id, 1);
     await payTokenViaSim(code, { fail: true }); // low balance emits charge.failed identically
     const payment = await db.payment.findFirst({ where: { tokenCode: code, status: 'failed' } });
@@ -64,7 +64,7 @@ describe('§5 Payment', () => {
     expect(whatsapp.lastTo(PHONE)?.body).toContain('Try again here');
   });
 
-  it('Scenario §5.5 — second consecutive failure: no third auto-retry, human assistance offered', async () => {
+  it('Scenario §5.5: second consecutive failure: no third auto-retry, human assistance offered', async () => {
     const code = await newToken(data.v.id, 1);
     const customer = await db.customer.create({ data: { phone: PHONE } });
     await db.conversation.create({ data: { customerId: customer.id, status: 'BOT' } });
@@ -79,7 +79,7 @@ describe('§5 Payment', () => {
     expect(hub.log.some((e) => e.type === 'inbox.alert')).toBe(true);
   });
 
-  it('Scenario §5.6 — payment after token expiry: money honored, order flagged for admin review', async () => {
+  it('Scenario §5.6: payment after token expiry: money honored, order flagged for admin review', async () => {
     const code = await newToken(data.v.id, 1);
     const url = await payments.initPaymentForToken(code);
     const reference = url!.split('/').pop()!;
@@ -91,7 +91,7 @@ describe('§5 Payment', () => {
     expect(whatsapp.lastTo(PHONE)?.body).toContain('Payment Received!'); // normal confirmation
   });
 
-  it('Scenario §5.7 — duplicate webhook delivery is a no-op: exactly one confirmation', async () => {
+  it('Scenario §5.7: duplicate webhook delivery is a no-op: exactly one confirmation', async () => {
     const code = await newToken(data.v.id, 1);
     const reference = await payTokenViaSim(code);
     await paystack.emitChargeSuccess!(reference); // Paystack redelivers the same event
@@ -101,7 +101,7 @@ describe('§5 Payment', () => {
     expect(confirmations).toHaveLength(1);
   });
 
-  it('Scenario §5.8 — customer pays twice: second payment flagged for refund, Kukua alerted', async () => {
+  it('Scenario §5.8: customer pays twice: second payment flagged for refund, Kukua alerted', async () => {
     const code = await newToken(data.v.id, 1);
     await payTokenViaSim(code); // settles the token
     // customer reopens an old link and pays again (new reference, same token):
@@ -115,7 +115,7 @@ describe('§5 Payment', () => {
     expect(hub.log.some((e) => e.type === 'alert.refund_due')).toBe(true);
   });
 
-  it('Scenario §5.9 — owner-approved refund: Paystack refund issued, status refunded, customer notified', async () => {
+  it('Scenario §5.9: owner-approved refund: Paystack refund issued, status refunded, customer notified', async () => {
     const code = await newToken(data.v.id, 1);
     await payTokenViaSim(code);
     const order = await db.order.findFirstOrThrow({ where: { payments: { some: { tokenCode: code } } } });
@@ -127,7 +127,7 @@ describe('§5 Payment', () => {
     expect(whatsapp.lastTo(PHONE)?.body).toContain('3–5 business days');
   });
 
-  it('Scenario §5.10 — bank transfer: same flow plus longer-settlement note', async () => {
+  it('Scenario §5.10: bank transfer: same flow plus longer-settlement note', async () => {
     const code = await newToken(data.v.id, 1);
     const url = await payments.initPaymentForToken(code);
     const reference = url!.split('/').pop()!;

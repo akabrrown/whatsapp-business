@@ -1,4 +1,4 @@
-// Catalog reads — live stock, sold-out flags, search (§3.1–3.6, §11.1–11.2).
+// Catalog reads: live stock, sold-out flags, search (§3.1–3.6, §11.1–11.2).
 import { db } from '../db.js';
 import { productImage } from '../adapters/images.js';
 
@@ -69,7 +69,7 @@ export async function bySlug(slug: string): Promise<CatalogProduct | null> {
   return p ? toCatalog(p) : null;
 }
 
-/** §3.6 — empty search returns empty set; UI shows category shortcuts. */
+/** §3.6: empty search returns empty set; UI shows category shortcuts. */
 export async function search(term: string): Promise<CatalogProduct[]> {
   const all = await listActive();
   const t = term.trim().toLowerCase();

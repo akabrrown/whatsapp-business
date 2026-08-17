@@ -1,5 +1,5 @@
 'use client';
-// Settings (owner-only nav) — delivery-zone fees (§7, §11.4), staff
+// Settings (owner-only nav): delivery-zone fees (§7, §11.4), staff
 // management (§11.6), manual retention tick (§16).
 import { useCallback, useEffect, useState } from 'react';
 import { MapPin, RefreshCw, UserPlus } from 'lucide-react';
@@ -92,7 +92,7 @@ export default function SettingsPage() {
           <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
             <MapPin size={13} aria-hidden /> Delivery zones &amp; fees
           </p>
-          <p className="mb-3 text-xs text-charcoal/50">New fees apply to new orders only — existing orders keep their quoted fee (§11.4).</p>
+          <p className="mb-3 text-xs text-charcoal/50">New fees apply to new orders only: existing orders keep their quoted fee (§11.4).</p>
           <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
             {zones.map((z) => (
               <li key={z.id} className="flex items-center gap-3 px-4 py-3">

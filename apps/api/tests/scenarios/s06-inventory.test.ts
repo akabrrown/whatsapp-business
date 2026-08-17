@@ -1,4 +1,4 @@
-// Scenario suite §6 — Inventory (7 scenarios).
+// Scenario suite §6: Inventory (7 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, advance, MIN, whatsapp, paystack, hub, resetRuntime, payTokenViaSim } from '../helpers.js';
 import * as handoff from '../../src/services/handoff.js';
@@ -16,7 +16,7 @@ describe('§6 Inventory', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §6.1 — normal purchase: stock_quantity decremented by ordered quantity', async () => {
+  it('Scenario §6.1: normal purchase: stock_quantity decremented by ordered quantity', async () => {
     const { code } = await handoff.createToken({ phone: PHONE, items: [{ variantId: data.v.id, qty: 2 }] });
     await payTokenViaSim(code);
     const v = await db.productVariant.findUniqueOrThrow({ where: { id: data.v.id } });
@@ -24,7 +24,7 @@ describe('§6 Inventory', () => {
     expect(v.reservedStock).toBe(0);
   });
 
-  it('Scenario §6.2 — last unit reserved: other visitors immediately see Sold Out', async () => {
+  it('Scenario §6.2: last unit reserved: other visitors immediately see Sold Out', async () => {
     await handoff.createToken({ phone: PHONE, items: [{ variantId: data.vLast.id, qty: 1 }] });
     const v = await db.productVariant.findUniqueOrThrow({ where: { id: data.vLast.id } });
     expect(v.stockQuantity).toBe(1);
@@ -36,7 +36,7 @@ describe('§6 Inventory', () => {
     await expect(inventory.reserve(data.vLast.id, 1)).rejects.toBeInstanceOf(inventory.InsufficientStock);
   });
 
-  it('Scenario §6.3 — reservation expires unpaid: stock becomes available again', async () => {
+  it('Scenario §6.3: reservation expires unpaid: stock becomes available again', async () => {
     await handoff.createToken({ phone: PHONE, items: [{ variantId: data.vLast.id, qty: 1 }] });
     advance(16 * MIN);
     const swept = await handoff.sweepExpiredTokens();
@@ -46,7 +46,7 @@ describe('§6 Inventory', () => {
     expect(v.stockQuantity).toBe(1); // item reappears as in-stock
   });
 
-  it('Scenario §6.4 — race lost: later payer refunded with apology', async () => {
+  it('Scenario §6.4: race lost: later payer refunded with apology', async () => {
     const { code } = await handoff.createToken({ phone: PHONE, items: [{ variantId: data.vLast.id, qty: 1 }] });
     // meanwhile the last unit sells on another channel:
     await db.productVariant.update({ where: { id: data.vLast.id }, data: { stockQuantity: 0, reservedStock: 0 } });
@@ -58,7 +58,7 @@ describe('§6 Inventory', () => {
     expect(hub.log.some((e) => e.type === 'alert.refund_due')).toBe(true);
   });
 
-  it('Scenario §6.5 — admin restock: realtime stock update pushed to the website', async () => {
+  it('Scenario §6.5: admin restock: realtime stock update pushed to the website', async () => {
     await db.productVariant.update({ where: { id: data.v.id }, data: { stockQuantity: 0 } });
     await inventory.restock(data.v.id, 10, 'new shipment');
     const v = await db.productVariant.findUniqueOrThrow({ where: { id: data.v.id } });
@@ -68,7 +68,7 @@ describe('§6 Inventory', () => {
     expect((push!.payload as { available: number }).available).toBe(10);
   });
 
-  it('Scenario §6.6 — manual adjustment: inventory_logs entry, no customer message', async () => {
+  it('Scenario §6.6: manual adjustment: inventory_logs entry, no customer message', async () => {
     await inventory.adjust(data.v.id, -1, 'damaged item');
     const v = await db.productVariant.findUniqueOrThrow({ where: { id: data.v.id } });
     expect(v.stockQuantity).toBe(4);
@@ -78,7 +78,7 @@ describe('§6 Inventory', () => {
     expect(whatsapp.outbox).toHaveLength(0); // internal record only
   });
 
-  it('Scenario §6.7 — low-stock threshold crossed: admin alert, customers see nothing', async () => {
+  it('Scenario §6.7: low-stock threshold crossed: admin alert, customers see nothing', async () => {
     await inventory.adjust(data.v.id, -3, 'sold in-store'); // 5 → 2, threshold is 2
     const alert = hub.log.find((e) => e.type === 'alert.low_stock');
     expect(alert).toBeDefined();

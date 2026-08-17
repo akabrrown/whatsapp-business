@@ -1,5 +1,5 @@
 'use client';
-// Customers CRM (§3.13, §9.3) — lifetime-value ordering, sand tag chips,
+// Customers CRM (§3.13, §9.3): lifetime-value ordering, sand tag chips,
 // opt-out respected at a glance (§16.5).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';

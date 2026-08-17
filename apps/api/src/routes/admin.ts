@@ -1,4 +1,4 @@
-// Admin dashboard API — auth, orders, inventory, inbox, analytics, CRM, staff (§11).
+// Admin dashboard API: auth, orders, inventory, inbox, analytics, CRM, staff (§11).
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
@@ -81,7 +81,7 @@ admin.post('/orders/:id/rider', async (req, res) => {
   res.json({ ok: true });
 });
 
-// §8.2 — log a failed delivery attempt; order stays SHIPPED.
+// §8.2: log a failed delivery attempt; order stays SHIPPED.
 admin.post('/orders/:id/failed-delivery', async (req, res) => {
   try {
     await orders.failedDelivery(req.params.id);
@@ -106,7 +106,7 @@ admin.post('/orders/:id/cancel', async (req, res) => {
   }
 });
 
-// §7.5 — post-payment address changes are admin-only (never auto-applied).
+// §7.5: post-payment address changes are admin-only (never auto-applied).
 admin.patch('/orders/:id/address', async (req, res) => {
   const { deliveryAddress, zoneName } = req.body as { deliveryAddress?: string; zoneName?: string };
   const order = await db.order.findUnique({ where: { id: req.params.id } });
@@ -191,7 +191,7 @@ admin.post('/products', async (req, res) => {
         })),
       },
     },
-  }); // §11.1 — visible immediately on site + bot
+  }); // §11.1: visible immediately on site + bot
   res.json({ ok: true, product });
 });
 
@@ -202,7 +202,7 @@ admin.patch('/products/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ---- Delivery zones (§11.4 — new fees apply to new orders only by design) ----
+// ---- Delivery zones (§11.4: new fees apply to new orders only by design) ----
 admin.get('/zones', requireOwner, async (_req, res) => {
   res.json({ ok: true, zones: await db.deliveryZone.findMany() });
 });

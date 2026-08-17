@@ -1,4 +1,4 @@
-// Order-token handoff — the website→WhatsApp bridge (§4.6–4.8, §6.2–6.3, §14.1, §14.5, §15.1).
+// Order-token handoff: the website→WhatsApp bridge (§4.6–4.8, §6.2–6.3, §14.1, §14.5, §15.1).
 import crypto from 'node:crypto';
 import { db } from '../db.js';
 import { now } from '../clock.js';
@@ -25,16 +25,16 @@ export interface HandoffResult {
   deliveryFeeP?: number;
 }
 
-/** §14.1 — max 5 token requests per phone per rolling hour. */
+/** §14.1: max 5 token requests per phone per rolling hour. */
 function checkRateLimit(phone: string) {
   const k = `rl:token:${phone}`;
   const hits = (kv.get<number[]>(k) ?? []).filter((t) => now().getTime() - t < 3_600_000);
-  if (hits.length >= TOKEN_RATE_LIMIT_PER_HOUR) throw new HandoffError('RATE_LIMITED', 'Too many order attempts — please wait a few minutes and try again.');
+  if (hits.length >= TOKEN_RATE_LIMIT_PER_HOUR) throw new HandoffError('RATE_LIMITED', 'Too many order attempts: please wait a few minutes and try again.');
   hits.push(now().getTime());
   kv.set(k, hits, 3_600_000);
 }
 
-/** §14.5 — same phone, same items within 10 minutes → ask for confirmation. */
+/** §14.5: same phone, same items within 10 minutes → ask for confirmation. */
 async function checkDuplicate(phone: string, items: CartItem[], confirmed: boolean) {
   if (confirmed) return;
   const customer = await db.customer.findUnique({ where: { phone } });
@@ -52,7 +52,7 @@ async function checkDuplicate(phone: string, items: CartItem[], confirmed: boole
     recent.items.length === items.length &&
     items.every((i) => recent.items.some((ri) => ri.variantId === i.variantId && ri.qty === i.qty));
   if (sameItems) {
-    throw new HandoffError('DUPLICATE_SUSPECT', "It looks like you just placed a similar order a few minutes ago — did you mean to order again?");
+    throw new HandoffError('DUPLICATE_SUSPECT', "It looks like you just placed a similar order a few minutes ago: did you mean to order again?");
   }
 }
 
@@ -68,7 +68,7 @@ export async function createToken(input: {
   checkRateLimit(phone);
   await checkDuplicate(phone, input.items, !!input.confirmedDuplicate);
 
-  // §6.2 — soft-reserve every line; release all on any failure.
+  // §6.2: soft-reserve every line; release all on any failure.
   const reserved: CartItem[] = [];
   try {
     for (const item of input.items) {
@@ -107,8 +107,8 @@ export async function createToken(input: {
   const text =
     `Hi ROSE & DENIM! I'd like to complete my order.\n` +
     `Order token: ${code}\n` +
-    lines.map((l) => `• ${l.name}${l.size ? ` (${l.size})` : ''}${l.color ? ` — ${l.color}` : ''} ×${l.qty} — ${formatGHS(l.lineP)}`).join('\n') +
-    (input.zoneName ? `\nDelivery: ${input.zoneName} — ${formatGHS(feeP)}` : '') +
+    lines.map((l) => `• ${l.name}${l.size ? ` (${l.size})` : ''}${l.color ? `: ${l.color}` : ''} ×${l.qty}: ${formatGHS(l.lineP)}`).join('\n') +
+    (input.zoneName ? `\nDelivery: ${input.zoneName}: ${formatGHS(feeP)}` : '') +
     `\nTotal: ${formatGHS(totalP)}`;
 
   return {
@@ -140,7 +140,7 @@ export async function findActiveToken(code: string) {
   return token;
 }
 
-/** §15.1 — cancel before payment: release immediately, invalidate token. */
+/** §15.1: cancel before payment: release immediately, invalidate token. */
 export async function cancelToken(code: string): Promise<boolean> {
   const token = await db.orderToken.findUnique({ where: { code }, include: { items: true } });
   if (!token || token.status !== 'ACTIVE') return false;
@@ -149,7 +149,7 @@ export async function cancelToken(code: string): Promise<boolean> {
   return true;
 }
 
-/** Background sweep for expired tokens (§6.3) — run on an interval in index.ts. */
+/** Background sweep for expired tokens (§6.3): run on an interval in index.ts. */
 export async function sweepExpiredTokens(): Promise<number> {
   const expired = await db.orderToken.findMany({
     where: { status: 'ACTIVE', expiresAt: { lte: now() } },

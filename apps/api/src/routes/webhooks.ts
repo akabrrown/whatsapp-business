@@ -1,4 +1,4 @@
-// Webhook endpoints — Paystack (HMAC-verified) + Meta WhatsApp (verify handshake + inbound).
+// Webhook endpoints: Paystack (HMAC-verified) + Meta WhatsApp (verify handshake + inbound).
 import { Router, raw } from 'express';
 import crypto from 'node:crypto';
 import { handlePaystackWebhook } from '../services/payments.js';
@@ -31,7 +31,7 @@ webhooks.get('/whatsapp', (req, res) => {
 // Uses raw body for X-Hub-Signature-256 verification in real mode (§14.3).
 const metaRaw = raw({ type: 'application/json' });
 webhooks.post('/whatsapp', metaRaw, async (req, res) => {
-  // §14 — verify Meta signature in real mode
+  // §14: verify Meta signature in real mode
   if (config.whatsapp.mode === 'real' && config.whatsapp.appSecret) {
     const sig = req.headers['x-hub-signature-256'] as string | undefined;
     const rawBody = req.body.toString('utf8');
@@ -63,7 +63,7 @@ webhooks.post('/whatsapp', metaRaw, async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-/** Local sim console — inject an inbound WhatsApp message without Meta (dev mode only). */
+/** Local sim console: inject an inbound WhatsApp message without Meta (dev mode only). */
 if (config.whatsapp.mode === 'sim') {
   webhooks.post('/whatsapp/sim-inbound', async (req, res) => {
     const { phone, text, kind, lat, lng } = req.body as { phone?: string; text?: string; kind?: 'text' | 'voice' | 'location'; lat?: number; lng?: number };

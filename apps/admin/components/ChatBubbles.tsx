@@ -1,4 +1,4 @@
-// Chat bubbles — customer left/neutral, business right/denim (ux.md §3.9, §3.11).
+// Chat bubbles: customer left/neutral, business right/denim (ux.md §3.9, §3.11).
 import { Mic } from 'lucide-react';
 
 export interface ChatMessage {

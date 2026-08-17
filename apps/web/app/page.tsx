@@ -1,4 +1,4 @@
-// Homepage — asymmetric hero, editorial category strip, irregular "New In" (ux.md §3.1).
+// Homepage: asymmetric hero, editorial category strip, irregular "New In" (ux.md §3.1).
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -16,7 +16,7 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero — image bleeds right, copy overlaps its edge */}
+      {/* Hero: image bleeds right, copy overlaps its edge */}
       <section className="relative -mx-4 md:-mx-6">
         <div className="grid md:grid-cols-[55%_45%]">
           <div className="relative z-10 flex flex-col justify-center px-6 py-16 md:py-24 lg:pr-0">
@@ -27,7 +27,7 @@ export default async function HomePage() {
               Denim that fits the life you&apos;re actually living.
             </h1>
             <p className="mt-5 max-w-md text-charcoal/70">
-              Jeans, female wear, bags and accessories — browse here, finish your order
+              Jeans, female wear, bags and accessories: browse here, finish your order
               in a WhatsApp chat with Kukua herself.
             </p>
             <Link
@@ -51,7 +51,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Shop by category — flagship card larger than the rest */}
+      {/* Shop by category: flagship card larger than the rest */}
       {categories.length > 0 && (
         <section className="mt-20">
           <h2 className="headline mb-6 text-2xl">Shop by Category</h2>
@@ -72,7 +72,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* New In — one featured + two smaller; graceful empty state when catalog is bare */}
+      {/* New In: one featured + two smaller; graceful empty state when catalog is bare */}
       {newIn.length === 0 && (
         <section className="mt-20 rounded border border-sand/30 bg-white/50 px-6 py-16 text-center">
           <h2 className="headline text-2xl">The collection is arriving soon</h2>

@@ -1,4 +1,4 @@
-// Scenario suite §11 — Admin Actions (6 scenarios), exercised over HTTP.
+// Scenario suite §11: Admin Actions (6 scenarios), exercised over HTTP.
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -47,7 +47,7 @@ describe('§11 Admin Actions', () => {
     expect(owner.length).toBeGreaterThan(0);
   });
 
-  it('Scenario §11.1 — add a new product: visible on website and bot catalog immediately', async () => {
+  it('Scenario §11.1: add a new product: visible on website and bot catalog immediately', async () => {
     const res = await fetch(`${base}/api/admin/products`, {
       method: 'POST',
       headers: auth(owner),
@@ -64,7 +64,7 @@ describe('§11 Admin Actions', () => {
     expect(catalog.products.map((p) => p.name)).toContain('Fresh Jacket');
   });
 
-  it('Scenario §11.2 — deactivate a product: hidden from catalog, past orders unaffected', async () => {
+  it('Scenario §11.2: deactivate a product: hidden from catalog, past orders unaffected', async () => {
     const { order } = await createOrder({ phone: '233207777777', items: [{ variantId: data.v.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true });
     const res = await fetch(`${base}/api/admin/products/${data.p.id}`, {
       method: 'PATCH',
@@ -79,7 +79,7 @@ describe('§11 Admin Actions', () => {
     expect(fresh.items[0].variant.product.name).toBe('Test Jeans');
   });
 
-  it('Scenario §11.3 — bulk stock update: each SKU gets its own log + realtime push', async () => {
+  it('Scenario §11.3: bulk stock update: each SKU gets its own log + realtime push', async () => {
     for (const v of [data.v, data.vBag]) {
       const res = await fetch(`${base}/api/admin/inventory/${v.id}/restock`, {
         method: 'POST',
@@ -96,7 +96,7 @@ describe('§11 Admin Actions', () => {
     expect(inv.variants.find((v) => v.id === data.vBag.id)?.stockQuantity).toBe(20); // 10 + 10
   });
 
-  it('Scenario §11.4 — edit zone fee: applies to new orders only', async () => {
+  it('Scenario §11.4: edit zone fee: applies to new orders only', async () => {
     const { order: existing } = await createOrder({
       phone: '233207777778', items: [{ variantId: data.v.id, qty: 1 }], source: OrderSource.WEBSITE, paid: true,
       zoneName: 'East Legon', deliveryFeeP: 2500,
@@ -115,7 +115,7 @@ describe('§11 Admin Actions', () => {
     expect(fresh.deliveryFeeP).toBe(2500); // in-progress order keeps the quoted fee
   });
 
-  it('Scenario §11.5 — export & analytics: CSV download and aggregated numbers', async () => {
+  it('Scenario §11.5: export & analytics: CSV download and aggregated numbers', async () => {
     await createOrder({ phone: '233207777779', items: [{ variantId: data.v.id, qty: 2 }], source: OrderSource.WEBSITE, paid: true });
     const csv = await fetch(`${base}/api/admin/export/orders.csv`, { headers: auth(owner) });
     expect(csv.headers.get('content-type')).toContain('text/csv');
@@ -127,7 +127,7 @@ describe('§11 Admin Actions', () => {
     expect(analytics.analytics.revenueP).toBe(64000); // 2 × GHS 320
   });
 
-  it('Scenario §11.6 — staff account: scoped permissions (no staff management)', async () => {
+  it('Scenario §11.6: staff account: scoped permissions (no staff management)', async () => {
     const create = await fetch(`${base}/api/admin/staff`, {
       method: 'POST',
       headers: auth(owner),

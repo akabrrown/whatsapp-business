@@ -1,5 +1,5 @@
 'use client';
-// Cart context — local display metadata + server session cart as source of
+// Cart context: local display metadata + server session cart as source of
 // truth at checkout (§4.5). Session id survives refreshes via localStorage.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { formatGHS } from '@rose/shared';
@@ -92,7 +92,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const add = useCallback<CartContextValue['add']>(
     async (variantId, qty, meta) => {
-      if (!sessionId) return { ok: false, message: 'Cart is still warming up — try again in a second.' };
+      if (!sessionId) return { ok: false, message: 'Cart is still warming up: try again in a second.' };
       const res = await fetch(`${API}/api/cart/${sessionId}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

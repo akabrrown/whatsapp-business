@@ -1,4 +1,4 @@
-// One-shot catalog reset — wipes orders + products so the store starts clean.
+// One-shot catalog reset: wipes orders + products so the store starts clean.
 // Keeps: categories, delivery zones, admin users, conversations.
 import { PrismaClient } from '@prisma/client';
 

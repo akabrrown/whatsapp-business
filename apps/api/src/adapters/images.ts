@@ -1,4 +1,4 @@
-// Image adapter — deterministic placeholder SVGs in sim mode,
+// Image adapter: deterministic placeholder SVGs in sim mode,
 // Cloudinary passthrough in cloudinary mode (§3.4).
 import { config } from '../config.js';
 

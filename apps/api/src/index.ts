@@ -1,4 +1,4 @@
-// Server entrypoint — HTTP + WebSocket hub + background jobs.
+// Server entrypoint: HTTP + WebSocket hub + background jobs.
 import http from 'node:http';
 import { createApp } from './app.js';
 import { config } from './config.js';
@@ -15,8 +15,8 @@ hub.attach(server);
 // Wire the Paystack simulator's webhook emitter to the verified handler.
 wireSimulator();
 
-const SWEEP_INTERVAL_MS = 60_000; // §6.3 — release expired reservations
-const RETENTION_INTERVAL_MS = 15 * 60_000; // §16 — retention cadence
+const SWEEP_INTERVAL_MS = 60_000; // §6.3: release expired reservations
+const RETENTION_INTERVAL_MS = 15 * 60_000; // §16: retention cadence
 
 if (process.env.NODE_ENV !== 'test') {
   const sweep = setInterval(() => sweepExpiredTokens().catch(console.error), SWEEP_INTERVAL_MS);

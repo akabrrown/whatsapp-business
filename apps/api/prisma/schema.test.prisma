@@ -1,4 +1,4 @@
-// ROSE & DENIM — test schema (SQLite for fast local tests)
+// ROSE & DENIM: test schema (SQLite for fast local tests)
 // Production uses PostgreSQL/Supabase (see schema.prisma)
 // Money: integer pesewas. Timestamps: UTC.
 

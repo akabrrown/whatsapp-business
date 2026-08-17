@@ -1,4 +1,4 @@
-// Scenario suite §10 — Human Handoff (7 scenarios).
+// Scenario suite §10: Human Handoff (7 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, whatsapp, hub, resetRuntime } from '../helpers.js';
 import { handleInbound, takeOver, releaseToBot } from '../../src/services/bot.js';
@@ -18,7 +18,7 @@ describe('§10 Human Handoff', () => {
     await baseline(db);
   });
 
-  it('Scenario §10.1 — explicit human request: immediate handoff', async () => {
+  it('Scenario §10.1: explicit human request: immediate handoff', async () => {
     const reply = await handleInbound({ phone: PHONE, text: 'Can I speak to someone?' });
     expect(reply.handoff).toBe(true);
     expect(whatsapp.lastTo(PHONE)?.body).toContain('Let me get Kukua for you');
@@ -27,7 +27,7 @@ describe('§10 Human Handoff', () => {
     expect(hub.log.some((e) => e.type === 'inbox.alert')).toBe(true);
   });
 
-  it('Scenario §10.2 — three unrecognized messages: handoff on the third', async () => {
+  it('Scenario §10.2: three unrecognized messages: handoff on the third', async () => {
     const r1 = await handleInbound({ phone: PHONE, text: 'flurble' });
     const r2 = await handleInbound({ phone: PHONE, text: 'grumble wumble' });
     expect(r1.handoff).toBeFalsy();
@@ -40,13 +40,13 @@ describe('§10 Human Handoff', () => {
     expect(hub.log.some((e) => e.type === 'inbox.alert' && (e.payload as { reason?: string }).reason === '3 unrecognized messages')).toBe(true);
   });
 
-  it('Scenario §10.3 — voice note: cannot parse, auto-handoff', async () => {
+  it('Scenario §10.3: voice note: cannot parse, auto-handoff', async () => {
     const reply = await handleInbound({ phone: PHONE, kind: 'voice' });
     expect(reply.handoff).toBe(true);
     expect(whatsapp.lastTo(PHONE)?.body).toContain("can't listen to voice notes");
   });
 
-  it('Scenario §10.4 — high-value cart (≥ GHS 1,000): VIP alert, customer sees nothing different', async () => {
+  it('Scenario §10.4: high-value cart (≥ GHS 1,000): VIP alert, customer sees nothing different', async () => {
     await handleInbound({ phone: PHONE, text: 'hi' });
     await handleInbound({ phone: PHONE, text: 'add 1' }); // GHS 340
     await handleInbound({ phone: PHONE, text: 'add 1' }); // GHS 680
@@ -58,7 +58,7 @@ describe('§10 Human Handoff', () => {
     expect((vipAlert!.payload as { subtotalP: number }).subtotalP).toBe(102000);
   });
 
-  it('Scenario §10.5 — negotiation attempt: handed off, bot never negotiates', async () => {
+  it('Scenario §10.5: negotiation attempt: handed off, bot never negotiates', async () => {
     const reply = await handleInbound({ phone: PHONE, text: 'Can you do a discount on these?' });
     expect(reply.handoff).toBe(true);
     expect(whatsapp.lastTo(PHONE)?.body).toContain('Kukua');
@@ -66,7 +66,7 @@ describe('§10 Human Handoff', () => {
     expect(conv?.status).toBe('NEEDS_HUMAN');
   });
 
-  it('Scenario §10.6 — staff takes over: bot goes silent', async () => {
+  it('Scenario §10.6: staff takes over: bot goes silent', async () => {
     await handleInbound({ phone: PHONE, text: 'hi' });
     const convId = (await conversationId())!;
     await takeOver(convId);
@@ -78,7 +78,7 @@ describe('§10 Human Handoff', () => {
     expect(conv.status).toBe('HUMAN');
   });
 
-  it('Scenario §10.7 — staff releases: bot resumes automated handling', async () => {
+  it('Scenario §10.7: staff releases: bot resumes automated handling', async () => {
     await handleInbound({ phone: PHONE, text: 'hi' });
     const convId = (await conversationId())!;
     await takeOver(convId);

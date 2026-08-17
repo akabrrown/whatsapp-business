@@ -6,7 +6,7 @@ const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'ROSE & DENIM — Studio',
+  title: 'ROSE & DENIM: Studio',
   description: 'Kukua\'s back office: orders, inventory, inbox, analytics.',
 };
 

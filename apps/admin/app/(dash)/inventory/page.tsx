@@ -1,5 +1,5 @@
 'use client';
-// Inventory — variant-level stock with low-stock flags (§3.10, §6),
+// Inventory: variant-level stock with low-stock flags (§3.10, §6),
 // inline restock (§11.3) and manual adjustment (§6.6), product hide/show (§11.2).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -170,7 +170,7 @@ export default function InventoryPage() {
               );
             })}
             {variants.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-charcoal/50">No products yet — add your first product to open the store.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-charcoal/50">No products yet: add your first product to open the store.</td></tr>
             )}
           </tbody>
         </table>

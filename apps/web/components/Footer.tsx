@@ -1,4 +1,4 @@
-// Footer — warm off-white, denim text, WhatsApp invitation as the one green
+// Footer: warm off-white, denim text, WhatsApp invitation as the one green
 // accent on the site (ux.md §3.1).
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '233200000000';
 
@@ -9,7 +9,7 @@ export function Footer() {
         <div>
           <p className="headline text-2xl">ROSE &amp; DENIM</p>
           <p className="mt-2 max-w-sm text-sm text-charcoal/70">
-            By Kukua — Accra, Ghana. Denim, dresses, bags and the little things,
+            By Kukua: Accra, Ghana. Denim, dresses, bags and the little things,
             ordered the way you already chat.
           </p>
         </div>
@@ -33,7 +33,7 @@ export function Footer() {
             <span className="h-2 w-2 rounded-full bg-wagreen" aria-hidden />
             Chat with Kukua on WhatsApp
           </a>
-          <p className="mt-3 text-xs text-charcoal/50">We reply fast — promise.</p>
+          <p className="mt-3 text-xs text-charcoal/50">We reply fast: promise.</p>
         </div>
         <div className="text-sm">
           <p className="mb-3 font-medium text-indigo">Legal</p>

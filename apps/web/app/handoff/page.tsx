@@ -1,5 +1,5 @@
 'use client';
-// WhatsApp handoff transition screen (ux.md §3.5) — chat-bubble shapes,
+// WhatsApp handoff transition screen (ux.md §3.5): chat-bubble shapes,
 // warm background, token visible, auto-opens WhatsApp.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -40,7 +40,7 @@ export default function HandoffPage() {
 
       {!state && (
         <p className="mt-10 text-sm text-charcoal/60">
-          No order in progress — <Link href="/shop" className="text-indigo underline">browse the collection</Link>.
+          No order in progress: <Link href="/shop" className="text-indigo underline">browse the collection</Link>.
         </p>
       )}
       {opened && (

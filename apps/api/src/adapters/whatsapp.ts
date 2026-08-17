@@ -1,4 +1,4 @@
-// WhatsApp messaging adapter — Meta Cloud API + in-process simulator.
+// WhatsApp messaging adapter: Meta Cloud API + in-process simulator.
 // Env switch: WHATSAPP_MODE=sim|real.
 import { config } from '../config.js';
 import { now } from '../clock.js';
@@ -39,7 +39,7 @@ export class MetaSender implements WhatsAppSender {
       }
       return { ok: true as const };
     } catch {
-      // §13.3 — Meta outage: send fails, caller retries/flags.
+      // §13.3: Meta outage: send fails, caller retries/flags.
       return { ok: false as const, error: 'meta_unreachable' };
     }
   }
@@ -74,7 +74,7 @@ export class SimSender implements WhatsAppSender {
     if (this.blocked.has(to)) return { ok: false, error: 'undelivered' };
     if (this.failing.has(to)) return { ok: false, error: 'api_error' };
     if (this.enforceTemplateWindow && this.outsideWindow.has(to)) {
-      // §12.4 — free-form text outside 24h window is rejected by Meta.
+      // §12.4: free-form text outside 24h window is rejected by Meta.
       return { ok: false, error: 'template_required' };
     }
     this.outbox.push({ to, body, sentAt: now().toISOString() });

@@ -7,7 +7,7 @@ function norm(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-/** §7.1 — known zone text → automatic fee. §7.4 — gibberish → unrecognized. */
+/** §7.1: known zone text → automatic fee. §7.4: gibberish → unrecognized. */
 export async function matchZone(text: string): Promise<ZoneMatch> {
   const zones = await db.deliveryZone.findMany();
   const t = norm(text);
@@ -26,7 +26,7 @@ export async function matchZone(text: string): Promise<ZoneMatch> {
   return { ok: false, reason: 'unrecognized' };
 }
 
-/** §7.2 — location pin → nearest known zone (haversine over seeded coordinates). */
+/** §7.2: location pin → nearest known zone (haversine over seeded coordinates). */
 export async function matchPin(lat: number, lng: number): Promise<ZoneMatch> {
   const zones = await db.deliveryZone.findMany();
   let best: { id: string; name: string; feeP: number } | null = null;

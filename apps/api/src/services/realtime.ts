@@ -1,4 +1,4 @@
-// WebSocket hub — live stock pushes to the storefront (§6.5) and
+// WebSocket hub: live stock pushes to the storefront (§6.5) and
 // order/inbox/low-stock/stale alerts to the admin dashboard (§8.6, §10.2, §11.3).
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
@@ -24,7 +24,7 @@ class RealtimeHub {
       const params = new URL(req.url ?? '/', 'http://x').searchParams;
       const channel = (params.get('channel') as Channel) ?? 'web';
 
-      // §11 — admin channel requires a valid admin JWT. Web channel stays open.
+      // §11: admin channel requires a valid admin JWT. Web channel stays open.
       if (channel === 'admin') {
         const token = params.get('token') ?? '';
         try {

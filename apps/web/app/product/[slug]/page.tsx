@@ -1,4 +1,4 @@
-// Product detail page — asymmetric two-column, filmstrip incl. detail shot (ux.md §3.3).
+// Product detail page: asymmetric two-column, filmstrip incl. detail shot (ux.md §3.3).
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
@@ -7,7 +7,7 @@ import { VariantPicker } from '@/components/VariantPicker';
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = await api.product(slug);
-  if (!product) notFound(); // §3.5 — unknown slug resolves to a clean 404
+  if (!product) notFound(); // §3.5: unknown slug resolves to a clean 404
 
   return (
     <div className="grid gap-10 py-10 md:grid-cols-[3fr_2fr]">

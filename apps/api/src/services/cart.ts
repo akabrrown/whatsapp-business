@@ -1,4 +1,4 @@
-// Cart sessions — 30-minute TTL in the KV store (§4.3, §4.4).
+// Cart sessions: 30-minute TTL in the KV store (§4.3, §4.4).
 // Server copy is the source of truth at checkout (§4.5 tab reconciliation).
 import { kv } from '../sessionStore.js';
 import { now } from '../clock.js';
@@ -19,7 +19,7 @@ export function empty(sessionId: string): Cart {
   return cart;
 }
 
-/** §4.1 — validate against live stock; §4.2 — race to 0 rejects (409 upstream). */
+/** §4.1: validate against live stock; §4.2: race to 0 rejects (409 upstream). */
 export async function add(sessionId: string, variantId: string, qty = 1): Promise<Cart> {
   const v = await db.productVariant.findUnique({
     where: { id: variantId },
@@ -53,7 +53,7 @@ export function setQty(sessionId: string, variantId: string, qty: number): Cart 
   return cart;
 }
 
-/** §4.5 — at checkout, client cart is reconciled onto the server copy. */
+/** §4.5: at checkout, client cart is reconciled onto the server copy. */
 export function sync(sessionId: string, items: CartItem[]): Cart {
   const cart: Cart = { sessionId, items, updatedAt: now().toISOString() };
   kv.set(key(sessionId), cart, ttl);

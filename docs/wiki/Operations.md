@@ -8,16 +8,16 @@ The API boots fully with zero configuration (all defaults are dev-safe). Set var
 |---|---|---|
 | `PORT` | `4000` | API port |
 | `DATABASE_URL` | `file:./dev.db` | Prisma SQLite path |
-| `JWT_SECRET` | `dev-secret` | Admin JWT signing — **set in production** |
+| `JWT_SECRET` | `dev-secret` | Admin JWT signing: **set in production** |
 | `WHATSAPP_NUMBER` | `233200000000` | Business number used in `wa.me` links |
 | `WHATSAPP_MODE` | `sim` | `real` = Meta Cloud API |
-| `META_ACCESS_TOKEN` / `META_PHONE_NUMBER_ID` | — | Cloud API credentials (real mode) |
+| `META_ACCESS_TOKEN` / `META_PHONE_NUMBER_ID` |: | Cloud API credentials (real mode) |
 | `META_VERIFY_TOKEN` | `rose-denim-verify` | Webhook handshake token |
 | `PAYSTACK_MODE` | `sim` | `real` = live Paystack |
-| `PAYSTACK_SECRET_KEY` | — | Live secret key; also the HMAC webhook secret |
+| `PAYSTACK_SECRET_KEY` |: | Live secret key; also the HMAC webhook secret |
 | `PAYSTACK_CALLBACK_URL` | `http://localhost:4000/webhooks/paystack` | Payment redirect callback |
 | `IMAGES_MODE` | `sim` | `cloudinary` = use `CLOUDINARY_URL` images |
-| `REDIS_URL` | — | Reserved for swapping the session store |
+| `REDIS_URL` |: | Reserved for swapping the session store |
 | `OWNER_EMAIL` / `OWNER_PASSWORD` | `kukua@roseanddenim.com` / `denim-rose-2026` | Seeded owner account |
 
 Frontends read `NEXT_PUBLIC_API_URL` (default `http://localhost:4000`).
@@ -52,8 +52,8 @@ npm run build          # production builds (web + admin)
 
 | Symptom | Cause / fix |
 |---|---|
-| Admin shows login loop | JWT expired or `JWT_SECRET` changed — log in again; token lives in `localStorage['rd-admin-token']` |
-| No realtime toasts | WS blocked — frontends fall back to polling (15–30 s); check `?channel=` param |
+| Admin shows login loop | JWT expired or `JWT_SECRET` changed: log in again; token lives in `localStorage['rd-admin-token']` |
+| No realtime toasts | WS blocked: frontends fall back to polling (15–30 s); check `?channel=` param |
 | 409 on checkout | `DUPLICATE_SUSPECT` (recent order from same phone, §14.5) or `SOLD_OUT` race (§4.2) |
-| `already_shipped` on address edit | Expected guard — addresses are locked after shipping (§7.6) |
+| `already_shipped` on address edit | Expected guard: addresses are locked after shipping (§7.6) |
 | Tests flaky on ports | Suite boots its own server on an ephemeral port; ensure port 4000 isn't required to be free |

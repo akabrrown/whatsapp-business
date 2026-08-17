@@ -1,4 +1,4 @@
-// Inventory mutations — reservations, hard deductions, restocks, adjustments.
+// Inventory mutations: reservations, hard deductions, restocks, adjustments.
 // Every mutation writes an inventory_logs row (§6.6) and pushes realtime updates (§6.5, §11.3).
 import { db } from '../db.js';
 import { hub } from './realtime.js';
@@ -19,12 +19,12 @@ async function notify(variantId: string) {
   const available = Math.max(0, v.stockQuantity - v.reservedStock);
   hub.broadcastWeb('stock.updated', { variantId, productSlug: v.product.slug, available, stockQuantity: v.stockQuantity });
   if (v.stockQuantity > 0 && v.stockQuantity <= v.lowStockThreshold) {
-    // §6.7 — low-stock alert to admin only; customers see nothing until 0.
+    // §6.7: low-stock alert to admin only; customers see nothing until 0.
     hub.broadcastAdmin('alert.low_stock', { variantId, sku: v.sku, stock: v.stockQuantity, threshold: v.lowStockThreshold });
   }
 }
 
-/** §6.2 — soft reservation: reserved_stock += qty; fails when unavailable. */
+/** §6.2: soft reservation: reserved_stock += qty; fails when unavailable. */
 export async function reserve(variantId: string, qty: number, note = ''): Promise<void> {
   await db.$transaction(async (tx) => {
     const v = await tx.productVariant.findUnique({ where: { id: variantId } });
@@ -37,7 +37,7 @@ export async function reserve(variantId: string, qty: number, note = ''): Promis
   await notify(variantId);
 }
 
-/** §6.3, §15.1 — release reservation (token expiry / cancel). */
+/** §6.3, §15.1: release reservation (token expiry / cancel). */
 export async function release(variantId: string, qty: number, note = ''): Promise<void> {
   await db.$transaction(async (tx) => {
     const v = await tx.productVariant.findUnique({ where: { id: variantId } });
@@ -50,7 +50,7 @@ export async function release(variantId: string, qty: number, note = ''): Promis
   await notify(variantId);
 }
 
-/** §6.1, §6.4 — hard deduction at payment. Guarded: never below zero. */
+/** §6.1, §6.4: hard deduction at payment. Guarded: never below zero. */
 export async function hardDeduct(variantId: string, qty: number, note = ''): Promise<void> {
   await db.$transaction(async (tx) => {
     const v = await tx.productVariant.findUnique({ where: { id: variantId } });
@@ -68,7 +68,7 @@ export async function hardDeduct(variantId: string, qty: number, note = ''): Pro
   await notify(variantId);
 }
 
-/** §6.5, §11.3 — restock (new shipment). */
+/** §6.5, §11.3: restock (new shipment). */
 export async function restock(variantId: string, qty: number, note = 'restock'): Promise<void> {
   await db.$transaction(async (tx) => {
     const v = await tx.productVariant.findUnique({ where: { id: variantId } });
@@ -79,7 +79,7 @@ export async function restock(variantId: string, qty: number, note = 'restock'):
   await notify(variantId);
 }
 
-/** §6.6 — manual adjustment (damage/loss); internal record only. */
+/** §6.6: manual adjustment (damage/loss); internal record only. */
 export async function adjust(variantId: string, delta: number, note: string): Promise<void> {
   await db.$transaction(async (tx) => {
     const v = await tx.productVariant.findUnique({ where: { id: variantId } });

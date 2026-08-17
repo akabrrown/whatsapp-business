@@ -1,5 +1,5 @@
 'use client';
-// Add product (§11.1) — visible on site + bot immediately on save.
+// Add product (§11.1): visible on site + bot immediately on save.
 // Uploads go through §14.6 validation; variants carry price in GHS.
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';

@@ -1,5 +1,5 @@
 'use client';
-// Order detail — timeline + customer/items/payment on the other side,
+// Order detail: timeline + customer/items/payment on the other side,
 // embedded WhatsApp thread (§3.9), fulfillment actions incl. failed delivery.
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -78,7 +78,7 @@ export default function OrderDetailPage() {
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <h1 className="font-serif text-2xl text-indigo">{order.number}</h1>
         <StatusPill status={order.status} />
-        {order.needsAdminReview && <span className="bg-sand/40 px-2 py-0.5 text-xs">late webhook — verify payment</span>}
+        {order.needsAdminReview && <span className="bg-sand/40 px-2 py-0.5 text-xs">late webhook: verify payment</span>}
         {order.refundDue && <span className="bg-rose/20 px-2 py-0.5 text-xs">refund due</span>}
       </div>
       {error && <p className="mb-4 text-sm text-rose">{error}</p>}
@@ -138,7 +138,7 @@ export default function OrderDetailPage() {
                     {it.variant.product.name}
                     <span className="text-xs text-charcoal/50"> {[it.variant.size, it.variant.color].filter(Boolean).join(' · ')}</span>
                   </span>
-                  <span>×{it.qty} — {formatGHS(it.unitPriceP * it.qty)}</span>
+                  <span>×{it.qty} · {formatGHS(it.unitPriceP * it.qty)}</span>
                 </li>
               ))}
             </ul>
@@ -160,7 +160,7 @@ export default function OrderDetailPage() {
           </section>
 
           <section>
-            <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Delivery address (§7.5 — admin only)</p>
+            <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Delivery address (§7.5, admin only)</p>
             <div className="flex flex-col gap-2">
               <input value={address} onChange={(e) => setAddress(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-1 text-sm outline-none focus:border-indigo" />
               <select
@@ -186,7 +186,7 @@ export default function OrderDetailPage() {
               >
                 Save address + zone
               </button>
-              {order.status === 'SHIPPED' && <p className="text-[10px] text-charcoal/50">Already shipped — address is locked (§7.6).</p>}
+              {order.status === 'SHIPPED' && <p className="text-[10px] text-charcoal/50">Already shipped, address is locked (§7.6).</p>}
             </div>
           </section>
         </div>

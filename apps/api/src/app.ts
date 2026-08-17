@@ -1,4 +1,4 @@
-// Express app assembly — JSON parsing, CORS, route mounting.
+// Express app assembly: JSON parsing, CORS, route mounting.
 import 'express-async-errors'; // forward rejected promises from async handlers to the error middleware
 import express from 'express';
 import cors from 'cors';

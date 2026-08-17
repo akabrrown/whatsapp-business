@@ -1,5 +1,5 @@
 'use client';
-// Slide-out mini-cart (ux.md §3.4) — the one place WhatsApp green appears as
+// Slide-out mini-cart (ux.md §3.4): the one place WhatsApp green appears as
 // a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -103,8 +103,8 @@ export function MiniCart() {
         setError(`${body.message ?? 'Looks like a duplicate order.'} Tap the button again to confirm you mean it.`);
         return;
       }
-      if (body.error === 'RATE_LIMITED') return setError(body.message ?? 'Too many attempts — please wait a few minutes.');
-      return setError(body.message ?? 'Something went wrong — try again.');
+      if (body.error === 'RATE_LIMITED') return setError(body.message ?? 'Too many attempts: please wait a few minutes.');
+      return setError(body.message ?? 'Something went wrong: try again.');
     }
     sessionStorage.setItem('rd-handoff', JSON.stringify({ url: body.handoff!.whatsappUrl, code: body.handoff!.code }));
     setDrawerOpen(false);
@@ -133,7 +133,7 @@ export function MiniCart() {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {lines.length === 0 && (
             <p className="mt-10 text-center text-sm text-charcoal/60">
-              Your bag is empty — <a href="/shop" className="text-indigo underline">browse the collection</a>.
+              Your bag is empty: <a href="/shop" className="text-indigo underline">browse the collection</a>.
             </p>
           )}
           {lines.map((l) => (
@@ -164,7 +164,7 @@ export function MiniCart() {
           {lines.length > 0 && (
             <div className="mt-6 space-y-3 border-t border-sand/40 pt-4">
               <label className="block text-xs text-charcoal/60">
-                Delivery area (optional — we&apos;ll quote in chat if we don&apos;t cover it yet)
+                Delivery area (optional: we&apos;ll quote in chat if we don&apos;t cover it yet)
                 <div className="mt-1 flex gap-2">
                   <input
                     value={zoneText}
@@ -205,7 +205,7 @@ export function MiniCart() {
               {busy ? 'Reserving your pieces…' : confirmDup ? 'Yes, place it again' : 'Complete Order on WhatsApp'}
             </button>
             <p className="mt-2 text-center text-xs text-charcoal/50">
-              You&apos;ll finish in WhatsApp — your pieces are held for 15 minutes.
+              You&apos;ll finish in WhatsApp: your pieces are held for 15 minutes.
             </p>
           </div>
         )}

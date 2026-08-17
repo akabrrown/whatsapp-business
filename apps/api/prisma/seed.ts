@@ -1,5 +1,5 @@
 // Seed: categories, Accra delivery zones, owner account.
-// Catalog starts empty — real products are added from the admin dashboard (§11.1).
+// Catalog starts empty: real products are added from the admin dashboard (§11.1).
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { pesewas } from '@rose/shared';
@@ -55,7 +55,7 @@ async function main() {
     });
   }
 
-  console.log(`Seeded: owner ${owner.email}, ${cats.length} categories, ${zones.length} zones. Catalog is empty — add products from the admin dashboard.`);
+  console.log(`Seeded: owner ${owner.email}, ${cats.length} categories, ${zones.length} zones. Catalog is empty: add products from the admin dashboard.`);
 }
 
 main()

@@ -1,4 +1,4 @@
-// Scenario suite §13 — Third-Party Outages (5 scenarios).
+// Scenario suite §13: Third-Party Outages (5 scenarios).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, resetDb, baseline, setNow, advance, MIN, whatsapp, paystack, kv, resetRuntime } from '../helpers.js';
 import { handleInbound } from '../../src/services/bot.js';
@@ -19,7 +19,7 @@ describe('§13 Third-Party Outages', () => {
     data = await baseline(db);
   });
 
-  it('Scenario §13.1 — Paystack down: no payment link, friendly message, no order fabricated', async () => {
+  it('Scenario §13.1: Paystack down: no payment link, friendly message, no order fabricated', async () => {
     paystack.outage = true;
     await handleInbound({ phone: PHONE, text: 'hi' });
     await handleInbound({ phone: PHONE, text: 'add 1' });
@@ -31,7 +31,7 @@ describe('§13 Third-Party Outages', () => {
     expect(await initPaymentForToken('RD-000000')).toBeNull();
   });
 
-  it('Scenario §13.2 — platform-wide webhook delay: reservations persist, nothing lost', async () => {
+  it('Scenario §13.2: platform-wide webhook delay: reservations persist, nothing lost', async () => {
     const { code } = await handoff.createToken({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }] });
     const url = await initPaymentForToken(code);
     const reference = url!.split('/').pop()!;
@@ -43,7 +43,7 @@ describe('§13 Third-Party Outages', () => {
     expect(order?.needsAdminReview).toBe(true);
   });
 
-  it('Scenario §13.3 — Meta outage: sends fail but the website stays fully browsable', async () => {
+  it('Scenario §13.3: Meta outage: sends fail but the website stays fully browsable', async () => {
     whatsapp.outage = true;
     const res = await sendReliable(PHONE, 'hello');
     expect(res.ok).toBe(false);
@@ -52,7 +52,7 @@ describe('§13 Third-Party Outages', () => {
     expect(products).toHaveLength(2);
   });
 
-  it('Scenario §13.4 — database unreachable: API errors out, never fabricates data', async () => {
+  it('Scenario §13.4: database unreachable: API errors out, never fabricates data', async () => {
     const delegate = db.product as { findMany: (...args: unknown[]) => Promise<unknown[]> };
     const original = delegate.findMany;
     delegate.findMany = () => Promise.reject(new Error('ECONNREFUSED'));
@@ -63,14 +63,14 @@ describe('§13 Third-Party Outages', () => {
     expect(products.map((p) => p.slug).sort()).toEqual(['test-bag', 'test-jeans']);
   });
 
-  it('Scenario §13.5 — cache layer down: sessions lost, orders/payments in the DB survive', async () => {
+  it('Scenario §13.5: cache layer down: sessions lost, orders/payments in the DB survive', async () => {
     await cart.add('session-x', data.v.id, 1);
     const { code } = await handoff.createToken({ phone: PHONE, items: [{ variantId: data.v.id, qty: 1 }] });
     const url = await initPaymentForToken(code);
     expect(url).not.toBeNull();
     kv.clear(); // simulate cache-layer crash
     expect(cart.get('session-x')).toBeNull(); // customer rebuilds the cart
-    // but no payment/order data was lost — it lives in the database:
+    // but no payment/order data was lost: it lives in the database:
     const payment = await db.payment.findFirst({ where: { tokenCode: code } });
     expect(payment).not.toBeNull();
     const token = await db.orderToken.findUnique({ where: { code } });

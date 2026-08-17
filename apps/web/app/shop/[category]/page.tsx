@@ -1,4 +1,4 @@
-// Category / catalog grid — broken grid rhythm, text-based category tabs (ux.md §3.2).
+// Category / catalog grid: broken grid rhythm, text-based category tabs (ux.md §3.2).
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
@@ -28,7 +28,7 @@ export default async function ShopPage({ params }: { params: Promise<{ category?
 
       {products.length === 0 ? (
         <p className="mt-16 text-center text-charcoal/60">
-          Nothing here yet — new pieces land every week.{' '}
+          Nothing here yet: new pieces land every week.{' '}
           <Link href="/shop" className="text-indigo underline">Browse everything</Link>
         </p>
       ) : (
