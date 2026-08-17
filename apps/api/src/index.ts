@@ -26,6 +26,24 @@ if (process.env.NODE_ENV !== 'test') {
   server.listen(config.port, () => {
     console.log(`ROSE & DENIM API listening on :${config.port} (paystack=${config.paystack.mode}, whatsapp=${config.whatsapp.mode})`);
   });
+
+  // Graceful shutdown (§13 reliability)
+  const shutdown = (signal: string) => {
+    console.log(`Received ${signal}, shutting down gracefully...`);
+    clearInterval(sweep);
+    clearInterval(retention);
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
+    // Force exit after 10s if connections don't close
+    setTimeout(() => {
+      console.error('Forced shutdown after timeout');
+      process.exit(1);
+    }, 10_000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 export { server };

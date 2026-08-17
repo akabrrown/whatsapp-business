@@ -4,6 +4,7 @@ import { db } from '../db.js';
 
 const MAX_ATTEMPTS = 3;
 const FAILURE_FLAG_THRESHOLD = 3;
+const BACKOFF_MS = [500, 2000, 8000]; // Exponential backoff between retries
 
 export interface SendOptions {
   templateName?: string; // pre-approved template for outside-24h sends
@@ -34,6 +35,9 @@ export async function sendReliable(to: string, body: string, opts: SendOptions =
     }
     lastError = res.error;
     if (res.error === 'undelivered' || res.error === 'template_required') break; // retrying won't help
+    if (attempt < MAX_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, BACKOFF_MS[attempt - 1] ?? BACKOFF_MS[BACKOFF_MS.length - 1]));
+    }
   }
 
   await recordFailure(to, opts.conversationId);
