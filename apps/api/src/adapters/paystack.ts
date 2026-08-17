@@ -44,6 +44,7 @@ export class RealPaystack implements PaystackAdapter {
           callback_url: config.paystack.callbackUrl,
           metadata,
         }),
+        signal: AbortSignal.timeout(10_000),
       });
       const json = (await res.json()) as { status: boolean; data?: { authorization_url: string }; message?: string };
       if (!json.status || !json.data) return { ok: false, error: json.message ?? 'Paystack initialization failed' };
@@ -56,6 +57,7 @@ export class RealPaystack implements PaystackAdapter {
   async verify(reference: string): Promise<{ status: 'success' | 'failed' | 'pending'; amountP: number; channel: string }> {
     const res = await fetch(`${this.base}/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: this.headers(),
+      signal: AbortSignal.timeout(10_000),
     });
     const json = (await res.json()) as { data: { status: string; amount: number; channel: string } };
     const status: 'success' | 'failed' | 'pending' =
@@ -68,6 +70,7 @@ export class RealPaystack implements PaystackAdapter {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify({ transaction: reference, amount: amountP }),
+        signal: AbortSignal.timeout(10_000),
       });
       const json = (await res.json()) as { status: boolean; message?: string };
       return json.status ? { ok: true } : { ok: false, error: json.message };

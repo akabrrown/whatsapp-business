@@ -32,6 +32,7 @@ export class MetaSender implements WhatsAppSender {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) {
         const err = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;

@@ -20,7 +20,14 @@ export function createApp() {
   // NOTE: /webhooks/paystack mounts its own raw() parser for HMAC verification.
   app.use(express.json({ limit: '1mb' }));
 
-  app.get('/health', (_req, res) => res.json({ ok: true, service: 'rose-denim-api' }));
+  app.get('/health', async (_req, res) => {
+    try {
+      await import('./db.js').then((m) => m.db.$queryRaw`SELECT 1`);
+      res.json({ ok: true, service: 'rose-denim-api', db: 'connected' });
+    } catch {
+      res.status(503).json({ ok: false, service: 'rose-denim-api', db: 'disconnected' });
+    }
+  });
   app.use('/api', storefront);
   app.use('/api/admin', admin);
   app.use('/webhooks', webhooks);
