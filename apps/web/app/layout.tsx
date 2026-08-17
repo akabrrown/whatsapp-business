@@ -11,8 +11,31 @@ const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'ROSE & DENIM BY KUKUA',
-  description: 'Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra.',
+  title: 'ROSE & DENIM BY KUKUA — Denim, Dresses & Bags in Accra',
+  description: 'Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra. Shop the collection online or chat with us directly.',
+  keywords: ['denim', 'dresses', 'bags', 'fashion', 'Accra', 'Ghana', 'WhatsApp shopping', 'rose and denim'],
+  authors: [{ name: 'Kukua', url: 'https://roseanddenim.com' }],
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
+  manifest: '/manifest.json',
+  openGraph: {
+    title: 'ROSE & DENIM BY KUKUA',
+    description: 'Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra.',
+    type: 'website',
+    locale: 'en_GH',
+    siteName: 'ROSE & DENIM BY KUKUA',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ROSE & DENIM BY KUKUA',
+    description: 'Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -112,9 +112,22 @@ admin.patch('/orders/:id/address', async (req, res) => {
   const order = await db.order.findUnique({ where: { id: req.params.id } });
   if (!order) return res.status(404).json({ ok: false, error: 'not_found' });
   if (order.status === 'SHIPPED') return res.status(409).json({ ok: false, error: 'already_shipped' }); // §7.6
+
+  // Recompute delivery fee if zone changed (§11.4)
+  let deliveryFeeP = order.deliveryFeeP;
+  if (zoneName && zoneName !== order.zoneName) {
+    const zone = await db.deliveryZone.findFirst({ where: { name: zoneName } });
+    if (zone) deliveryFeeP = zone.feeP;
+  }
+
   await db.order.update({
     where: { id: req.params.id },
-    data: { ...(deliveryAddress ? { deliveryAddress } : {}), ...(zoneName ? { zoneName } : {}) },
+    data: {
+      ...(deliveryAddress ? { deliveryAddress } : {}),
+      ...(zoneName ? { zoneName } : {}),
+      deliveryFeeP,
+      totalP: order.subtotalP + deliveryFeeP,
+    },
   });
   res.json({ ok: true });
 });
@@ -218,6 +231,7 @@ admin.get('/inbox', async (_req, res) => {
   const conversations = await db.conversation.findMany({
     include: { customer: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
     orderBy: { lastMsgAt: 'desc' },
+    take: 200, // Bounded to avoid unbounded loads
   });
   res.json({ ok: true, conversations });
 });
@@ -280,7 +294,12 @@ admin.get('/analytics', requireOwner, async (req, res) => {
 admin.get('/export/orders.csv', async (req, res) => {
   const from = req.query.from ? new Date(String(req.query.from)) : new Date(0);
   const to = req.query.to ? new Date(String(req.query.to)) : new Date(now().getTime() + DAY);
-  const list = await db.order.findMany({ where: { createdAt: { gte: from, lte: to } }, include: { customer: true }, orderBy: { createdAt: 'asc' } });
+  const list = await db.order.findMany({
+    where: { createdAt: { gte: from, lte: to } },
+    include: { customer: true },
+    orderBy: { createdAt: 'asc' },
+    take: 10_000, // Bounded export to avoid memory exhaustion
+  });
   const rows = [
     'number,date,customer,phone,source,status,subtotal_ghs,delivery_ghs,total_ghs',
     ...list.map((o) =>

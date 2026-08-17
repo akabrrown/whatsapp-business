@@ -1,0 +1,16 @@
+{
+  "name": "ROSE & DENIM BY KUKUA",
+  "short_name": "ROSE & DENIM",
+  "description": "Denim, dresses, bags and the little things — ordered over WhatsApp, delivered across Accra.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#e8c4a0",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

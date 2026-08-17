@@ -6,6 +6,7 @@ import { hub } from './services/realtime.js';
 import { wireSimulator } from './services/payments.js';
 import { sweepExpiredTokens } from './services/handoff.js';
 import { tick } from './services/retention.js';
+import { logger } from './logger.js';
 
 const app = createApp();
 const server = http.createServer(app);
@@ -24,21 +25,21 @@ if (process.env.NODE_ENV !== 'test') {
   retention.unref();
 
   server.listen(config.port, () => {
-    console.log(`ROSE & DENIM API listening on :${config.port} (paystack=${config.paystack.mode}, whatsapp=${config.whatsapp.mode})`);
+    logger.info('ROSE & DENIM API listening', { port: config.port, paystack: config.paystack.mode, whatsapp: config.whatsapp.mode });
   });
 
   // Graceful shutdown (§13 reliability)
   const shutdown = (signal: string) => {
-    console.log(`Received ${signal}, shutting down gracefully...`);
+    logger.warn('Shutdown signal received', { signal });
     clearInterval(sweep);
     clearInterval(retention);
     server.close(() => {
-      console.log('HTTP server closed');
+      logger.info('HTTP server closed');
       process.exit(0);
     });
     // Force exit after 10s if connections don't close
     setTimeout(() => {
-      console.error('Forced shutdown after timeout');
+      logger.error('Forced shutdown after timeout');
       process.exit(1);
     }, 10_000).unref();
   };
