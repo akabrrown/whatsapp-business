@@ -15,6 +15,7 @@ export interface CartLine {
   color: string | null;
   priceP: number;
   image?: string;
+  maxQty?: number;
 }
 
 interface Meta {
@@ -24,6 +25,7 @@ interface Meta {
   color: string | null;
   priceP: number;
   image?: string;
+  maxQty?: number;
 }
 
 interface CartContextValue {
@@ -72,7 +74,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const persistMeta = useCallback((next: CartLine[]) => {
     const meta: Record<string, Meta> = {};
-    for (const l of next) meta[l.variantId] = { name: l.name, slug: l.slug, size: l.size, color: l.color, priceP: l.priceP, image: l.image };
+    for (const l of next) meta[l.variantId] = { name: l.name, slug: l.slug, size: l.size, color: l.color, priceP: l.priceP, image: l.image, maxQty: l.maxQty };
     localStorage.setItem('rd-cart-meta', JSON.stringify(meta));
   }, []);
 

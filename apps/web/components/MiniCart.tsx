@@ -152,9 +152,17 @@ export function MiniCart() {
                     <Minus size={16} aria-hidden />
                   </button>
                   <span>{l.qty}</span>
-                  <button aria-label="More" className="text-indigo" onClick={() => setQty(l.variantId, l.qty + 1)}>
+                  <button
+                    aria-label="More"
+                    className="text-indigo disabled:cursor-not-allowed disabled:text-charcoal/25"
+                    disabled={l.maxQty !== undefined && l.qty >= l.maxQty}
+                    onClick={() => setQty(l.variantId, l.qty + 1)}
+                  >
                     <Plus size={16} aria-hidden />
                   </button>
+                  {l.maxQty !== undefined && l.qty >= l.maxQty && (
+                    <span className="text-xs text-charcoal/50">Max stock reached</span>
+                  )}
                   <span className="ml-auto font-medium text-indigo">{formatGHS(l.priceP * l.qty)}</span>
                 </div>
               </div>

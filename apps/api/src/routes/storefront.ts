@@ -50,10 +50,10 @@ storefront.post('/cart/:sessionId/items', async (req, res) => {
     res.status(400).json({ ok: false, error: (e as Error).message });
   }
 });
-storefront.patch('/cart/:sessionId/items', (req, res) => {
+storefront.patch('/cart/:sessionId/items', async (req, res) => {
   const { variantId, qty } = req.body as { variantId?: string; qty?: number };
   if (!variantId || typeof qty !== 'number') return res.status(400).json({ ok: false, error: 'variantId+qty required' });
-  const c = cart.setQty(req.params.sessionId, variantId, qty);
+  const c = await cart.setQty(req.params.sessionId, variantId, qty);
   res.json({ ok: true, cart: c ?? { sessionId: req.params.sessionId, items: [] } });
 });
 storefront.post('/cart/:sessionId/sync', (req, res) => {

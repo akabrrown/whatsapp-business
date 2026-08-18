@@ -293,7 +293,8 @@ admin.get('/analytics', requireOwner, async (req, res) => {
 // ---- Exports (§11.5) ----------------------------------------------------------------
 admin.get('/export/orders.csv', async (req, res) => {
   const from = req.query.from ? new Date(String(req.query.from)) : new Date(0);
-  const to = req.query.to ? new Date(String(req.query.to)) : new Date(now().getTime() + DAY);
+  // Default upper bound covers everything up to the present moment (inclusive).
+  const to = req.query.to ? new Date(String(req.query.to)) : new Date(Date.now() + DAY);
   const list = await db.order.findMany({
     where: { createdAt: { gte: from, lte: to } },
     include: { customer: true },

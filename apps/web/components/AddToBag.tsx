@@ -40,6 +40,7 @@ export function AddToBag({
             color: target.color,
             priceP: target.priceP,
             image: product.images[0],
+            maxQty: target.available,
           });
           setBusy(false);
           if (!res.ok) setError(res.message ?? 'Sorry, this just sold out');

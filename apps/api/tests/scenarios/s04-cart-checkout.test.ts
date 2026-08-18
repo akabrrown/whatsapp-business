@@ -24,6 +24,18 @@ describe('§4 Cart & Checkout', () => {
     await expect(cart.add('sess-2', data.v.id, 1)).rejects.toBeInstanceOf(InsufficientStock);
   });
 
+  it('Scenario §4.2b: quantity beyond stock is capped at available, never over-counts', async () => {
+    // Baseline stock for data.v is 5: asking for 8 must end at 5.
+    const c = await cart.add('sess-2b', data.v.id, 8);
+    expect(c.items[0].qty).toBe(5);
+    // Repeated adds also stop at the cap.
+    const c2 = await cart.add('sess-2b', data.v.id, 3);
+    expect(c2.items[0].qty).toBe(5);
+    // Stepper edits are capped too.
+    const c3 = await cart.setQty('sess-2b', data.v.id, 99);
+    expect(c3?.items[0].qty).toBe(5);
+  });
+
   it('Scenario §4.3: cart session expires after 30 min idle', async () => {
     await cart.add('sess-3', data.v.id, 1);
     advance(31 * MIN);
