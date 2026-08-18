@@ -16,7 +16,7 @@ if (isProd && (!ownerPassword || ownerPassword === 'denim-rose-2026')) {
 export const config = {
   port: Number(process.env.PORT ?? 4000),
   jwtSecret: jwtSecret || 'dev-secret',
-  whatsappNumber: process.env.WHATSAPP_NUMBER ?? '233200000000',
+  whatsappNumber: process.env.WHATSAPP_NUMBER ?? '233238136060',
 
   paystack: {
     mode: (process.env.PAYSTACK_MODE ?? 'sim') as 'sim' | 'real',

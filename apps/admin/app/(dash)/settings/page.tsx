@@ -1,8 +1,8 @@
 'use client';
 // Settings (owner-only nav): delivery-zone fees (§7, §11.4), staff
-// management (§11.6), manual retention tick (§16).
+// management (§11.6), manual retention tick (§16), WhatsApp number.
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin, RefreshCw, UserPlus } from 'lucide-react';
+import { MapPin, MessageCircle, RefreshCw, UserPlus } from 'lucide-react';
 import { apiFetch, getUser } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 
@@ -28,6 +28,9 @@ export default function SettingsPage() {
   const [newStaff, setNewStaff] = useState({ email: '', name: '', password: '', role: 'staff' });
   const [retentionResult, setRetentionResult] = useState('');
   const [error, setError] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [whatsappInput, setWhatsappInput] = useState('');
+  const [whatsappSaved, setWhatsappSaved] = useState(false);
   const isOwner = getUser()?.role === 'owner';
 
   const loadZones = useCallback(async () => {
@@ -41,10 +44,18 @@ export default function SettingsPage() {
     setStaff(r.staff);
   }, [isOwner]);
 
+  const loadSettings = useCallback(async () => {
+    if (!isOwner) return;
+    const r = await apiFetch<{ settings: { whatsappNumber: string } }>('/api/admin/settings');
+    setWhatsappNumber(r.settings.whatsappNumber);
+    setWhatsappInput(r.settings.whatsappNumber);
+  }, [isOwner]);
+
   useEffect(() => {
     loadZones().catch((e: Error) => setError(e.message));
     loadStaff().catch((e: Error) => setError(e.message));
-  }, [loadZones, loadStaff]);
+    loadSettings().catch((e: Error) => setError(e.message));
+  }, [loadZones, loadStaff, loadSettings]);
 
   const saveFee = async (zone: Zone) => {
     const ghs = Number(fees[zone.id]);
@@ -76,6 +87,23 @@ export default function SettingsPage() {
     try {
       const r = await apiFetch<{ result: unknown }>('/api/admin/retention/tick', { method: 'POST' });
       setRetentionResult(JSON.stringify(r.result));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const saveWhatsApp = async () => {
+    if (!whatsappInput.trim()) return;
+    setError('');
+    setWhatsappSaved(false);
+    try {
+      const r = await apiFetch<{ settings: { whatsappNumber: string } }>('/api/admin/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ whatsappNumber: whatsappInput.trim() }),
+      });
+      setWhatsappNumber(r.settings.whatsappNumber);
+      setWhatsappSaved(true);
+      setTimeout(() => setWhatsappSaved(false), 2000);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -114,6 +142,32 @@ export default function SettingsPage() {
             ))}
             {zones.length === 0 && <li className="px-4 py-6 text-charcoal/50">No zones configured.</li>}
           </ul>
+
+          {/* WhatsApp number */}
+          <div className="mt-6 rounded border border-sand/30 bg-white/50 p-4">
+            <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
+              <MessageCircle size={13} aria-hidden /> WhatsApp number
+            </p>
+            <p className="mb-3 text-xs text-charcoal/60">The number customers see on the website and in handoff links. Use international format without + (e.g., 233238136060).</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={whatsappInput}
+                onChange={(e) => setWhatsappInput(e.target.value)}
+                placeholder="233238136060"
+                className="flex-1 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo"
+              />
+              <button
+                onClick={saveWhatsApp}
+                disabled={whatsappInput === whatsappNumber}
+                className="text-xs text-indigo underline disabled:text-charcoal/30"
+              >
+                Save
+              </button>
+            </div>
+            {whatsappSaved && <p className="mt-2 text-xs text-wagreen">Saved. Changes apply to new sessions immediately.</p>}
+            <p className="mt-2 text-xs text-charcoal/40">Current: {whatsappNumber || 'Not set'}</p>
+          </div>
 
           {/* Retention */}
           <div className="mt-6 rounded border border-sand/30 bg-white/50 p-4">

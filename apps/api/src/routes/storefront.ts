@@ -107,3 +107,11 @@ storefront.get('/orders/by-token/:code', async (req, res) => {
   }
   res.json({ ok: true, token: { code: token.code, status: token.status, expiresAt: token.expiresAt } });
 });
+
+// ---- Public settings (for storefront) --------------------------------------
+import { getWhatsAppNumber } from '../services/settings.js';
+
+storefront.get('/settings/whatsapp', async (_req, res) => {
+  const whatsappNumber = await getWhatsAppNumber();
+  res.json({ ok: true, whatsappNumber });
+});

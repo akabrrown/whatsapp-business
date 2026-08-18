@@ -328,3 +328,20 @@ admin.post('/staff', requireOwner, async (req, res) => {
 admin.post('/retention/tick', requireOwner, async (_req, res) => {
   res.json({ ok: true, result: await retention.tick() });
 });
+
+// ---- Settings (owner only) -------------------------------------------------
+import { getSetting, setSetting, getWhatsAppNumber } from '../services/settings.js';
+
+admin.get('/settings', requireOwner, async (_req, res) => {
+  const whatsappNumber = await getWhatsAppNumber();
+  res.json({ ok: true, settings: { whatsappNumber } });
+});
+
+admin.patch('/settings', requireOwner, async (req, res) => {
+  const { whatsappNumber } = req.body as { whatsappNumber?: string };
+  if (whatsappNumber !== undefined) {
+    await setSetting('whatsapp_number', whatsappNumber);
+  }
+  const updated = await getWhatsAppNumber();
+  res.json({ ok: true, settings: { whatsappNumber: updated } });
+});

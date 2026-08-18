@@ -24,7 +24,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = await api.product(slug);
+  const [product, settings] = await Promise.all([
+    api.product(slug),
+    api.settings(),
+  ]);
   if (!product) notFound(); // §3.5: unknown slug resolves to a clean 404
 
   const jsonLd = {
@@ -69,7 +72,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <h1 className="headline mt-2 text-3xl md:text-4xl">{product.name}</h1>
         <p className="mt-4 leading-relaxed text-charcoal/70">{product.description}</p>
         <div className="mt-8">
-          <VariantPicker product={product} />
+          <VariantPicker product={product} whatsappNumber={settings.whatsappNumber} />
         </div>
       </div>
       </div>

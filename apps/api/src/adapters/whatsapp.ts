@@ -103,6 +103,7 @@ export const whatsapp: WhatsAppSender & Partial<SimSender> =
   config.whatsapp.mode === 'real' ? new MetaSender() : new SimSender();
 
 /** Build the wa.me deep link used by the website handoff (§4.7). */
-export function waDeepLink(text: string): string {
-  return `https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent(text)}`;
+export function waDeepLink(text: string, phoneNumber?: string): string {
+  const number = phoneNumber ?? config.whatsappNumber;
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }

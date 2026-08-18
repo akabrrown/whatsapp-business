@@ -227,3 +227,9 @@ model RetentionState {
   @@index([customerId])
   @@index([orderId])
 }
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now())
+}

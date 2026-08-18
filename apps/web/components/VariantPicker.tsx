@@ -7,9 +7,7 @@ import { formatGHS } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
 import { AddToBag } from './AddToBag';
 
-const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '233200000000';
-
-export function VariantPicker({ product }: { product: CatalogProduct }) {
+export function VariantPicker({ product, whatsappNumber }: { product: CatalogProduct; whatsappNumber: string }) {
   const sizes = useMemo(() => [...new Set(product.variants.map((v) => v.size))].filter(Boolean) as string[], [product]);
   const colors = useMemo(() => [...new Set(product.variants.map((v) => v.color))].filter(Boolean) as string[], [product]);
   const [size, setSize] = useState<string | null>(sizes[0] ?? null);
@@ -76,7 +74,7 @@ export function VariantPicker({ product }: { product: CatalogProduct }) {
       {selected && <AddToBag product={product} variantId={selected.id} />}
 
       <a
-        href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hi! Question about sizing for ${product.name} 🙈`)}`}
+        href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi! Question about sizing for ${product.name} 🙈`)}`}
         target="_blank"
         rel="noreferrer"
         className="flex items-center gap-1.5 text-sm text-charcoal/60 underline decoration-charcoal/30 hover:text-indigo"

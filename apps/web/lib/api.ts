@@ -53,4 +53,6 @@ export const api = {
       return null;
     }
   },
+  settings: () =>
+    get<{ ok: boolean; whatsappNumber: string }>('/api/settings/whatsapp'),
 };

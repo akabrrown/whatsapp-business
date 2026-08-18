@@ -5,6 +5,7 @@ import { now } from '../clock.js';
 import { kv } from '../sessionStore.js';
 import { reserve, release } from './inventory.js';
 import { waDeepLink } from '../adapters/whatsapp.js';
+import { getWhatsAppNumber } from './settings.js';
 import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, type CartItem } from '@rose/shared';
 
 export class HandoffError extends Error {
@@ -111,11 +112,12 @@ export async function createToken(input: {
     (input.zoneName ? `\nDelivery: ${input.zoneName}: ${formatGHS(feeP)}` : '') +
     `\nTotal: ${formatGHS(totalP)}`;
 
+  const whatsappNumber = await getWhatsAppNumber();
   return {
     code,
     phone,
     expiresAt: expiresAt.toISOString(),
-    whatsappUrl: waDeepLink(text),
+    whatsappUrl: waDeepLink(text, whatsappNumber),
     totalP,
     vip,
     items: lines,
