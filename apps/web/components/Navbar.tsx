@@ -33,6 +33,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
             ROSE <span className="text-rose">&amp;</span> DENIM
           </Link>
           <nav className="hidden items-center gap-6 text-sm text-charcoal/80 md:flex">
+            <Link href="/" className="hover:text-indigo">Home</Link>
             {categories.map((c) => (
               <Link key={c.slug} href={`/shop/${c.slug}`} className="hover:text-indigo">
                 {c.name}
@@ -75,6 +76,9 @@ export function Navbar({ categories }: { categories: Category[] }) {
             </button>
           </div>
           <nav className="mt-8 flex flex-col gap-6 px-8">
+            <Link href="/" onClick={() => setMenuOpen(false)} className="headline text-3xl">
+              Home
+            </Link>
             {categories.map((c) => (
               <Link
                 key={c.slug}
