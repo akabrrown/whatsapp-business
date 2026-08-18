@@ -1,11 +1,11 @@
 // Order lifecycle: status machine, customer stats, notifications (§8, §9, §15).
 import { db } from '../db.js';
-import { now, HOUR, STALE_PACKED_HOURS } from '../clock.js';
+import { now, HOUR } from '../clock.js';
 import { hardDeduct, restock, release } from './inventory.js';
 import { InsufficientStock } from './inventory.js';
 import { sendReliable } from './messaging.js';
 import { hub } from './realtime.js';
-import { formatGHS, OrderStatus, VIP_THRESHOLD_PESWAS, type OrderSource } from '@rose/shared';
+import { formatGHS, OrderStatus, VIP_THRESHOLD_PESWAS, type OrderSource, STALE_PACKED_HOURS } from '@rose/shared';
 
 export class InvalidTransition extends Error {
   constructor(public from: string, public to: string) {

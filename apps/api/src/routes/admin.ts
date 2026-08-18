@@ -301,15 +301,22 @@ admin.get('/export/orders.csv', async (req, res) => {
     orderBy: { createdAt: 'asc' },
     take: 10_000, // Bounded export to avoid memory exhaustion
   });
+  // Sanitize cell values to prevent CSV formula injection (=, +, -, @, \t, \r).
+  const csvSafe = (s: string): string => {
+    const escaped = s.replace(/"/g, '""');
+    if (/^[=+\-@\t\r]/.test(escaped)) return `"'${escaped}"`;
+    return `"${escaped}"`;
+  };
   const rows = [
     'number,date,customer,phone,source,status,subtotal_ghs,delivery_ghs,total_ghs',
     ...list.map((o) =>
-      [o.number, o.createdAt.toISOString(), (o.customer.name ?? '').replace(/,/g, ' '), o.customer.phone, o.source, o.status, (o.subtotalP / 100).toFixed(2), (o.deliveryFeeP / 100).toFixed(2), (o.totalP / 100).toFixed(2)].join(','),
+      [o.number, o.createdAt.toISOString(), csvSafe((o.customer.name ?? '').replace(/,/g, ' ')), o.customer.phone, o.source, o.status, (o.subtotalP / 100).toFixed(2), (o.deliveryFeeP / 100).toFixed(2), (o.totalP / 100).toFixed(2)].join(','),
     ),
   ].join('\n');
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
   res.send(rows);
+
 });
 
 // ---- Staff management (owner only, §11.6) ----------------------------------------------

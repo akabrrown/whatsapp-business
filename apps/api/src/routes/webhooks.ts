@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { handlePaystackWebhook } from '../services/payments.js';
 import { handleInbound } from '../services/bot.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 export const webhooks = Router();
 
@@ -58,7 +59,7 @@ webhooks.post('/whatsapp', metaRaw, async (req, res) => {
       }
     }
   } catch (e) {
-    console.error('whatsapp webhook error', e);
+    logger.error('WhatsApp webhook processing error', { message: (e as Error).message });
   }
   res.status(200).json({ ok: true });
 });

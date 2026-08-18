@@ -41,6 +41,17 @@ class RealtimeHub {
       ws.on('close', () => this.clients.delete(client));
       ws.send(JSON.stringify({ type: 'hello', channel }));
     });
+
+    // L2: WS ping/pong keepalive to clean up dead connections
+    setInterval(() => {
+      for (const c of this.clients) {
+        if (c.ws.readyState !== WebSocket.OPEN) {
+          this.clients.delete(c);
+          continue;
+        }
+        c.ws.ping();
+      }
+    }, 30_000).unref();
   }
 
   broadcast(channel: Channel, type: string, payload: unknown) {

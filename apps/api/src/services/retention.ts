@@ -13,8 +13,13 @@ export interface TickResult {
 
 const MAX_TICK_SENDS = 100; // Cap sends per tick to avoid cost bursts (§16 cost control)
 
+let tickRunning = false;
+
 export async function tick(t: Date = now()): Promise<TickResult> {
   const result: TickResult = { checkins: 0, crosssells: 0, winbacks: 0 };
+  if (tickRunning) return result;
+  tickRunning = true;
+  try {
 
   // §16.1/§16.2: anchored to delivery date, per order. Bounded to 500 rows.
   const states = await db.retentionState.findMany({
@@ -86,6 +91,9 @@ export async function tick(t: Date = now()): Promise<TickResult> {
       result.winbacks++;
     }
   }
-
+  
+  } finally {
+    tickRunning = false;
+  }
   return result;
 }

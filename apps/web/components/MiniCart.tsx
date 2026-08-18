@@ -200,7 +200,7 @@ export function MiniCart() {
 
         {lines.length > 0 && (
           <div className="border-t border-sand/40 px-6 py-5">
-            <div className="mb-3 flex items-baseline justify-between">
+            <div className="mb-3 flex items-baseline justify-between" aria-live="polite">
               <span className="text-sm text-charcoal/70">Total</span>
               <span className="headline text-2xl">{formatGHS(total)}</span>
             </div>

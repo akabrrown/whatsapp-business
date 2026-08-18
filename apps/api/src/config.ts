@@ -1,8 +1,5 @@
 import 'dotenv/config';
 
-const bool = (v: string | undefined, dflt = false) =>
-  v === undefined ? dflt : ['1', 'true', 'yes', 'real', 'cloudinary'].includes(v.toLowerCase());
-
 const isProd = process.env.NODE_ENV === 'production';
 const jwtSecret = process.env.JWT_SECRET ?? '';
 if (isProd && (!jwtSecret || jwtSecret === 'dev-secret' || jwtSecret === 'change-me-in-production')) {
@@ -42,5 +39,16 @@ export const config = {
   ownerEmail: process.env.OWNER_EMAIL ?? 'kukua@roseanddenim.com',
   ownerPassword: ownerPassword || 'denim-rose-2026',
 };
+
+// Startup guards: crash immediately when real-mode credentials are missing,
+// rather than starting the server and silently failing on every call.
+if (config.paystack.mode === 'real' && !config.paystack.secretKey) {
+  throw new Error('PAYSTACK_SECRET_KEY is required when PAYSTACK_MODE=real');
+}
+if (config.whatsapp.mode === 'real') {
+  if (!config.whatsapp.accessToken) throw new Error('META_ACCESS_TOKEN is required when WHATSAPP_MODE=real');
+  if (!config.whatsapp.phoneNumberId) throw new Error('META_PHONE_NUMBER_ID is required when WHATSAPP_MODE=real');
+  if (!config.whatsapp.appSecret) throw new Error('META_APP_SECRET is required when WHATSAPP_MODE=real (webhook signature verification)');
+}
 
 export type Config = typeof config;
