@@ -106,7 +106,7 @@ export async function createToken(input: {
   const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
 
   const text =
-    `Hi ROSE & DENIM! I'd like to complete my order.\n` +
+    `Hi TOBI CLOTHINGS! I'd like to complete my order.\n` +
     `Order token: ${code}\n` +
     lines.map((l) => `• ${l.name}${l.size ? ` (${l.size})` : ''}${l.color ? `: ${l.color}` : ''} ×${l.qty}: ${formatGHS(l.lineP)}`).join('\n') +
     (input.zoneName ? `\nDelivery: ${input.zoneName}: ${formatGHS(feeP)}` : '') +

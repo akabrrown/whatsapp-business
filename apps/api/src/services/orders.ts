@@ -30,7 +30,7 @@ const STATUS_MESSAGES: Record<string, (o: { number: string; riderName?: string |
   SHIPPED: (o) =>
     `Your order ${o.number} is on the way!` +
     (o.riderName ? ` Rider: ${o.riderName}${o.riderPhone ? `, ${o.riderPhone}` : ''}` : ''),
-  DELIVERED: (o) => `Order ${o.number} delivered. Thank you for shopping with ROSE & DENIM!`,
+  DELIVERED: (o) => `Order ${o.number} delivered. Thank you for shopping with TOBI CLOTHINGS!`,
   CANCELLED: (o) => `Your order ${o.number} has been cancelled${o.totalP ? ` and a refund of ${formatGHS(o.totalP)} is being processed` : ''}.`,
   REFUNDED: (o) => `Your refund of ${formatGHS(o.totalP)} has been processed and will reflect in 3–5 business days.`,
 };
