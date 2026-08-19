@@ -33,7 +33,7 @@ export default async function ShopPage({ params }: { params: Promise<{ category?
   };
   tree.forEach((c) => add(c, null));
   
-  const active = flat.find((c) => c.slug === category);
+  const active = flat.find((c) => c.slug === category || c.slug === decodeURIComponent(category || ''));
   
   let navLinks = tree;
   if (active) {
