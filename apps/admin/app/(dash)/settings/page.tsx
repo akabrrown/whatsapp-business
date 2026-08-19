@@ -190,7 +190,16 @@ export default function SettingsPage() {
   const updateCategory = async () => {
     if (!editingCategory) return;
     try {
-      await apiFetch(`/api/admin/categories/${editingCategory.id}`, { method: 'PATCH', body: JSON.stringify({ name: editingCategory.name, slug: editingCategory.slug, flagship: editingCategory.flagship, image: editingCategory.image }) });
+      await apiFetch(`/api/admin/categories/${editingCategory.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: editingCategory.name,
+          slug: editingCategory.slug,
+          flagship: editingCategory.flagship,
+          image: editingCategory.image,
+          parentId: editingCategory.parentId !== undefined ? (editingCategory.parentId || null) : undefined,
+        }),
+      });
       setEditingCategory(null);
       await loadCategories();
     } catch (e) {
@@ -347,26 +356,52 @@ export default function SettingsPage() {
                         {/* Subcategories list */}
                         {subCats.length > 0 && (
                           <ul className="bg-sand/10 pb-2">
-                            {subCats.map(sub => (
-                              <li key={sub.id} className="flex items-center gap-3 px-4 py-2 pl-12 hover:bg-sand/20">
-                                {sub.image ? <img src={sub.image} alt="" className="h-8 w-8 rounded object-cover" /> : <div className="h-8 w-8 rounded bg-sand/30" />}
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-sm font-medium text-charcoal/80">{sub.name} <span className="text-xs font-normal text-charcoal/40">/{sub.slug}</span></p>
-                                    <span className="text-[10px] bg-sand/50 px-1 rounded text-charcoal/60">Sub</span>
-                                    <button onClick={() => setEditingCategory(sub)} className="text-[10px] text-indigo hover:underline">edit</button>
+                            {subCats.map(sub => {
+                              const subSubCats = categories.filter(ss => ss.parentId === sub.id);
+                              return (
+                                <li key={sub.id} className="flex flex-col border-t border-sand/20 first:border-t-0">
+                                  <div className="flex items-center gap-3 px-4 py-2 pl-12 hover:bg-sand/20">
+                                    {sub.image ? <img src={sub.image} alt="" className="h-8 w-8 rounded object-cover" /> : <div className="h-8 w-8 rounded bg-sand/30" />}
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-sm font-medium text-charcoal/80">{sub.name} <span className="text-xs font-normal text-charcoal/40">/{sub.slug}</span></p>
+                                        <span className="text-[10px] bg-sand/50 px-1 rounded text-charcoal/60">Sub</span>
+                                        <button onClick={() => setEditingCategory(sub)} className="text-[10px] text-indigo hover:underline">edit</button>
+                                      </div>
+                                      <p className="text-[10px] text-charcoal/40">{sub._count?.products ?? 0} products {subSubCats.length > 0 && `· ${subSubCats.length} types`}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <label className="flex cursor-pointer items-center gap-1 text-[10px] text-charcoal/60 hover:text-indigo">
+                                        <input type="checkbox" checked={sub.flagship} onChange={() => toggleFlagship(sub)} />
+                                        Flagship
+                                      </label>
+                                      <button onClick={() => deleteCategory(sub)} disabled={sub._count?.products > 0 || subSubCats.length > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={12} /></button>
+                                    </div>
                                   </div>
-                                  <p className="text-[10px] text-charcoal/40">{sub._count?.products ?? 0} products</p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <label className="flex cursor-pointer items-center gap-1 text-[10px] text-charcoal/60 hover:text-indigo">
-                                    <input type="checkbox" checked={sub.flagship} onChange={() => toggleFlagship(sub)} />
-                                    Flagship
-                                  </label>
-                                  <button onClick={() => deleteCategory(sub)} disabled={sub._count?.products > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={12} /></button>
-                                </div>
-                              </li>
-                            ))}
+                                  
+                                  {/* Tier 3 Sub-subcategories */}
+                                  {subSubCats.length > 0 && (
+                                    <ul className="bg-sand/20 py-1">
+                                      {subSubCats.map(ss => (
+                                        <li key={ss.id} className="flex items-center gap-3 px-4 py-1.5 pl-24 hover:bg-sand/30">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                              <p className="text-xs font-medium text-charcoal/70">{ss.name} <span className="text-[10px] font-normal text-charcoal/40">/{ss.slug}</span></p>
+                                              <span className="text-[9px] bg-sand/60 px-1 rounded text-charcoal/50">Type</span>
+                                              <button onClick={() => setEditingCategory(ss)} className="text-[10px] text-indigo hover:underline">edit</button>
+                                            </div>
+                                            <p className="text-[9px] text-charcoal/40">{ss._count?.products ?? 0} products</p>
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            <button onClick={() => deleteCategory(ss)} disabled={ss._count?.products > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={12} /></button>
+                                          </div>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </li>
+                              );
+                            })}
                           </ul>
                         )}
                       </details>
@@ -384,14 +419,18 @@ export default function SettingsPage() {
                     <div className="flex flex-col gap-4">
                       <input value={editingCategory.name} onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })} className="w-full border-b border-charcoal/30 bg-transparent px-1 py-1 outline-none focus:border-indigo" placeholder="Name" />
                       <input value={editingCategory.slug} onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })} className="w-full border-b border-charcoal/30 bg-transparent px-1 py-1 outline-none focus:border-indigo" placeholder="Slug" />
-                      
                       <div>
                         <label className="mb-1 block text-xs text-charcoal/50">Parent Category</label>
                         <select value={editingCategory.parentId || ''} onChange={(e) => setEditingCategory({ ...editingCategory, parentId: e.target.value })} className="w-full border-b border-charcoal/30 bg-transparent px-1 py-1 outline-none focus:border-indigo">
                           <option value="">No Parent (Main)</option>
-                          {categories.filter(c => c.id !== editingCategory.id && !c.parentId).map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
+                          {categories
+                            // Prevent setting parent to itself, its own children, or a tier-3 category (max depth 3)
+                            .filter(c => c.id !== editingCategory.id && c.parentId !== editingCategory.id && (!c.parentId || categories.find(p => p.id === c.parentId && !p.parentId)))
+                            .map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.parentId ? `└ ${c.name}` : c.name}
+                              </option>
+                            ))}
                         </select>
                       </div>
 
@@ -429,9 +468,14 @@ export default function SettingsPage() {
                     <input value={newCategory.slug} onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })} placeholder="Slug (opt)" className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
                     <select value={newCategory.parentId} onChange={(e) => setNewCategory({ ...newCategory, parentId: e.target.value })} className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo">
                       <option value="">No Parent (Main)</option>
-                      {categories.filter(c => !c.parentId).map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
+                      {categories
+                        // Allow selecting Main or Sub categories (prevent Tier 3 from having children)
+                        .filter(c => !c.parentId || categories.find(p => p.id === c.parentId && !p.parentId))
+                        .map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.parentId ? `└ ${c.name}` : c.name}
+                          </option>
+                        ))}
                     </select>
                     <label className="flex shrink-0 items-center gap-1 text-xs text-charcoal/60"><input type="checkbox" checked={newCategory.flagship} onChange={(e) => setNewCategory({ ...newCategory, flagship: e.target.checked })} /> Flagship</label>
                   </div>

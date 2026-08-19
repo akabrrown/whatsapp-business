@@ -1,11 +1,11 @@
-export const metadata = { title: 'Terms of Service | ROSE & DENIM BY KUKUA' };
+export const metadata = { title: 'Terms of Service | TOBI CLOTHINGS' };
 
 export default function TermsPage() {
   return (
     <div className="mx-auto max-w-2xl py-16 text-sm text-charcoal/80">
       <h1 className="headline text-3xl">Terms of Service</h1>
       <p className="mt-4">
-        By placing an order with ROSE &amp; DENIM BY KUKUA, you agree to the following terms.
+        By placing an order with TOBI CLOTHINGS, you agree to the following terms.
       </p>
       
       <h2 className="mt-8 text-lg font-semibold text-indigo">Orders & Pricing</h2>
@@ -28,7 +28,7 @@ export default function TermsPage() {
 
       <h2 className="mt-8 text-lg font-semibold text-indigo">Limitation of Liability</h2>
       <p className="mt-2">
-        To the maximum extent permitted by law, ROSE &amp; DENIM BY KUKUA shall not be liable for any indirect, incidental, or consequential damages arising from the use of our products or services.
+        To the maximum extent permitted by law, TOBI CLOTHINGS shall not be liable for any indirect, incidental, or consequential damages arising from the use of our products or services.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-indigo">Disputes</h2>

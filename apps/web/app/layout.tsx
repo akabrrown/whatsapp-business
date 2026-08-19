@@ -12,27 +12,27 @@ const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'ROSE & DENIM BY KUKUA: Denim, Dresses & Bags in Accra',
-  description: 'Denim, dresses, bags and the little things, ordered over WhatsApp and delivered across Accra. Shop the collection online or chat with us directly.',
-  keywords: ['denim', 'dresses', 'bags', 'fashion', 'Accra', 'Ghana', 'WhatsApp shopping', 'rose and denim'],
-  authors: [{ name: 'Kukua', url: 'https://roseanddenim.com' }],
+  title: 'TOBI CLOTHINGS: SHOP & WEAR BY TOBI: Tops, footwears, buttoms, bags & eyewears in ACCRA',
+  description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra. Shop the collection online or chat with us directly.',
+  keywords: ['tops', 'footwears', 'buttoms', 'bags', 'eyewears', 'fashion', 'Accra', 'Ghana', 'WhatsApp shopping', 'tobi clothings'],
+  authors: [{ name: 'Tobi', url: 'https://myclothingsstore.com' }],
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
   },
   manifest: '/manifest.json',
   openGraph: {
-    title: 'ROSE & DENIM BY KUKUA',
-    description: 'Denim, dresses, bags and the little things, ordered over WhatsApp and delivered across Accra.',
+    title: 'TOBI CLOTHINGS',
+    description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra.',
     type: 'website',
     locale: 'en_GH',
-    siteName: 'ROSE & DENIM BY KUKUA',
-    images: [{ url: '/og-image.svg', width: 1200, height: 630, alt: 'ROSE & DENIM BY KUKUA' }],
+    siteName: 'TOBI CLOTHINGS',
+    images: [{ url: '/og-image.svg', width: 1200, height: 630, alt: 'TOBI CLOTHINGS' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ROSE & DENIM BY KUKUA',
-    description: 'Denim, dresses, bags and the little things, ordered over WhatsApp and delivered across Accra.',
+    title: 'TOBI CLOTHINGS',
+    description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra.',
   },
   robots: {
     index: true,

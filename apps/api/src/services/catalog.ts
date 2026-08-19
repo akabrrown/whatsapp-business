@@ -86,6 +86,11 @@ export async function categories() {
   return db.category.findMany({ 
     where: { parentId: null },
     orderBy: { flagship: 'desc' },
-    include: { children: { orderBy: { name: 'asc' } } }
+    include: { 
+      children: { 
+        orderBy: { name: 'asc' },
+        include: { children: { orderBy: { name: 'asc' } } }
+      } 
+    }
   });
 }

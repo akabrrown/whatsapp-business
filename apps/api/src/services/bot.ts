@@ -23,7 +23,7 @@ const stateKey = (phone: string) => `bot:${phone}`;
 const getState = (phone: string): BotState => kv.get<BotState>(stateKey(phone)) ?? { stage: 'IDLE', cart: [] };
 const setState = (phone: string, s: BotState) => kv.set(stateKey(phone), s, 30 * 60_000);
 
-const HANDOFF_WORDS = /\b(human|agent|manager|someone|kukua|representative)\b/i;
+const HANDOFF_WORDS = /\b(human|agent|manager|someone|tobi|representative)\b/i;
 const NEGOTIATE = /\b(discount|best price|reduce|negotiate|cheaper|deal)\b/i;
 const SUPPORT = /\b(exchange|wrong size|damaged|broken|defect|torn|refund)\b/i; // §15.3, §15.4
 const CANCEL_WORDS = /\b(cancel|never mind|forget it)\b/i;
@@ -56,8 +56,8 @@ async function handoff(conv: { id: string; customerId: string }, phone: string, 
   hub.broadcastAdmin('inbox.alert', { phone, reason });
   if (opts?.quiet) return { replies: [], handoff: true };
   const msg = /voice/.test(reason)
-    ? "I can't listen to voice notes yet: let me get Kukua to help."
-    : "Let me get Kukua for you. She'll reply shortly.";
+    ? "I can't listen to voice notes yet: let me get Tobi to help."
+    : "Let me get Tobi for you. He'll reply shortly.";
   await sendReliable(phone, msg, { conversationId: conv.id });
   await recordOutbound(conv.id, msg);
   return { replies: [msg], handoff: true };
@@ -101,7 +101,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
   // §15.3/§15.4: exchanges & damage reports go straight to a human.
   if (SUPPORT.test(text)) {
     const msg = /damaged|broken|defect|torn/.test(text)
-      ? "So sorry about that! Let me get Kukua to sort this out right away."
+      ? "So sorry about that! Let me get Tobi to sort this out right away."
       : undefined;
     if (msg) {
       await sendReliable(phone, msg, { conversationId: conv.id });
@@ -112,7 +112,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
 
   // §7.5: post-payment address changes are never auto-applied; human handles them.
   if (/\b(change|update)\b.*\baddress\b|\bnew address\b/i.test(text)) {
-    const msg = "I'll get Kukua to update that for you.";
+    const msg = "I'll get Tobi to update that for you.";
     await db.conversation.update({ where: { id: conv.id }, data: { status: ConversationStatus.NEEDS_HUMAN, failCount: 0 } });
     hub.broadcastAdmin('inbox.alert', { phone, reason: 'address change' });
     await sendReliable(phone, msg, { conversationId: conv.id });
@@ -138,7 +138,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
       const products = await listActive();
       const returning = await db.customer.findUnique({ where: { phone } });
       // §9.3: personalize returning customers.
-      const headline = returning && returning.totalOrders > 0 ? 'Welcome back to ROSE & DENIM 🌹' : 'Welcome to ROSE & DENIM 🌹';
+      const headline = returning && returning.totalOrders > 0 ? 'Welcome back to TOBI CLOTHINGS 🛍️' : 'Welcome to TOBI CLOTHINGS 🛍️';
       const lines = products.slice(0, 8).map((p, i) => `${i + 1}. ${p.name}: ${formatGHS(p.minPriceP)}${p.soldOut ? ' (Sold Out)' : ''}`);
       const msg = `${headline}\nWhat would you like?\n\n${lines.join('\n')}\n\nReply with a number to view it, "add <number>" to add to your bag, or "checkout" when ready.`;
       await sendReliable(phone, msg, { conversationId: conv.id });
@@ -222,7 +222,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
       const link = await initPaymentForToken(result.code, { zoneName: st.zoneName, deliveryFeeP: st.deliveryFeeP, channel: OrderSource.WHATSAPP_DIRECT });
       if (!link) {
         // §13.1: payment provider down: friendly message, reservation kept until TTL.
-        const msg = "We're having trouble processing payments right now: please try again shortly, or Kukua can assist.";
+        const msg = "We're having trouble processing payments right now: please try again shortly, or Tobi can assist.";
         setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
         await sendReliable(phone, msg, { conversationId: conv.id });
         await recordOutbound(conv.id, msg);
@@ -234,7 +234,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
     } catch (e) {
-      const msg = e instanceof HandoffError ? e.message : 'Something went wrong: Kukua has been notified.';
+      const msg = e instanceof HandoffError ? e.message : 'Something went wrong: Tobi has been notified.';
       if (e instanceof HandoffError && e.code === 'SOLD_OUT') {
         await sendReliable(phone, `${msg} Reply "menu" to see similar items.`, { conversationId: conv.id });
       } else {
@@ -272,7 +272,7 @@ async function addressResult(
   }
   if (match.reason === 'out_of_zone') {
     // §7.3: manual quote + human handoff.
-    const msg = "This is outside our standard delivery zones: Kukua will confirm your delivery fee shortly.";
+    const msg = "This is outside our standard delivery zones: Tobi will confirm your delivery fee shortly.";
     await sendReliable(phone, msg, { conversationId: conv.id });
     await recordOutbound(conv.id, msg);
     return handoff(conv, phone, 'out-of-zone address', { quiet: true });

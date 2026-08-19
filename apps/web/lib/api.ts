@@ -31,6 +31,7 @@ export interface Category {
   slug: string;
   name: string;
   flagship: boolean;
+  image?: string;
   children?: Category[];
 }
 

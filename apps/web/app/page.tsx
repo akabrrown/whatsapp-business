@@ -21,14 +21,14 @@ export default async function HomePage() {
         <div className="grid md:grid-cols-[55%_45%]">
           <div className="relative z-10 flex flex-col justify-center px-6 py-16 md:py-24 lg:pr-0">
             <p className="mb-4 inline-block w-fit bg-sand/30 px-2 py-1 text-xs tracking-widest text-charcoal/70">
-              ACCRA · BY KUKUA
+              ACCRA · BY TOBI
             </p>
             <h1 className="headline text-4xl leading-tight md:text-6xl">
-              Denim that fits the life you&apos;re actually living.
+              Denim and wear that fits the life you&apos;re actually living.
             </h1>
             <p className="mt-5 max-w-md text-charcoal/70">
-              Jeans, female wear, bags and accessories: browse here, finish your order
-              in a WhatsApp chat with Kukua herself.
+              Tops, footwears, buttoms, bags &amp; eyewears: browse here, finish your order
+              in a WhatsApp chat with Tobi himself.
             </p>
             <Link
               href="/shop"
@@ -42,7 +42,7 @@ export default async function HomePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={products[0].images[0]} alt={products[0].name} className="absolute inset-0 h-full w-full object-cover" />
             ) : (
-              <div className="absolute inset-0 flex items-end justify-end p-8 font-serif text-6xl text-cream/40">R&amp;D</div>
+              <div className="absolute inset-0 flex items-end justify-end p-8 font-serif text-6xl text-cream/40">TOBI</div>
             )}
             <div className="absolute -left-6 bottom-10 hidden bg-cream px-4 py-3 text-xs text-charcoal/70 shadow-sm md:block">
               New drop, hand-picked weekly
@@ -56,16 +56,37 @@ export default async function HomePage() {
         <section className="mt-20">
           <h2 className="headline mb-6 text-2xl">Shop by Category</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-2">
-            {categories.slice(0, 5).map((c, i) => (
+            {categories.slice(0, 5).map((c) => (
               <Link
                 key={c.slug}
                 href={`/shop/${c.slug}`}
-                className={`group relative flex items-end overflow-hidden bg-indigo/5 p-5 hover:bg-sand/20 ${
-                  c.flagship ? 'col-span-2 row-span-2 min-h-[260px] bg-indigo/10' : 'min-h-[120px]'
-                }`}
+                className={`group relative flex items-end overflow-hidden p-5 transition-all ${
+                  c.flagship ? 'col-span-2 row-span-2 min-h-[260px]' : 'min-h-[140px]'
+                } ${c.image ? 'bg-charcoal/10' : 'bg-indigo/5 hover:bg-sand/20'}`}
               >
-                <span className={`${c.flagship ? 'headline text-3xl' : 'text-base text-charcoal'}`}>{c.name}</span>
-                {c.flagship && <span className="absolute right-4 top-4 text-xs tracking-widest text-rose">FLAGSHIP</span>}
+                {c.image && (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={c.image}
+                      alt={c.name}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-charcoal/85 via-charcoal/30 to-transparent transition-opacity duration-300 group-hover:from-charcoal/90" />
+                  </>
+                )}
+                <span
+                  className={`relative z-10 font-serif ${
+                    c.flagship ? 'text-2xl md:text-3xl' : 'text-base md:text-lg'
+                  } ${c.image ? 'text-cream drop-shadow-sm' : 'text-charcoal'}`}
+                >
+                  {c.name}
+                </span>
+                {c.flagship && (
+                  <span className="absolute right-4 top-4 z-10 text-xs tracking-widest text-rose bg-white/80 px-2 py-0.5 rounded shadow-sm">
+                    FLAGSHIP
+                  </span>
+                )}
               </Link>
             ))}
           </div>
@@ -77,7 +98,7 @@ export default async function HomePage() {
         <section className="mt-20 rounded border border-sand/30 bg-white/50 px-6 py-16 text-center">
           <h2 className="headline text-2xl">The collection is arriving soon</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-charcoal/60">
-            Kukua is hand-picking the first drop. Check back shortly, or say hi on
+            Tobi is hand-picking the first drop. Check back shortly, or say hi on
             WhatsApp and we&apos;ll tell you the moment it lands.
           </p>
         </section>

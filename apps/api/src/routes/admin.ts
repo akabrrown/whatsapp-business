@@ -470,12 +470,13 @@ admin.patch('/categories/:id', requireOwner, async (req, res) => {
         ...(slug ? { slug } : {}),
         ...(flagship !== undefined ? { flagship } : {}),
         ...(image !== undefined ? { image } : {}),
-        ...(parentId !== undefined ? { parentId } : {}),
+        ...(parentId !== undefined ? { parentId: parentId === '' ? null : parentId } : {}),
       },
     });
     hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     res.json({ ok: true });
   } catch (e) {
+    console.error('PATCH /categories/:id error:', e);
     res.status(500).json({ ok: false, error: (e as Error).message });
   }
 });

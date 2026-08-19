@@ -1,11 +1,11 @@
-export const metadata = { title: 'Privacy Policy | ROSE & DENIM BY KUKUA' };
+export const metadata = { title: 'Privacy Policy | TOBI CLOTHINGS' };
 
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-2xl py-16 text-sm text-charcoal/80">
       <h1 className="headline text-3xl">Privacy Policy</h1>
       <p className="mt-4">
-        At ROSE &amp; DENIM BY KUKUA, we respect your privacy. This policy outlines how we collect, use,
+        At TOBI CLOTHINGS, we respect your privacy. This policy outlines how we collect, use,
         and protect your personal information when you shop with us via WhatsApp or our website, in compliance with Ghana&apos;s Data Protection Act, 2012 (Act 843).
       </p>
       

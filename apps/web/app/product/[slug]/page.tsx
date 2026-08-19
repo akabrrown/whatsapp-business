@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!product) return { title: 'Product Not Found' };
   const price = (product.minPriceP / 100).toFixed(2);
   return {
-    title: `${product.name} | ROSE & DENIM BY KUKUA`,
+    title: `${product.name} | TOBI CLOTHINGS`,
     description: product.description.slice(0, 160),
     openGraph: {
       title: product.name,

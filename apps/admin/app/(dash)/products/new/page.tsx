@@ -59,26 +59,43 @@ export default function NewProductPage() {
   const setVariant = (i: number, patch: Partial<VariantDraft>) =>
     setVariants((vs) => vs.map((v, j) => (j === i ? { ...v, ...patch } : v)));
 
+  const handleVariantBlur = (i: number, field: 'size' | 'color', val: string) => {
+    if (!val.includes(',')) return;
+    
+    const parts = val.split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length <= 1) return;
+    
+    setVariants((vs) => {
+      const current = vs[i];
+      const newVariants = [...vs];
+      
+      // Update the current row with the first part
+      newVariants[i] = { ...current, [field]: parts[0] };
+      
+      // Insert new rows immediately after the current row
+      const rowsToAdd = parts.slice(1).map(part => ({
+        size: field === 'size' ? part : current.size,
+        color: field === 'color' ? part : current.color,
+        price: current.price,
+        stock: '' // Force user to input individual stock
+      }));
+      
+      newVariants.splice(i + 1, 0, ...rowsToAdd);
+      return newVariants;
+    });
+  };
+
   const submit = async () => {
     setError('');
     const filled = variants.filter((v) => v.price && v.stock);
     if (!name.trim()) return setError('Product name is required');
     if (!categoryId) return setError('Pick a category');
-    const expandedVariants: { size?: string; color?: string; priceP: number; stockQuantity: number }[] = [];
-    for (const v of filled) {
-      const sizes = v.size ? v.size.split(',').map((s) => s.trim()).filter(Boolean) : [''];
-      const colors = v.color ? v.color.split(',').map((c) => c.trim()).filter(Boolean) : [''];
-      for (const s of sizes) {
-        for (const c of colors) {
-          expandedVariants.push({
-            size: s || undefined,
-            color: c || undefined,
-            priceP: Math.round(Number(v.price) * 100),
-            stockQuantity: Number(v.stock),
-          });
-        }
-      }
-    }
+    const expandedVariants = filled.map((v) => ({
+      size: v.size?.trim() || undefined,
+      color: v.color?.trim() || undefined,
+      priceP: Math.round(Number(v.price) * 100),
+      stockQuantity: Number(v.stock),
+    }));
 
     if (expandedVariants.length === 0) return setError('Add at least one variant with price and stock');
     setSaving(true);
@@ -127,15 +144,40 @@ export default function NewProductPage() {
           {(() => {
             const mainCategories = categories.filter((c) => !c.parentId);
             const selectedCategory = categories.find((c) => c.id === categoryId);
-            const currentMainId = selectedCategory?.parentId || selectedCategory?.id || '';
-            const availableSubs = categories.filter((c) => c.parentId === currentMainId);
-            const currentSubId = selectedCategory?.parentId ? selectedCategory.id : '';
+            
+            let currentMainId = '';
+            let currentSubId = '';
+            let currentTypeId = '';
+
+            if (selectedCategory) {
+              const parent = categories.find(c => c.id === selectedCategory.parentId);
+              if (parent) {
+                const grandParent = categories.find(c => c.id === parent.parentId);
+                if (grandParent) {
+                  // selectedCategory is Tier 3
+                  currentMainId = grandParent.id;
+                  currentSubId = parent.id;
+                  currentTypeId = selectedCategory.id;
+                } else {
+                  // selectedCategory is Tier 2
+                  currentMainId = parent.id;
+                  currentSubId = selectedCategory.id;
+                }
+              } else {
+                // selectedCategory is Tier 1
+                currentMainId = selectedCategory.id;
+              }
+            }
+
+            const availableSubs = currentMainId ? categories.filter((c) => c.parentId === currentMainId) : [];
+            const availableTypes = currentSubId ? categories.filter((c) => c.parentId === currentSubId) : [];
 
             return (
               <>
                 <label className="block text-sm">
                   <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Main Category</span>
                   <select value={currentMainId} onChange={(e) => setCategoryId(e.target.value)} className={`${input} bg-cream`}>
+                    <option value="" disabled>Select...</option>
                     {mainCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </label>
@@ -153,6 +195,23 @@ export default function NewProductPage() {
                     >
                       <option value="">-- General / No Subcategory --</option>
                       {availableSubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </label>
+                )}
+
+                {availableTypes.length > 0 && (
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Type</span>
+                    <select 
+                      value={currentTypeId} 
+                      onChange={(e) => {
+                        if (e.target.value) setCategoryId(e.target.value);
+                        else setCategoryId(currentSubId);
+                      }} 
+                      className={`${input} bg-cream`}
+                    >
+                      <option value="">-- General / No Type --</option>
+                      {availableTypes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </label>
                 )}
@@ -207,8 +266,8 @@ export default function NewProductPage() {
           <div className="space-y-2">
             {variants.map((v, i) => (
               <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-center gap-2 text-sm">
-                <input value={v.size} onChange={(e) => setVariant(i, { size: e.target.value })} placeholder="Size (opt)" className={input} />
-                <input value={v.color} onChange={(e) => setVariant(i, { color: e.target.value })} placeholder="Color (opt)" className={input} />
+                <input value={v.size} onChange={(e) => setVariant(i, { size: e.target.value })} onBlur={(e) => handleVariantBlur(i, 'size', e.target.value)} placeholder="Size (opt)" className={input} />
+                <input value={v.color} onChange={(e) => setVariant(i, { color: e.target.value })} onBlur={(e) => handleVariantBlur(i, 'color', e.target.value)} placeholder="Color (opt)" className={input} />
                 <input type="number" min={0} step="0.5" value={v.price} onChange={(e) => setVariant(i, { price: e.target.value })} placeholder="Price GHS" className={input} />
                 <input type="number" min={0} value={v.stock} onChange={(e) => setVariant(i, { stock: e.target.value })} placeholder="Stock" className={input} />
                 <button

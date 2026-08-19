@@ -6,19 +6,44 @@ import { ProductCard } from '@/components/ProductCard';
 
 export async function generateMetadata({ params }: { params: Promise<{ category?: string }> }): Promise<Metadata> {
   const { category } = await params;
-  const categories = await api.categories();
-  const active = categories.find((c) => c.slug === category);
+  const tree = await api.categories();
+  
+  const flat: any[] = [];
+  const add = (c: any) => { flat.push(c); if (c.children) c.children.forEach(add); };
+  tree.forEach(add);
+  
+  const active = flat.find((c) => c.slug === category);
   const name = active?.name ?? 'The Collection';
   return {
-    title: `${name} | ROSE & DENIM BY KUKUA`,
-    description: `Shop ${name.toLowerCase()} from ROSE & DENIM BY KUKUA. Denim, dresses, and bags delivered across Accra.`,
+    title: `${name} | TOBI CLOTHINGS`,
+    description: `Shop ${name.toLowerCase()} from TOBI CLOTHINGS. Tops, footwears, buttoms, bags & eyewears delivered across Accra.`,
   };
 }
 
 export default async function ShopPage({ params }: { params: Promise<{ category?: string }> }) {
   const { category } = await params;
-  const [products, categories] = await Promise.all([api.catalog(category), api.categories()]);
-  const active = categories.find((c) => c.slug === category);
+  const [products, tree] = await Promise.all([api.catalog(category), api.categories()]);
+  
+  const flat: any[] = [];
+  const parentMap = new Map<string, any>();
+  const add = (c: any, p: any) => { 
+    flat.push(c); 
+    parentMap.set(c.slug, p); 
+    if (c.children) c.children.forEach((child: any) => add(child, c)); 
+  };
+  tree.forEach((c) => add(c, null));
+  
+  const active = flat.find((c) => c.slug === category);
+  
+  let navLinks = tree;
+  if (active) {
+    if (active.children && active.children.length > 0) {
+      navLinks = active.children;
+    } else {
+      const parent = parentMap.get(active.slug);
+      if (parent && parent.children) navLinks = parent.children;
+    }
+  }
 
   return (
     <div className="py-10">
@@ -26,7 +51,7 @@ export default async function ShopPage({ params }: { params: Promise<{ category?
         <h1 className="headline text-3xl">{active?.name ?? 'The Collection'}</h1>
         <nav className="flex flex-wrap gap-4 text-sm text-charcoal/60">
           <Link href="/shop" className={!category ? 'border-b border-indigo text-indigo' : 'hover:text-indigo'}>All</Link>
-          {categories.map((c) => (
+          {navLinks.map((c) => (
             <Link
               key={c.slug}
               href={`/shop/${c.slug}`}

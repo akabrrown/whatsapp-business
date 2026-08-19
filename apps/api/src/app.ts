@@ -18,7 +18,8 @@ export function createApp() {
   app.use(cors({ origin: allowedOrigins, credentials: true }));
   app.use(helmet()); // Security headers (§14)
   // NOTE: /webhooks/paystack mounts its own raw() parser for HMAC verification.
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
   app.get('/health', async (_req, res) => {
     try {
@@ -32,9 +33,10 @@ export function createApp() {
   app.use('/api/admin', admin);
   app.use('/webhooks', webhooks);
 
-  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    logger.error('Unhandled error', { message: err.message, stack: err.stack });
-    res.status(500).json({ ok: false, error: 'internal_error' });
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error('Unhandled error', { message: err?.message, stack: err?.stack });
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    res.status(status).json({ ok: false, error: err?.message || 'internal_error' });
   });
 
   return app;

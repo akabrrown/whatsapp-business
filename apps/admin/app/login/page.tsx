@@ -35,10 +35,10 @@ export default function LoginPage() {
         <div className="absolute right-10 top-10 h-32 w-32 rounded-bl-[4rem] bg-rose/40" aria-hidden />
         <div className="absolute left-16 top-32 h-20 w-20 bg-sand/40" aria-hidden />
         <p className="font-serif text-4xl leading-snug text-cream">
-          The studio behind<br />ROSE <span className="text-rose">&amp;</span> DENIM.
+          The studio behind<br />TOBI <span className="text-rose">CLOTHINGS</span>.
         </p>
         <p className="mt-4 max-w-sm text-sm text-cream/70">
-          Orders, chats, stock and numbers: everything Kukua needs to run the label, in one calm place.
+          Orders, chats, stock and numbers: everything Tobi needs to run the label, in one calm place.
         </p>
       </div>
       <div className="flex items-center justify-center px-6">

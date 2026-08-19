@@ -1,0 +1,9 @@
+Name,Slug,Parent,Flagship
+Men's Fashion,men's fashion,,TRUE
+Women's Fashion,women's fashion,,TRUE
+T-Shirts,t-shirts,Men's Fashion,FALSE
+Jeans,jeans,Men's Fashion,FALSE
+Dresses,dresses,Women's Fashion,FALSE
+Skirts,skirts,Women's Fashion,FALSE
+Shoes,shoes,Men's Fashion,FALSE
+Shoes,shoes,Women's Fashion,FALSE

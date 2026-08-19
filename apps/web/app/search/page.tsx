@@ -14,8 +14,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {products.length === 0 ? (
         <div className="mt-12 max-w-md">
           <p className="text-charcoal/70">
-            Nothing matched that: yet. Try one of these instead, or ask Kukua on WhatsApp;
-            she knows where everything is.
+            Nothing matched that: yet. Try one of these instead, or ask Tobi on WhatsApp;
+            he knows where everything is.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             {categories.map((c) => (

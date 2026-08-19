@@ -76,7 +76,7 @@ export function MiniCart() {
 
   const complete = async () => {
     setError('');
-    if (!phone.trim()) return setError('Add your WhatsApp number so Kukua can confirm your order.');
+    if (!phone.trim()) return setError('Add your WhatsApp number so Tobi can confirm your order.');
     if (!zoneChecked) await checkZone();
     setBusy(true);
     const res = await fetch(`${API}/api/handoff`, {

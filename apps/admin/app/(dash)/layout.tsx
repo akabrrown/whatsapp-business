@@ -42,7 +42,7 @@ export default function DashLayout({ children }: { children: ReactNode }) {
     const off = subscribeAdminEvents((e) => {
       const p = e.payload as Record<string, unknown> | undefined;
       if (e.type === 'inbox.alert')
-        setToast({ icon: <MessageCircle size={15} aria-hidden />, text: `${p?.phone ?? 'Customer'} needs Kukua (${p?.reason ?? 'question'})` });
+        setToast({ icon: <MessageCircle size={15} aria-hidden />, text: `${p?.phone ?? 'Customer'} needs Tobi (${p?.reason ?? 'question'})` });
       else if (e.type === 'alert.low_stock')
         setToast({ icon: <Package size={15} aria-hidden />, text: `Low stock: ${p?.sku ?? 'variant'}` });
       else if (e.type === 'alert.vip')
@@ -64,7 +64,7 @@ export default function DashLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside className="hidden w-52 shrink-0 border-r border-sand/40 bg-white/40 px-4 py-6 md:block">
-        <Link href="/orders" className="font-serif text-lg text-indigo">R&amp;D Studio</Link>
+        <Link href="/orders" className="font-serif text-lg text-indigo">TOBI Studio</Link>
         <nav className="mt-8 space-y-1 text-sm">
           {NAV.filter((n) => !n.ownerOnly || user.role === 'owner').map((n) => (
             <Link

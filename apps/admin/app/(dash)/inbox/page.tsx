@@ -141,7 +141,7 @@ export default function InboxPage() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && send()}
-                  placeholder={current.status === 'HUMAN' ? 'Reply as Kukua…' : 'Take over before replying manually'}
+                  placeholder={current.status === 'HUMAN' ? 'Reply as Tobi…' : 'Take over before replying manually'}
                   className="flex-1 rounded border border-charcoal/20 bg-white px-3 py-2 text-sm outline-none focus:border-indigo"
                 />
                 <button onClick={send} className="flex items-center gap-1.5 rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">

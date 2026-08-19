@@ -56,7 +56,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
           {/* Brand */}
           <Link href="/" className="headline text-xl tracking-wide md:text-2xl">
-            ROSE <span className="text-rose">&amp;</span> DENIM
+            TOBI <span className="text-rose">CLOTHINGS</span>
           </Link>
 
           {/* Actions: Search + Cart */}
@@ -144,7 +144,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
                     onMouseEnter={() => openDropdown(cat.slug)}
                     onMouseLeave={closeDropdown}
                   >
-                    <div className="min-w-[200px] rounded-lg border border-sand/30 bg-cream p-2 shadow-lg shadow-charcoal/5">
+                    <div className="w-max max-w-4xl rounded-lg border border-sand/30 bg-cream p-3 shadow-lg shadow-charcoal/5">
                       {/* Link to browse entire parent category */}
                       <Link
                         href={`/shop/${cat.slug}`}
@@ -154,16 +154,18 @@ export function Navbar({ categories }: { categories: Category[] }) {
                         All {cat.name}
                       </Link>
                       <div className="my-1.5 border-t border-sand/20" />
-                      {cat.children!.map((child) => (
-                        <Link
-                          key={child.slug}
-                          href={`/shop/${child.slug}`}
-                          className="block rounded-md px-4 py-2 text-sm text-charcoal/70 transition-colors hover:bg-sand/20 hover:text-indigo"
-                          onClick={() => setActiveDropdown(null)}
-                        >
-                          {child.name}
-                        </Link>
-                      ))}
+                      <div className="grid grid-cols-5 gap-1">
+                        {cat.children!.map((child) => (
+                          <Link
+                            key={child.slug}
+                            href={`/shop/${child.slug}`}
+                            className="block whitespace-nowrap rounded-md px-4 py-2 text-sm text-charcoal/70 transition-colors hover:bg-sand/20 hover:text-indigo"
+                            onClick={() => setActiveDropdown(null)}
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
