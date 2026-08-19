@@ -204,13 +204,92 @@ admin.patch('/products/:id', async (req, res) => {
 
 // ---- Delivery zones (§11.4: new fees apply to new orders only by design) ----
 admin.get('/zones', requireOwner, async (_req, res) => {
-  res.json({ ok: true, zones: await db.deliveryZone.findMany() });
+  res.json({ ok: true, zones: await db.deliveryZone.findMany({ orderBy: { name: 'asc' } }) });
+});
+admin.post('/zones', requireOwner, async (req, res) => {
+  const { name, city, feeP, aliases } = req.body as { name?: string; city?: string; feeP?: number; aliases?: string };
+  if (!name || typeof feeP !== 'number') return res.status(400).json({ ok: false, error: 'name and feeP required' });
+  try {
+    const zone = await db.deliveryZone.create({
+      data: { name, city: city || 'Accra', feeP, aliases: aliases || '[]' },
+    });
+    res.json({ ok: true, zone });
+  } catch (e) {
+    res.status(409).json({ ok: false, error: 'zone name already exists' });
+  }
 });
 admin.patch('/zones/:id', requireOwner, async (req, res) => {
-  const { feeP } = req.body as { feeP?: number };
-  if (typeof feeP !== 'number') return res.status(400).json({ ok: false, error: 'feeP required' });
-  await db.deliveryZone.update({ where: { id: req.params.id }, data: { feeP } });
-  res.json({ ok: true });
+  const { name, city, feeP, aliases } = req.body as { name?: string; city?: string; feeP?: number; aliases?: string };
+  try {
+    await db.deliveryZone.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name ? { name } : {}),
+        ...(city ? { city } : {}),
+        ...(typeof feeP === 'number' ? { feeP } : {}),
+        ...(aliases ? { aliases } : {}),
+      },
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+admin.delete('/zones/:id', requireOwner, async (req, res) => {
+  try {
+    await db.deliveryZone.delete({ where: { id: req.params.id } });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+
+// ---- Categories ----
+admin.get('/categories', requireOwner, async (_req, res) => {
+  res.json({ ok: true, categories: await db.category.findMany({ orderBy: { name: 'asc' }, include: { _count: { select: { products: true } } } }) });
+});
+admin.post('/categories', requireOwner, async (req, res) => {
+  const { name, slug, flagship } = req.body as { name?: string; slug?: string; flagship?: boolean };
+  if (!name) return res.status(400).json({ ok: false, error: 'name required' });
+  try {
+    const category = await db.category.create({
+      data: {
+        name,
+        slug: slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        flagship: !!flagship,
+      },
+    });
+    res.json({ ok: true, category });
+  } catch (e) {
+    res.status(409).json({ ok: false, error: 'category name or slug already exists' });
+  }
+});
+admin.patch('/categories/:id', requireOwner, async (req, res) => {
+  const { name, slug, flagship } = req.body as { name?: string; slug?: string; flagship?: boolean };
+  try {
+    await db.category.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name ? { name } : {}),
+        ...(slug ? { slug } : {}),
+        ...(flagship !== undefined ? { flagship } : {}),
+      },
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+admin.delete('/categories/:id', requireOwner, async (req, res) => {
+  try {
+    const category = await db.category.findUnique({ where: { id: req.params.id }, include: { _count: { select: { products: true } } } });
+    if (!category) return res.status(404).json({ ok: false, error: 'not_found' });
+    if (category._count.products > 0) return res.status(409).json({ ok: false, error: 'Cannot delete category with products attached' });
+    await db.category.delete({ where: { id: req.params.id } });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
 });
 
 // ---- Customers / CRM (§9.3) ---------------------------------------------------

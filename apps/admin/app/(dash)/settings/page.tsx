@@ -1,8 +1,8 @@
 'use client';
 // Settings (owner-only nav): delivery-zone fees (§7, §11.4), staff
-// management (§11.6), manual retention tick (§16), WhatsApp number.
+// management (§11.6), manual retention tick (§16), WhatsApp number, categories.
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin, MessageCircle, RefreshCw, UserPlus } from 'lucide-react';
+import { MapPin, MessageCircle, RefreshCw, UserPlus, Tag, Plus, Trash2 } from 'lucide-react';
 import { apiFetch, getUser } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 
@@ -11,6 +11,14 @@ interface Zone {
   name: string;
   city: string;
   feeP: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  flagship: boolean;
+  _count: { products: number };
 }
 
 interface StaffUser {
@@ -23,20 +31,32 @@ interface StaffUser {
 
 export default function SettingsPage() {
   const [zones, setZones] = useState<Zone[]>([]);
-  const [fees, setFees] = useState<Record<string, string>>({});
+  const [newZone, setNewZone] = useState({ name: '', city: 'Accra', fee: '' });
+  
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newCategory, setNewCategory] = useState({ name: '', slug: '', flagship: false });
+  
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [newStaff, setNewStaff] = useState({ email: '', name: '', password: '', role: 'staff' });
+  
   const [retentionResult, setRetentionResult] = useState('');
   const [error, setError] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [whatsappInput, setWhatsappInput] = useState('');
   const [whatsappSaved, setWhatsappSaved] = useState(false);
+  
   const isOwner = getUser()?.role === 'owner';
 
   const loadZones = useCallback(async () => {
     const r = await apiFetch<{ zones: Zone[] }>('/api/admin/zones');
     setZones(r.zones);
   }, []);
+
+  const loadCategories = useCallback(async () => {
+    if (!isOwner) return;
+    const r = await apiFetch<{ categories: Category[] }>('/api/admin/categories');
+    setCategories(r.categories);
+  }, [isOwner]);
 
   const loadStaff = useCallback(async () => {
     if (!isOwner) return;
@@ -53,18 +73,71 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadZones().catch((e: Error) => setError(e.message));
+    loadCategories().catch((e: Error) => setError(e.message));
     loadStaff().catch((e: Error) => setError(e.message));
     loadSettings().catch((e: Error) => setError(e.message));
-  }, [loadZones, loadStaff, loadSettings]);
+  }, [loadZones, loadCategories, loadStaff, loadSettings]);
 
-  const saveFee = async (zone: Zone) => {
-    const ghs = Number(fees[zone.id]);
-    if (Number.isNaN(ghs) || ghs < 0) return;
+  // Zone actions
+  const addZone = async () => {
+    const feeP = Math.round(Number(newZone.fee) * 100);
+    if (!newZone.name || Number.isNaN(feeP) || feeP < 0) return setError('Invalid zone data');
     setError('');
     try {
-      await apiFetch(`/api/admin/zones/${zone.id}`, { method: 'PATCH', body: JSON.stringify({ feeP: Math.round(ghs * 100) }) });
-      setFees((f) => ({ ...f, [zone.id]: '' }));
+      await apiFetch('/api/admin/zones', { method: 'POST', body: JSON.stringify({ name: newZone.name, city: newZone.city, feeP }) });
+      setNewZone({ name: '', city: 'Accra', fee: '' });
       await loadZones();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const updateZoneFee = async (zone: Zone, newFee: string) => {
+    const feeP = Math.round(Number(newFee) * 100);
+    if (Number.isNaN(feeP) || feeP < 0) return;
+    setError('');
+    try {
+      await apiFetch(`/api/admin/zones/${zone.id}`, { method: 'PATCH', body: JSON.stringify({ feeP }) });
+      await loadZones();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const deleteZone = async (id: string) => {
+    if (!confirm('Delete this delivery zone?')) return;
+    try {
+      await apiFetch(`/api/admin/zones/${id}`, { method: 'DELETE' });
+      await loadZones();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  // Category actions
+  const addCategory = async () => {
+    if (!newCategory.name) return setError('Category name required');
+    setError('');
+    try {
+      await apiFetch('/api/admin/categories', { method: 'POST', body: JSON.stringify(newCategory) });
+      setNewCategory({ name: '', slug: '', flagship: false });
+      await loadCategories();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const toggleFlagship = async (c: Category) => {
+    try {
+      await apiFetch(`/api/admin/categories/${c.id}`, { method: 'PATCH', body: JSON.stringify({ flagship: !c.flagship }) });
+      await loadCategories();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const deleteCategory = async (c: Category) => {
+    if (c._count.products > 0) return setError('Cannot delete category with products');
+    if (!confirm('Delete this category?')) return;
+    try {
+      await apiFetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
+      await loadCategories();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -109,83 +182,119 @@ export default function SettingsPage() {
     }
   };
 
+  const inputStyle = 'w-full border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo';
+
   return (
     <div>
       <h1 className="mb-5 font-serif text-2xl text-indigo">Settings</h1>
       {error && <p className="mb-4 text-sm text-rose">{error}</p>}
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Delivery zones */}
-        <section>
-          <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
-            <MapPin size={13} aria-hidden /> Delivery zones &amp; fees
-          </p>
-          <p className="mb-3 text-xs text-charcoal/50">New fees apply to new orders only: existing orders keep their quoted fee (§11.4).</p>
-          <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
-            {zones.map((z) => (
-              <li key={z.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-1">
-                  <p className="font-medium text-charcoal">{z.name}</p>
-                  <p className="text-xs text-charcoal/40">{z.city} · current fee {formatGHS(z.feeP)}</p>
+        {/* Delivery zones & Categories */}
+        <section className="space-y-6">
+          
+          <div>
+            <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
+              <MapPin size={13} aria-hidden /> Delivery zones
+            </p>
+            <p className="mb-3 text-xs text-charcoal/50">Manage zones and fees.</p>
+            <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
+              {zones.map((z) => (
+                <li key={z.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1">
+                    <p className="font-medium text-charcoal">{z.name}</p>
+                    <p className="text-xs text-charcoal/40">{z.city}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-charcoal/40">GHS</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.5"
+                      defaultValue={(z.feeP / 100).toFixed(2)}
+                      onBlur={(e) => updateZoneFee(z, e.target.value)}
+                      className="w-16 border-b border-charcoal/30 bg-transparent px-1 py-0.5 text-sm outline-none focus:border-indigo"
+                    />
+                    <button onClick={() => deleteZone(z.id)} className="text-charcoal/40 hover:text-rose"><Trash2 size={14} /></button>
+                  </div>
+                </li>
+              ))}
+              {zones.length === 0 && <li className="px-4 py-6 text-charcoal/50">No zones configured.</li>}
+            </ul>
+            <div className="mt-3 rounded border border-sand/30 bg-white/50 p-4">
+              <p className="mb-3 text-xs uppercase tracking-wide text-charcoal/50">Add new zone</p>
+              <div className="flex items-center gap-2">
+                <input value={newZone.name} onChange={(e) => setNewZone({ ...newZone, name: e.target.value })} placeholder="Zone name" className={inputStyle} />
+                <input value={newZone.city} onChange={(e) => setNewZone({ ...newZone, city: e.target.value })} placeholder="City" className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
+                <input type="number" step="0.5" value={newZone.fee} onChange={(e) => setNewZone({ ...newZone, fee: e.target.value })} placeholder="Fee (GHS)" className="w-24 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
+                <button onClick={addZone} className="flex shrink-0 items-center gap-1 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep"><Plus size={14} /> Add</button>
+              </div>
+            </div>
+          </div>
+
+          {isOwner && (
+            <div>
+              <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
+                <Tag size={13} aria-hidden /> Categories
+              </p>
+              <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
+                {categories.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex-1">
+                      <p className="font-medium text-charcoal">{c.name} <span className="text-xs text-charcoal/40">/{c.slug}</span></p>
+                      <p className="text-[10px] text-charcoal/40">{c._count?.products ?? 0} products</p>
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-1 text-xs text-charcoal/60 hover:text-indigo">
+                      <input type="checkbox" checked={c.flagship} onChange={() => toggleFlagship(c)} />
+                      Flagship
+                    </label>
+                    <button onClick={() => deleteCategory(c)} disabled={c._count?.products > 0} className="ml-2 text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={14} /></button>
+                  </li>
+                ))}
+                {categories.length === 0 && <li className="px-4 py-6 text-charcoal/50">No categories configured.</li>}
+              </ul>
+              <div className="mt-3 rounded border border-sand/30 bg-white/50 p-4">
+                <p className="mb-3 text-xs uppercase tracking-wide text-charcoal/50">Add category</p>
+                <div className="flex items-center gap-2">
+                  <input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} placeholder="Name" className={inputStyle} />
+                  <input value={newCategory.slug} onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })} placeholder="Slug (opt)" className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
+                  <label className="flex shrink-0 items-center gap-1 text-xs text-charcoal/60"><input type="checkbox" checked={newCategory.flagship} onChange={(e) => setNewCategory({ ...newCategory, flagship: e.target.checked })} /> Flagship</label>
+                  <button onClick={addCategory} className="flex shrink-0 items-center gap-1 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep"><Plus size={14} /> Add</button>
                 </div>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.5"
-                  value={fees[z.id] ?? ''}
-                  onChange={(e) => setFees((f) => ({ ...f, [z.id]: e.target.value }))}
-                  placeholder="new GHS"
-                  className="w-24 border-b border-charcoal/30 bg-transparent px-1 py-0.5 text-sm outline-none focus:border-indigo"
-                />
-                <button onClick={() => saveFee(z)} className="text-xs text-indigo underline">Save</button>
-              </li>
-            ))}
-            {zones.length === 0 && <li className="px-4 py-6 text-charcoal/50">No zones configured.</li>}
-          </ul>
+              </div>
+            </div>
+          )}
 
           {/* WhatsApp number */}
-          <div className="mt-6 rounded border border-sand/30 bg-white/50 p-4">
+          <div className="rounded border border-sand/30 bg-white/50 p-4">
             <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
               <MessageCircle size={13} aria-hidden /> WhatsApp number
             </p>
-            <p className="mb-3 text-xs text-charcoal/60">The number customers see on the website and in handoff links. Use international format without + (e.g., 233238136060).</p>
+            <p className="mb-3 text-xs text-charcoal/60">The number customers see on the website. Use international format without + (e.g., 233238136060).</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={whatsappInput}
                 onChange={(e) => setWhatsappInput(e.target.value)}
                 placeholder="233238136060"
-                className="flex-1 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo"
+                className={inputStyle}
               />
-              <button
-                onClick={saveWhatsApp}
-                disabled={whatsappInput === whatsappNumber}
-                className="text-xs text-indigo underline disabled:text-charcoal/30"
-              >
-                Save
-              </button>
+              <button onClick={saveWhatsApp} disabled={whatsappInput === whatsappNumber} className="text-xs text-indigo underline disabled:text-charcoal/30">Save</button>
             </div>
-            {whatsappSaved && <p className="mt-2 text-xs text-wagreen">Saved. Changes apply to new sessions immediately.</p>}
-            <p className="mt-2 text-xs text-charcoal/40">Current: {whatsappNumber || 'Not set'}</p>
+            {whatsappSaved && <p className="mt-2 text-[10px] text-wagreen">Saved.</p>}
+            <p className="mt-2 text-[10px] text-charcoal/40">Current: {whatsappNumber || 'Not set'}</p>
           </div>
 
-          {/* Retention */}
-          <div className="mt-6 rounded border border-sand/30 bg-white/50 p-4">
-            <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Retention engine (§16)</p>
-            <p className="mb-3 text-xs text-charcoal/60">Runs automatically on schedule; trigger a manual tick for testing.</p>
-            <button onClick={runRetention} className="flex items-center gap-1.5 rounded border border-charcoal/30 px-3 py-1.5 text-xs hover:border-indigo hover:text-indigo">
-              <RefreshCw size={12} aria-hidden /> Run retention tick
-            </button>
-            {retentionResult && <pre className="mt-3 max-h-32 overflow-auto bg-cream p-2 text-[10px] text-charcoal/70">{retentionResult}</pre>}
-          </div>
         </section>
 
-        {/* Staff (owner only) */}
-        <section>
-          <p className="mb-3 text-xs uppercase tracking-wide text-charcoal/50">Staff accounts (§11.6)</p>
-          {!isOwner && <p className="text-sm text-charcoal/50">Only the owner can manage staff.</p>}
+        {/* Staff & System */}
+        <section className="space-y-6">
+          {/* Staff (owner only) */}
           {isOwner && (
-            <>
+            <div>
+              <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
+                <UserPlus size={13} aria-hidden /> Staff accounts
+              </p>
               <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
                 {staff.map((s) => (
                   <li key={s.id} className="flex items-center justify-between px-4 py-3">
@@ -193,33 +302,37 @@ export default function SettingsPage() {
                       <p className="font-medium text-charcoal">{s.name}</p>
                       <p className="text-xs text-charcoal/40">{s.email}</p>
                     </div>
-                    <span className={`px-2 py-0.5 text-[10px] ${s.role === 'owner' ? 'bg-indigo/10 text-indigo' : 'bg-sand/40 text-charcoal'}`}>
-                      {s.role}
-                    </span>
+                    <span className={`px-2 py-0.5 text-[10px] ${s.role === 'owner' ? 'bg-indigo/10 text-indigo' : 'bg-sand/40 text-charcoal'}`}>{s.role}</span>
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 rounded border border-sand/30 bg-white/50 p-4">
-                <p className="mb-3 text-xs uppercase tracking-wide text-charcoal/50">Add staff member</p>
+              <div className="mt-3 rounded border border-sand/30 bg-white/50 p-4">
+                <p className="mb-3 text-xs uppercase tracking-wide text-charcoal/50">Add staff</p>
                 <div className="grid gap-2">
-                  <input value={newStaff.name} onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })} placeholder="Name" className="border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
-                  <input value={newStaff.email} onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })} placeholder="Email" className="border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
-                  <input type="password" value={newStaff.password} onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })} placeholder="Password" className="border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
+                  <input value={newStaff.name} onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })} placeholder="Name" className={inputStyle} />
+                  <input value={newStaff.email} onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })} placeholder="Email" className={inputStyle} />
+                  <input type="password" value={newStaff.password} onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })} placeholder="Password" className={inputStyle} />
                   <div className="flex gap-4 text-sm">
                     {['staff', 'owner'].map((r) => (
                       <label key={r} className="flex items-center gap-1 text-charcoal/70">
-                        <input type="radio" checked={newStaff.role === r} onChange={() => setNewStaff({ ...newStaff, role: r })} />
-                        {r}
+                        <input type="radio" checked={newStaff.role === r} onChange={() => setNewStaff({ ...newStaff, role: r })} /> {r}
                       </label>
                     ))}
                   </div>
-                  <button onClick={addStaff} className="mt-2 flex w-fit items-center gap-1.5 rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">
-                    <UserPlus size={14} aria-hidden /> Create account
-                  </button>
+                  <button onClick={addStaff} className="mt-2 flex w-fit items-center gap-1.5 rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">Create</button>
                 </div>
               </div>
-            </>
+            </div>
           )}
+
+          {/* Retention */}
+          <div className="rounded border border-sand/30 bg-white/50 p-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Retention engine</p>
+            <button onClick={runRetention} className="flex items-center gap-1.5 rounded border border-charcoal/30 px-3 py-1.5 text-xs hover:border-indigo hover:text-indigo">
+              <RefreshCw size={12} aria-hidden /> Run manual tick
+            </button>
+            {retentionResult && <pre className="mt-3 max-h-32 overflow-auto bg-cream p-2 text-[10px] text-charcoal/70">{retentionResult}</pre>}
+          </div>
         </section>
       </div>
     </div>

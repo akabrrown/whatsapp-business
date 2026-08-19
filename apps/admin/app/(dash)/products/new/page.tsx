@@ -28,9 +28,13 @@ export default function NewProductPage() {
   useEffect(() => {
     fetch(`${API}/api/categories`)
       .then((r) => r.json())
-      .then((r: { categories: Category[] }) => {
-        setCategories(r.categories);
-        if (r.categories[0]) setCategoryId(r.categories[0].id);
+      .then((r: { categories?: Category[], error?: string }) => {
+        if (r.categories) {
+          setCategories(r.categories);
+          if (r.categories[0]) setCategoryId(r.categories[0].id);
+        } else {
+          setError(r.error || 'Failed to load categories');
+        }
       })
       .catch((e: Error) => setError(e.message));
   }, []);

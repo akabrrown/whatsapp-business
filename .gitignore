@@ -11,3 +11,4 @@ apps/api/prisma/test.db-journal
 coverage/
 .DS_Store
 *.tsbuildinfo
+.vercel
