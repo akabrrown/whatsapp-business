@@ -27,6 +27,10 @@ export default function InventoryPage() {
   const [qty, setQty] = useState<Record<string, string>>({});
   const [adjust, setAdjust] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
+  
+  // Filtering state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'sold_out'>('all');
 
   const load = useCallback(async () => {
     const r = await apiFetch<{ variants: VariantRow[] }>('/api/admin/inventory');
@@ -77,6 +81,31 @@ export default function InventoryPage() {
   };
 
   const lowCount = variants.filter((v) => v.lowStock).length;
+  
+  // Apply filtering
+  const filteredVariants = variants.filter((v) => {
+    // 1. Stock filter
+    if (stockFilter === 'in_stock' && v.stockQuantity === 0) return false;
+    if (stockFilter === 'low_stock' && !v.lowStock) return false;
+    if (stockFilter === 'sold_out' && v.stockQuantity > 0) return false;
+    
+    // 2. Search query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const searchable = [
+        v.product.name,
+        v.product.category.name,
+        v.sku,
+        v.size,
+        v.color
+      ].filter(Boolean).join(' ').toLowerCase();
+      
+      if (!searchable.includes(q)) return false;
+    }
+    
+    return true;
+  });
+
   const seenProducts = new Set<string>();
 
   return (
@@ -84,9 +113,28 @@ export default function InventoryPage() {
       <div className="mb-5 flex flex-wrap items-center gap-4">
         <h1 className="font-serif text-2xl text-indigo">Inventory</h1>
         {lowCount > 0 && <span className="bg-sand/40 px-2 py-0.5 text-xs text-charcoal">{lowCount} low-stock variant{lowCount > 1 ? 's' : ''}</span>}
-        <Link href="/products/new" className="ml-auto flex items-center gap-1.5 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep">
-          <Plus size={14} aria-hidden /> Add product
-        </Link>
+        <div className="ml-auto flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="Search products, SKUs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-48 rounded border border-charcoal/20 bg-white/50 px-3 py-1.5 text-sm outline-none focus:border-indigo"
+          />
+          <select
+            value={stockFilter}
+            onChange={(e) => setStockFilter(e.target.value as any)}
+            className="rounded border border-charcoal/20 bg-white/50 px-3 py-1.5 text-sm outline-none focus:border-indigo"
+          >
+            <option value="all">All Stock</option>
+            <option value="in_stock">In Stock</option>
+            <option value="low_stock">Low Stock</option>
+            <option value="sold_out">Sold Out</option>
+          </select>
+          <Link href="/products/new" className="flex items-center gap-1.5 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep">
+            <Plus size={14} aria-hidden /> Add product
+          </Link>
+        </div>
       </div>
       {error && <p className="mb-4 text-sm text-rose">{error}</p>}
 
@@ -105,7 +153,7 @@ export default function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {variants.map((v) => {
+            {filteredVariants.map((v) => {
               const firstOfProduct = !seenProducts.has(v.product.id);
               seenProducts.add(v.product.id);
               return (
@@ -113,7 +161,10 @@ export default function InventoryPage() {
                   <td className="px-4 py-3">
                     {firstOfProduct && (
                       <>
-                        <p className="font-medium text-charcoal">{v.product.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-charcoal">{v.product.name}</p>
+                          <Link href={`/products/${v.product.id}/edit`} className="text-[10px] text-indigo underline hover:text-indigo-deep">edit</Link>
+                        </div>
                         <p className="text-xs text-charcoal/40">{v.product.category.name}</p>
                       </>
                     )}
@@ -169,8 +220,8 @@ export default function InventoryPage() {
                 </tr>
               );
             })}
-            {variants.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-charcoal/50">No products yet: add your first product to open the store.</td></tr>
+            {filteredVariants.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-charcoal/50">No variants found matching criteria.</td></tr>
             )}
           </tbody>
         </table>

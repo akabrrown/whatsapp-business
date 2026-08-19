@@ -34,11 +34,29 @@ export function Navbar({ categories }: { categories: Category[] }) {
           </Link>
           <nav className="hidden items-center gap-6 text-sm text-charcoal/80 md:flex">
             <Link href="/" className="hover:text-indigo">Home</Link>
-            {categories.map((c) => (
-              <Link key={c.slug} href={`/shop/${c.slug}`} className="hover:text-indigo">
-                {c.name}
-              </Link>
-            ))}
+            {categories.map((c) => {
+              if (c.children && c.children.length > 0) {
+                return (
+                  <div key={c.slug} className="group relative py-4">
+                    <Link href={`/shop/${c.slug}`} className="flex items-center gap-1 hover:text-indigo">
+                      {c.name}
+                    </Link>
+                    <div className="absolute left-0 top-full hidden w-48 flex-col rounded border border-sand/40 bg-cream p-2 shadow-lg group-hover:flex">
+                      {c.children.map((child) => (
+                        <Link key={child.slug} href={`/shop/${child.slug}`} className="rounded px-4 py-2 hover:bg-sand/30 hover:text-indigo">
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <Link key={c.slug} href={`/shop/${c.slug}`} className="hover:text-indigo py-4">
+                  {c.name}
+                </Link>
+              );
+            })}
           </nav>
           <div className="flex items-center gap-4">
             <form action="/search" className="relative hidden md:block">
@@ -80,14 +98,29 @@ export function Navbar({ categories }: { categories: Category[] }) {
               Home
             </Link>
             {categories.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/shop/${c.slug}`}
-                onClick={() => setMenuOpen(false)}
-                className="headline text-3xl"
-              >
-                {c.name}
-              </Link>
+              <div key={c.slug} className="flex flex-col gap-4">
+                <Link
+                  href={`/shop/${c.slug}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="headline text-3xl"
+                >
+                  {c.name}
+                </Link>
+                {c.children && c.children.length > 0 && (
+                  <div className="flex flex-col gap-4 pl-6">
+                    {c.children.map((child) => (
+                      <Link
+                        key={child.slug}
+                        href={`/shop/${child.slug}`}
+                        onClick={() => setMenuOpen(false)}
+                        className="headline text-2xl text-charcoal/70"
+                      >
+                        {child.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
             <Link href="/shop" onClick={() => setMenuOpen(false)} className="headline text-3xl text-rose">
               Shop All

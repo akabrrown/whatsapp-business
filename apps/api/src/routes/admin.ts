@@ -195,10 +195,88 @@ admin.post('/products', async (req, res) => {
   res.json({ ok: true, product });
 });
 
+admin.get('/products/:id', async (req, res) => {
+  const product = await db.product.findUnique({
+    where: { id: req.params.id },
+    include: { variants: true },
+  });
+  if (!product) return res.status(404).json({ ok: false, error: 'not_found' });
+  res.json({ ok: true, product });
+});
+
 admin.patch('/products/:id', async (req, res) => {
-  const { status } = req.body as { status?: 'active' | 'inactive' };
-  if (!status) return res.status(400).json({ ok: false, error: 'status required' });
-  await db.product.update({ where: { id: req.params.id }, data: { status } }); // §11.2
+  const { status, name, description, categoryId, images, variants } = req.body as {
+    status?: 'active' | 'inactive';
+    name?: string;
+    description?: string;
+    categoryId?: string;
+    images?: string[];
+    variants?: { id?: string; size?: string; color?: string; priceP: number; stockQuantity?: number }[];
+  };
+
+  // If it's a simple status toggle from the inventory page
+  if (status && Object.keys(req.body).length === 1) {
+    await db.product.update({ where: { id: req.params.id }, data: { status } });
+    return res.json({ ok: true });
+  }
+
+  if (!name || !categoryId || !variants?.length) {
+    return res.status(400).json({ ok: false, error: 'name, categoryId, variants required for full update' });
+  }
+
+  // Update core product details
+  await db.product.update({
+    where: { id: req.params.id },
+    data: {
+      name,
+      description: description ?? '',
+      categoryId,
+      images: JSON.stringify(images ?? []),
+    },
+  });
+
+  // Handle variants
+  const existingVariants = await db.productVariant.findMany({ where: { productId: req.params.id } });
+  const incomingIds = variants.map(v => v.id).filter(Boolean) as string[];
+
+  // Delete missing variants (only if they have 0 reserved stock)
+  for (const ev of existingVariants) {
+    if (!incomingIds.includes(ev.id)) {
+      if (ev.reservedStock > 0) {
+        return res.status(409).json({ ok: false, error: `Cannot delete variant ${ev.id} because it has reserved stock.` });
+      } else {
+        await db.productVariant.delete({ where: { id: ev.id } });
+      }
+    }
+  }
+
+  // Upsert variants
+  for (const v of variants) {
+    if (v.id) {
+      await db.productVariant.update({
+        where: { id: v.id },
+        data: {
+          size: v.size ?? null,
+          color: v.color ?? null,
+          priceP: v.priceP,
+          // We DO NOT update stockQuantity for existing variants here to avoid race conditions.
+        },
+      });
+    } else {
+      // New variant
+      await db.productVariant.create({
+        data: {
+          productId: req.params.id,
+          sku: `${name.toUpperCase().slice(0, 12)}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          size: v.size ?? null,
+          color: v.color ?? null,
+          priceP: v.priceP,
+          stockQuantity: v.stockQuantity ?? 0,
+        },
+      });
+    }
+  }
+
   res.json({ ok: true });
 });
 
@@ -249,7 +327,7 @@ admin.get('/categories', requireOwner, async (_req, res) => {
   res.json({ ok: true, categories: await db.category.findMany({ orderBy: { name: 'asc' }, include: { _count: { select: { products: true } } } }) });
 });
 admin.post('/categories', requireOwner, async (req, res) => {
-  const { name, slug, flagship } = req.body as { name?: string; slug?: string; flagship?: boolean };
+  const { name, slug, flagship, image, parentId } = req.body as { name?: string; slug?: string; flagship?: boolean; image?: string; parentId?: string };
   if (!name) return res.status(400).json({ ok: false, error: 'name required' });
   try {
     const category = await db.category.create({
@@ -257,6 +335,8 @@ admin.post('/categories', requireOwner, async (req, res) => {
         name,
         slug: slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         flagship: !!flagship,
+        image: image || '',
+        parentId: parentId || null,
       },
     });
     res.json({ ok: true, category });
@@ -265,7 +345,7 @@ admin.post('/categories', requireOwner, async (req, res) => {
   }
 });
 admin.patch('/categories/:id', requireOwner, async (req, res) => {
-  const { name, slug, flagship } = req.body as { name?: string; slug?: string; flagship?: boolean };
+  const { name, slug, flagship, image, parentId } = req.body as { name?: string; slug?: string; flagship?: boolean; image?: string; parentId?: string | null };
   try {
     await db.category.update({
       where: { id: req.params.id },
@@ -273,6 +353,8 @@ admin.patch('/categories/:id', requireOwner, async (req, res) => {
         ...(name ? { name } : {}),
         ...(slug ? { slug } : {}),
         ...(flagship !== undefined ? { flagship } : {}),
+        ...(image !== undefined ? { image } : {}),
+        ...(parentId !== undefined ? { parentId } : {}),
       },
     });
     res.json({ ok: true });

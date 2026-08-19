@@ -1,48 +1,65 @@
 'use client';
-// Add product (§11.1): visible on site + bot immediately on save.
-// Uploads go through §14.6 validation; variants carry price in GHS.
-import { useRouter } from 'next/navigation';
+// Edit product (§11.1).
+import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ImagePlus, Plus, Trash2, Upload } from 'lucide-react';
 import { apiFetch, API } from '@/lib/api';
 
 interface Category { id: string; name: string; slug: string }
-interface VariantDraft { size: string; color: string; price: string; stock: string }
+interface VariantDraft { id?: string; size: string; color: string; price: string; stock: string; reservedStock?: number }
+interface ProductData {
+  name: string;
+  description: string;
+  categoryId: string;
+  images: string; // JSON string
+  variants: { id: string; size: string | null; color: string | null; priceP: number; stockQuantity: number; reservedStock: number }[];
+}
 
 const emptyVariant = (): VariantDraft => ({ size: '', color: '', price: '', stock: '' });
 
-export default function NewProductPage() {
+export default function EditProductPage() {
   const router = useRouter();
+  const { id } = useParams() as { id: string };
   const [categories, setCategories] = useState<Category[]>([]);
+  
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [slugTouched, setSlugTouched] = useState(false);
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState('');
-  const [variants, setVariants] = useState<VariantDraft[]>([emptyVariant()]);
+  const [variants, setVariants] = useState<VariantDraft[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/api/categories`)
-      .then((r) => r.json())
-      .then((r: { categories?: Category[], error?: string }) => {
-        if (r.categories) {
-          setCategories(r.categories);
-          if (r.categories[0]) setCategoryId(r.categories[0].id);
-        } else {
-          setError(r.error || 'Failed to load categories');
-        }
+    Promise.all([
+      fetch(`${API}/api/categories`).then(r => r.json()),
+      apiFetch<{ product: ProductData }>(`/api/admin/products/${id}`)
+    ])
+      .then(([catsRes, prodRes]) => {
+        if (catsRes.categories) setCategories(catsRes.categories);
+        
+        const p = prodRes.product;
+        setName(p.name);
+        setDescription(p.description || '');
+        setCategoryId(p.categoryId);
+        setImages(JSON.parse(p.images || '[]'));
+        setVariants(p.variants.map(v => ({
+          id: v.id,
+          size: v.size || '',
+          color: v.color || '',
+          price: (v.priceP / 100).toFixed(2),
+          stock: String(v.stockQuantity),
+          reservedStock: v.reservedStock
+        })));
+        setLoading(false);
       })
-      .catch((e: Error) => setError(e.message));
-  }, []);
-
-  const setNameAndSlug = (v: string) => {
-    setName(v);
-    if (!slugTouched) setSlug(v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
-  };
+      .catch((e: Error) => {
+        setError(e.message);
+        setLoading(false);
+      });
+  }, [id]);
 
   const addImageFile = useCallback((file: File) => {
     setError('');
@@ -58,37 +75,39 @@ export default function NewProductPage() {
 
   const submit = async () => {
     setError('');
-    const filled = variants.filter((v) => v.price && v.stock);
+    const filled = variants.filter((v) => v.price && (v.id || v.stock));
     if (!name.trim()) return setError('Product name is required');
     if (!categoryId) return setError('Pick a category');
-    const expandedVariants: { size?: string; color?: string; priceP: number; stockQuantity: number }[] = [];
+    const expandedVariants: { id?: string; size?: string; color?: string; priceP: number; stockQuantity?: number }[] = [];
     for (const v of filled) {
       const sizes = v.size ? v.size.split(',').map((s) => s.trim()).filter(Boolean) : [''];
       const colors = v.color ? v.color.split(',').map((c) => c.trim()).filter(Boolean) : [''];
+      
+      let first = true;
       for (const s of sizes) {
         for (const c of colors) {
           expandedVariants.push({
+            id: first ? v.id : undefined,
             size: s || undefined,
             color: c || undefined,
             priceP: Math.round(Number(v.price) * 100),
-            stockQuantity: Number(v.stock),
+            stockQuantity: (v.id && first) ? undefined : Number(v.stock), // only send stock for NEW variants
           });
+          first = false;
         }
       }
     }
 
-    if (expandedVariants.length === 0) return setError('Add at least one variant with price and stock');
+    if (expandedVariants.length === 0) return setError('Add at least one variant');
     setSaving(true);
     try {
-      await apiFetch('/api/admin/products', {
-        method: 'POST',
+      await apiFetch(`/api/admin/products/${id}`, {
+        method: 'PATCH',
         body: JSON.stringify({
           name,
-          slug: slug || undefined,
           description,
           categoryId,
           images,
-          upload: images.length > 0 ? { contentType: 'image/upload', size: 1 } : undefined,
           variants: expandedVariants,
         }),
       });
@@ -101,12 +120,14 @@ export default function NewProductPage() {
 
   const input = 'w-full border-b border-charcoal/30 bg-transparent px-1 py-1.5 text-sm outline-none focus:border-indigo';
 
+  if (loading) return <div className="text-sm text-charcoal/50">Loading product...</div>;
+
   return (
     <div className="max-w-3xl">
       <button onClick={() => router.back()} className="mb-4 flex items-center gap-1 text-sm text-charcoal/50 underline">
         <ChevronLeft size={14} aria-hidden /> back to inventory
       </button>
-      <h1 className="mb-6 font-serif text-2xl text-indigo">Add product</h1>
+      <h1 className="mb-6 font-serif text-2xl text-indigo">Edit product</h1>
       {error && <p className="mb-4 text-sm text-rose">{error}</p>}
 
       <div className="space-y-6 rounded border border-sand/30 bg-white/50 p-6">
@@ -114,15 +135,12 @@ export default function NewProductPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Name</span>
-            <input value={name} onChange={(e) => setNameAndSlug(e.target.value)} className={input} placeholder="Osu Wide-Leg Denim" />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Slug</span>
-            <input value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} className={input} placeholder="auto-generated" />
+            <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Category</span>
             <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`${input} bg-cream`}>
+              <option value="" disabled>Select...</option>
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </label>
@@ -139,7 +157,7 @@ export default function NewProductPage() {
             {images.map((src, i) => (
               <div key={i} className="relative h-20 w-16 overflow-hidden rounded border border-sand/40">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={`upload ${i + 1}`} className="h-full w-full object-cover" />
+                <img src={src} alt={`product ${i + 1}`} className="h-full w-full object-cover" />
                 <button onClick={() => setImages(images.filter((_, j) => j !== i))} aria-label="Remove image" className="absolute right-0 top-0 bg-charcoal/60 p-0.5 text-cream">
                   <Trash2 size={12} aria-hidden />
                 </button>
@@ -171,17 +189,26 @@ export default function NewProductPage() {
               <Plus size={12} aria-hidden /> Add variant
             </button>
           </div>
+          <p className="mb-3 text-[10px] text-charcoal/50">Note: Stock for existing variants is locked here. Use the main Inventory page to adjust or restock.</p>
           <div className="space-y-2">
             {variants.map((v, i) => (
               <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-center gap-2 text-sm">
                 <input value={v.size} onChange={(e) => setVariant(i, { size: e.target.value })} placeholder="Size (opt)" className={input} />
                 <input value={v.color} onChange={(e) => setVariant(i, { color: e.target.value })} placeholder="Color (opt)" className={input} />
                 <input type="number" min={0} step="0.5" value={v.price} onChange={(e) => setVariant(i, { price: e.target.value })} placeholder="Price GHS" className={input} />
-                <input type="number" min={0} value={v.stock} onChange={(e) => setVariant(i, { stock: e.target.value })} placeholder="Stock" className={input} />
+                <input 
+                  type="number" min={0} 
+                  value={v.stock} onChange={(e) => setVariant(i, { stock: e.target.value })} 
+                  placeholder="Stock" 
+                  disabled={!!v.id}
+                  className={`${input} disabled:opacity-50 disabled:cursor-not-allowed`} 
+                  title={v.id ? 'Use Inventory page to restock/adjust existing variants' : ''}
+                />
                 <button
                   onClick={() => setVariants(variants.filter((_, j) => j !== i))}
-                  disabled={variants.length === 1}
+                  disabled={variants.length === 1 || (v.reservedStock !== undefined && v.reservedStock > 0)}
                   aria-label="Remove variant"
+                  title={(v.reservedStock ?? 0) > 0 ? 'Cannot delete: variant has reserved stock' : ''}
                   className="text-charcoal/40 hover:text-rose disabled:opacity-30"
                 >
                   <Trash2 size={14} aria-hidden />
@@ -196,9 +223,8 @@ export default function NewProductPage() {
           disabled={saving}
           className="w-full rounded bg-indigo px-4 py-2.5 text-sm text-cream hover:bg-indigo-deep disabled:opacity-50 md:w-fit md:px-8"
         >
-          {saving ? 'Saving…' : 'Publish product'}
+          {saving ? 'Saving…' : 'Save changes'}
         </button>
-        <p className="text-xs text-charcoal/50">Goes live on the website and the WhatsApp bot immediately (§11.1).</p>
       </div>
     </div>
   );

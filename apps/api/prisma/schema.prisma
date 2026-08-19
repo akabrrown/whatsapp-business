@@ -11,10 +11,14 @@ datasource db {
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  slug     String    @unique
-  flagship Boolean   @default(false)
+  id       String     @id @default(cuid())
+  name     String     @unique
+  slug     String     @unique
+  flagship Boolean    @default(false)
+  image    String     @default("")
+  parentId String?
+  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryParent")
   products Product[]
 }
 

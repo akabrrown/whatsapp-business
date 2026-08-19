@@ -31,6 +31,7 @@ export interface Category {
   slug: string;
   name: string;
   flagship: boolean;
+  children?: Category[];
 }
 
 async function get<T>(path: string): Promise<T> {

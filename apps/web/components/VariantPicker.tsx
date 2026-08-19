@@ -6,6 +6,7 @@ import { MessageCircle } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
 import { AddToBag } from './AddToBag';
+import { SizeGuide } from './SizeGuide';
 
 export function VariantPicker({ product, whatsappNumber }: { product: CatalogProduct; whatsappNumber: string }) {
   const sizes = useMemo(() => [...new Set(product.variants.map((v) => v.size))].filter(Boolean) as string[], [product]);
@@ -26,7 +27,10 @@ export function VariantPicker({ product, whatsappNumber }: { product: CatalogPro
 
       {sizes.length > 0 && (
         <div>
-          <p className="mb-2 text-xs uppercase tracking-widest text-charcoal/50">Size</p>
+          <div className="mb-2 flex items-center gap-4">
+            <p className="text-xs uppercase tracking-widest text-charcoal/50">Size</p>
+            <SizeGuide />
+          </div>
           <div className="flex flex-wrap gap-2">
             {sizes.map((s) => {
               const v = product.variants.find((x) => x.size === s);

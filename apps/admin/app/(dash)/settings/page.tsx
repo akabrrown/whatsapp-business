@@ -18,6 +18,8 @@ interface Category {
   name: string;
   slug: string;
   flagship: boolean;
+  image: string;
+  parentId: string | null;
   _count: { products: number };
 }
 
@@ -34,7 +36,8 @@ export default function SettingsPage() {
   const [newZone, setNewZone] = useState({ name: '', city: 'Accra', fee: '' });
   
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCategory, setNewCategory] = useState({ name: '', slug: '', flagship: false });
+  const [newCategory, setNewCategory] = useState({ name: '', slug: '', flagship: false, image: '', parentId: '' });
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [newStaff, setNewStaff] = useState({ email: '', name: '', password: '', role: 'staff' });
@@ -113,12 +116,31 @@ export default function SettingsPage() {
   };
 
   // Category actions
+  const handleImageUpload = (file: File, setter: (val: string) => void) => {
+    setError('');
+    if (!file.type.startsWith('image/')) return setError('Images only');
+    if (file.size > 5 * 1024 * 1024) return setError('Max 5MB per image');
+    const reader = new FileReader();
+    reader.onload = () => setter(String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
   const addCategory = async () => {
     if (!newCategory.name) return setError('Category name required');
     setError('');
     try {
-      await apiFetch('/api/admin/categories', { method: 'POST', body: JSON.stringify(newCategory) });
-      setNewCategory({ name: '', slug: '', flagship: false });
+      await apiFetch('/api/admin/categories', { method: 'POST', body: JSON.stringify({ ...newCategory, parentId: newCategory.parentId || null }) });
+      setNewCategory({ name: '', slug: '', flagship: false, image: '', parentId: '' });
+      await loadCategories();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const updateCategory = async () => {
+    if (!editingCategory) return;
+    try {
+      await apiFetch(`/api/admin/categories/${editingCategory.id}`, { method: 'PATCH', body: JSON.stringify({ name: editingCategory.name, slug: editingCategory.slug, flagship: editingCategory.flagship, image: editingCategory.image }) });
+      setEditingCategory(null);
       await loadCategories();
     } catch (e) {
       setError((e as Error).message);
@@ -239,27 +261,84 @@ export default function SettingsPage() {
               </p>
               <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
                 {categories.map((c) => (
-                  <li key={c.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex-1">
-                      <p className="font-medium text-charcoal">{c.name} <span className="text-xs text-charcoal/40">/{c.slug}</span></p>
-                      <p className="text-[10px] text-charcoal/40">{c._count?.products ?? 0} products</p>
-                    </div>
-                    <label className="flex cursor-pointer items-center gap-1 text-xs text-charcoal/60 hover:text-indigo">
-                      <input type="checkbox" checked={c.flagship} onChange={() => toggleFlagship(c)} />
-                      Flagship
-                    </label>
-                    <button onClick={() => deleteCategory(c)} disabled={c._count?.products > 0} className="ml-2 text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={14} /></button>
+                  <li key={c.id} className="flex flex-col gap-2 px-4 py-3">
+                    {editingCategory?.id === c.id ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <input value={editingCategory.name} onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })} className={inputStyle} placeholder="Name" />
+                          <input value={editingCategory.slug} onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })} className={inputStyle} placeholder="Slug" />
+                          <select value={editingCategory.parentId || ''} onChange={(e) => setEditingCategory({ ...editingCategory, parentId: e.target.value })} className={`${inputStyle} w-32`}>
+                            <option value="">No Parent (Main)</option>
+                            {categories.filter(c => c.id !== editingCategory.id && !c.parentId).map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {editingCategory.image ? (
+                            <img src={editingCategory.image} alt="cover" className="h-10 w-10 rounded object-cover" />
+                          ) : (
+                            <div className="h-10 w-10 rounded bg-sand/30 flex items-center justify-center text-[10px] text-charcoal/50">None</div>
+                          )}
+                          <label className="text-xs text-indigo underline cursor-pointer">
+                            Upload image
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setEditingCategory({ ...editingCategory, image: img }))} />
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2 justify-end">
+                          <button onClick={() => setEditingCategory(null)} className="text-xs text-charcoal/50">Cancel</button>
+                          <button onClick={updateCategory} className="text-xs text-indigo font-medium">Save</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        {c.image ? <img src={c.image} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-sand/30" />}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-charcoal">{c.name} <span className="text-xs text-charcoal/40">/{c.slug}</span></p>
+                            {c.parentId && <span className="text-[10px] bg-sand/50 px-1 rounded text-charcoal/60">Subcategory</span>}
+                            <button onClick={() => setEditingCategory(c)} className="text-[10px] text-indigo hover:underline">edit</button>
+                          </div>
+                          <p className="text-[10px] text-charcoal/40">{c._count?.products ?? 0} products</p>
+                        </div>
+                        <label className="flex cursor-pointer items-center gap-1 text-xs text-charcoal/60 hover:text-indigo">
+                          <input type="checkbox" checked={c.flagship} onChange={() => toggleFlagship(c)} />
+                          Flagship
+                        </label>
+                        <button onClick={() => deleteCategory(c)} disabled={c._count?.products > 0} className="ml-2 text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={14} /></button>
+                      </div>
+                    )}
                   </li>
                 ))}
                 {categories.length === 0 && <li className="px-4 py-6 text-charcoal/50">No categories configured.</li>}
               </ul>
               <div className="mt-3 rounded border border-sand/30 bg-white/50 p-4">
                 <p className="mb-3 text-xs uppercase tracking-wide text-charcoal/50">Add category</p>
-                <div className="flex items-center gap-2">
-                  <input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} placeholder="Name" className={inputStyle} />
-                  <input value={newCategory.slug} onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })} placeholder="Slug (opt)" className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
-                  <label className="flex shrink-0 items-center gap-1 text-xs text-charcoal/60"><input type="checkbox" checked={newCategory.flagship} onChange={(e) => setNewCategory({ ...newCategory, flagship: e.target.checked })} /> Flagship</label>
-                  <button onClick={addCategory} className="flex shrink-0 items-center gap-1 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep"><Plus size={14} /> Add</button>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} placeholder="Name" className={inputStyle} />
+                    <input value={newCategory.slug} onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })} placeholder="Slug (opt)" className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
+                    <select value={newCategory.parentId} onChange={(e) => setNewCategory({ ...newCategory, parentId: e.target.value })} className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo">
+                      <option value="">No Parent (Main)</option>
+                      {categories.filter(c => !c.parentId).map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <label className="flex shrink-0 items-center gap-1 text-xs text-charcoal/60"><input type="checkbox" checked={newCategory.flagship} onChange={(e) => setNewCategory({ ...newCategory, flagship: e.target.checked })} /> Flagship</label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {newCategory.image ? (
+                      <img src={newCategory.image} alt="cover preview" className="h-10 w-10 rounded object-cover" />
+                    ) : (
+                      <div className="h-10 w-10 rounded border border-dashed border-charcoal/30 flex items-center justify-center text-charcoal/40 text-[10px]">Img</div>
+                    )}
+                    <label className="text-xs text-indigo underline cursor-pointer">
+                      Upload cover
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setNewCategory({ ...newCategory, image: img }))} />
+                    </label>
+                    <div className="flex-1" />
+                    <button onClick={addCategory} className="flex shrink-0 items-center gap-1 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep"><Plus size={14} /> Add</button>
+                  </div>
                 </div>
               </div>
             </div>

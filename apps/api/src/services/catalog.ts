@@ -83,5 +83,9 @@ export async function search(term: string): Promise<CatalogProduct[]> {
 }
 
 export async function categories() {
-  return db.category.findMany({ orderBy: { flagship: 'desc' } });
+  return db.category.findMany({ 
+    where: { parentId: null },
+    orderBy: { flagship: 'desc' },
+    include: { children: { orderBy: { name: 'asc' } } }
+  });
 }
