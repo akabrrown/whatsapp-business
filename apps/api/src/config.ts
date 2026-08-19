@@ -36,8 +36,8 @@ export const config = {
     cloudinaryUrl: process.env.CLOUDINARY_URL ?? '',
   },
   redisUrl: process.env.REDIS_URL ?? '',
-  ownerEmail: process.env.OWNER_EMAIL ?? 'kukua@roseanddenim.com',
-  ownerPassword: ownerPassword || 'denim-rose-2026',
+  ownerEmail: process.env.OWNER_EMAIL ?? 'akayetb@gmail.com',
+  ownerPassword: ownerPassword || 'Option#5',
 };
 
 // Startup guards: crash immediately when real-mode credentials are missing,

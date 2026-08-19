@@ -8,13 +8,13 @@ const db = new PrismaClient();
 
 async function main() {
   const owner = await db.adminUser.upsert({
-    where: { email: process.env.OWNER_EMAIL ?? 'kukua@roseanddenim.com' },
+    where: { email: process.env.OWNER_EMAIL ?? 'akayetb@gmail.com' },
     update: {},
     create: {
-      email: process.env.OWNER_EMAIL ?? 'kukua@roseanddenim.com',
-      name: 'Kukua',
+      email: process.env.OWNER_EMAIL ?? 'akayetb@gmail.com',
+      name: 'Tobi',
       role: 'owner',
-      password: await bcrypt.hash(process.env.OWNER_PASSWORD ?? 'denim-rose-2026', 10),
+      password: await bcrypt.hash(process.env.OWNER_PASSWORD ?? 'Option#5', 10),
     },
   });
 
