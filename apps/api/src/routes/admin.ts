@@ -12,6 +12,7 @@ import { sendReliable } from '../services/messaging.js';
 import { validateUpload } from '../adapters/images.js';
 import { now, DAY } from '../clock.js';
 import { STALE_PACKED_HOURS } from '@rose/shared';
+import { hub } from '../services/realtime.js';
 
 export const admin = Router();
 
@@ -153,6 +154,7 @@ admin.post('/inventory/:variantId/restock', async (req, res) => {
   const qty = Number(req.body?.qty ?? 0);
   if (qty <= 0) return res.status(400).json({ ok: false, error: 'qty must be positive' });
   await inventory.restock(req.params.variantId, qty, req.body?.note ?? 'bulk restock'); // §11.3
+  hub.broadcast('web', 'catalog_updated', { time: Date.now() });
   res.json({ ok: true });
 });
 
@@ -160,6 +162,7 @@ admin.post('/inventory/:variantId/adjust', async (req, res) => {
   const delta = Number(req.body?.delta ?? 0);
   if (!delta) return res.status(400).json({ ok: false, error: 'delta required' });
   await inventory.adjust(req.params.variantId, delta, req.body?.note ?? 'adjustment'); // §6.6
+  hub.broadcast('web', 'catalog_updated', { time: Date.now() });
   res.json({ ok: true });
 });
 
@@ -192,6 +195,7 @@ admin.post('/products', async (req, res) => {
       },
     },
   }); // §11.1: visible immediately on site + bot
+  hub.broadcast('web', 'catalog_updated', { time: Date.now() });
   res.json({ ok: true, product });
 });
 
@@ -217,6 +221,7 @@ admin.patch('/products/:id', async (req, res) => {
   // If it's a simple status toggle from the inventory page
   if (status && Object.keys(req.body).length === 1) {
     await db.product.update({ where: { id: req.params.id }, data: { status } });
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     return res.json({ ok: true });
   }
 
@@ -277,6 +282,7 @@ admin.patch('/products/:id', async (req, res) => {
     }
   }
 
+  hub.broadcast('web', 'catalog_updated', { time: Date.now() });
   res.json({ ok: true });
 });
 
@@ -298,6 +304,7 @@ admin.delete('/products/:id', requireOwner, async (req, res) => {
     });
     await db.productVariant.deleteMany({ where: { productId: req.params.id } });
     await db.product.delete({ where: { id: req.params.id } });
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: (e as Error).message });
@@ -326,6 +333,7 @@ admin.post('/products/bulk-delete', requireOwner, async (req, res) => {
     });
     await db.productVariant.deleteMany({ where: { productId: { in: productIds } } });
     await db.product.deleteMany({ where: { id: { in: productIds } } });
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     res.json({ ok: true, deleted: productIds.length });
   } catch (e) {
     res.status(500).json({ ok: false, error: (e as Error).message });
@@ -391,6 +399,7 @@ admin.post('/categories', requireOwner, async (req, res) => {
         parentId: parentId || null,
       },
     });
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     res.json({ ok: true, category });
   } catch (e) {
     res.status(409).json({ ok: false, error: 'category name or slug already exists' });
@@ -445,6 +454,7 @@ admin.post('/categories/bulk', requireOwner, async (req, res) => {
       results.push(cat);
     }
     
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     res.json({ ok: true, count: results.length });
   } catch (e) {
     res.status(500).json({ ok: false, error: (e as Error).message });
@@ -463,6 +473,7 @@ admin.patch('/categories/:id', requireOwner, async (req, res) => {
         ...(parentId !== undefined ? { parentId } : {}),
       },
     });
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: (e as Error).message });
@@ -474,6 +485,7 @@ admin.delete('/categories/:id', requireOwner, async (req, res) => {
     if (!category) return res.status(404).json({ ok: false, error: 'not_found' });
     if (category._count.products > 0) return res.status(409).json({ ok: false, error: 'Cannot delete category with products attached' });
     await db.category.delete({ where: { id: req.params.id } });
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: (e as Error).message });
