@@ -95,29 +95,66 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const add = useCallback<CartContextValue['add']>(
     async (variantId, qty, meta) => {
       if (!sessionId) return { ok: false, message: 'Cart is still warming up: try again in a second.' };
-      const res = await fetch(`${API}/api/cart/${sessionId}/items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variantId, qty }),
-      });
-      const body = (await res.json()) as { ok: boolean; cart?: { items: { variantId: string; qty: number }[] }; message?: string };
-      if (!res.ok || !body.ok) return { ok: false, message: body.message ?? 'Sorry, this just sold out' }; // §4.2
-      applyServerCart(body.cart?.items ?? [], [...lines, { variantId, qty, ...meta }]);
+      
+      // Optimistic UI update
+      const existingLine = lines.find((l) => l.variantId === variantId);
+      const nextLines = existingLine
+        ? lines.map((l) => (l.variantId === variantId ? { ...l, qty: l.qty + qty } : l))
+        : [...lines, { variantId, qty, ...meta }];
+        
+      setLines(nextLines);
+      persistMeta(nextLines);
       setDrawerOpen(true);
-      return { ok: true };
+
+      try {
+        const res = await fetch(`${API}/api/cart/${sessionId}/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variantId, qty }),
+        });
+        const body = (await res.json()) as { ok: boolean; cart?: { items: { variantId: string; qty: number }[] }; message?: string };
+        
+        if (!res.ok || !body.ok) {
+          // Revert optimistic update
+          setLines(lines);
+          persistMeta(lines);
+          return { ok: false, message: body.message ?? 'Sorry, this just sold out' };
+        }
+        
+        applyServerCart(body.cart?.items ?? [], nextLines);
+        return { ok: true };
+      } catch (err) {
+        // Revert on network error
+        setLines(lines);
+        persistMeta(lines);
+        return { ok: false, message: 'Network error, please try again' };
+      }
     },
-    [sessionId, lines, applyServerCart],
+    [sessionId, lines, applyServerCart, persistMeta],
   );
 
   const setQty = useCallback<CartContextValue['setQty']>(
     async (variantId, qty) => {
-      const res = await fetch(`${API}/api/cart/${sessionId}/items`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variantId, qty }),
-      });
-      const body = (await res.json()) as { cart?: { items: { variantId: string; qty: number }[] } };
-      applyServerCart(body.cart?.items ?? [], lines);
+      // Optimistic UI update
+      const prevLines = lines;
+      const nextLines = qty === 0 
+        ? lines.filter(l => l.variantId !== variantId)
+        : lines.map(l => l.variantId === variantId ? { ...l, qty } : l);
+      
+      setLines(nextLines);
+
+      try {
+        const res = await fetch(`${API}/api/cart/${sessionId}/items`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variantId, qty }),
+        });
+        const body = (await res.json()) as { cart?: { items: { variantId: string; qty: number }[] } };
+        applyServerCart(body.cart?.items ?? [], nextLines);
+      } catch (e) {
+        // Revert on error
+        setLines(prevLines);
+      }
     },
     [sessionId, lines, applyServerCart],
   );
