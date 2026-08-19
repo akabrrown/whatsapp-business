@@ -383,7 +383,7 @@ admin.delete('/zones/:id', requireOwner, async (req, res) => {
 });
 
 // ---- Categories ----
-admin.get('/categories', requireOwner, async (_req, res) => {
+admin.get('/categories', requireAuth, async (_req, res) => {
   res.json({ ok: true, categories: await db.category.findMany({ orderBy: { name: 'asc' }, include: { _count: { select: { products: true } } } }) });
 });
 admin.post('/categories', requireOwner, async (req, res) => {
