@@ -136,6 +136,57 @@ export default function SettingsPage() {
       setError((e as Error).message);
     }
   };
+
+  const handleBulkUpload = (file: File) => {
+    setError('');
+    if (!file.name.endsWith('.csv')) return setError('Please upload a .csv file');
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        if (!text) return;
+        
+        // Simple CSV parser supporting quotes (basic)
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length < 2) return setError('CSV must contain a header and at least one row');
+        
+        const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+        const nameIdx = headers.indexOf('name');
+        const slugIdx = headers.indexOf('slug');
+        const parentIdx = headers.indexOf('parent');
+        const flagshipIdx = headers.indexOf('flagship');
+        
+        if (nameIdx === -1) return setError('CSV must contain a "name" column');
+        
+        const categoriesData = [];
+        for (let i = 1; i < lines.length; i++) {
+          // Quick and dirty split that doesn't handle commas inside quotes well, but enough for basic use cases
+          const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+          if (cols.length <= nameIdx || !cols[nameIdx]) continue;
+          
+          categoriesData.push({
+            name: cols[nameIdx],
+            slug: slugIdx !== -1 ? cols[slugIdx] : '',
+            parentName: parentIdx !== -1 ? cols[parentIdx] : '',
+            flagship: flagshipIdx !== -1 ? (cols[flagshipIdx].toLowerCase() === 'true' || cols[flagshipIdx] === '1') : false
+          });
+        }
+        
+        if (categoriesData.length === 0) return setError('No valid categories found in CSV');
+        
+        await apiFetch('/api/admin/categories/bulk', { 
+          method: 'POST', 
+          body: JSON.stringify({ categories: categoriesData }) 
+        });
+        
+        await loadCategories();
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    };
+    reader.readAsText(file);
+  };
   const updateCategory = async () => {
     if (!editingCategory) return;
     try {
@@ -260,60 +311,118 @@ export default function SettingsPage() {
                 <Tag size={13} aria-hidden /> Categories
               </p>
               <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
-                {categories.map((c) => (
-                  <li key={c.id} className="flex flex-col gap-2 px-4 py-3">
-                    {editingCategory?.id === c.id ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <input value={editingCategory.name} onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })} className={inputStyle} placeholder="Name" />
-                          <input value={editingCategory.slug} onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })} className={inputStyle} placeholder="Slug" />
-                          <select value={editingCategory.parentId || ''} onChange={(e) => setEditingCategory({ ...editingCategory, parentId: e.target.value })} className={`${inputStyle} w-32`}>
-                            <option value="">No Parent (Main)</option>
-                            {categories.filter(c => c.id !== editingCategory.id && !c.parentId).map(c => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {editingCategory.image ? (
-                            <img src={editingCategory.image} alt="cover" className="h-10 w-10 rounded object-cover" />
-                          ) : (
-                            <div className="h-10 w-10 rounded bg-sand/30 flex items-center justify-center text-[10px] text-charcoal/50">None</div>
-                          )}
-                          <label className="text-xs text-indigo underline cursor-pointer">
-                            Upload image
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setEditingCategory({ ...editingCategory, image: img }))} />
-                          </label>
-                        </div>
-                        <div className="flex items-center gap-2 justify-end">
-                          <button onClick={() => setEditingCategory(null)} className="text-xs text-charcoal/50">Cancel</button>
-                          <button onClick={updateCategory} className="text-xs text-indigo font-medium">Save</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        {c.image ? <img src={c.image} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-sand/30" />}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-charcoal">{c.name} <span className="text-xs text-charcoal/40">/{c.slug}</span></p>
-                            {c.parentId && <span className="text-[10px] bg-sand/50 px-1 rounded text-charcoal/60">Subcategory</span>}
-                            <button onClick={() => setEditingCategory(c)} className="text-[10px] text-indigo hover:underline">edit</button>
+                {categories.filter(c => !c.parentId).map((mainCat) => {
+                  const subCats = categories.filter(sub => sub.parentId === mainCat.id);
+                  return (
+                    <li key={mainCat.id} className="flex flex-col border-b border-sand/20 last:border-b-0">
+                      <details className="group" open={subCats.length > 0}>
+                        <summary className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-sand/10 marker:content-['']">
+                          {/* Main Category Header row */}
+                          <div className="flex flex-1 items-center gap-3">
+                            {mainCat.image ? <img src={mainCat.image} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-sand/30" />}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-charcoal">{mainCat.name} <span className="text-xs font-normal text-charcoal/40">/{mainCat.slug}</span></p>
+                                <button onClick={(e) => { e.preventDefault(); setEditingCategory(mainCat); }} className="text-[10px] text-indigo hover:underline">edit</button>
+                              </div>
+                              <p className="text-[10px] text-charcoal/40">{mainCat._count?.products ?? 0} products {subCats.length > 0 && `· ${subCats.length} subcategories`}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <label className="flex cursor-pointer items-center gap-1 text-xs text-charcoal/60 hover:text-indigo" onClick={(e) => e.stopPropagation()}>
+                                <input type="checkbox" checked={mainCat.flagship} onChange={() => toggleFlagship(mainCat)} />
+                                Flagship
+                              </label>
+                              <button onClick={(e) => { e.preventDefault(); deleteCategory(mainCat); }} disabled={mainCat._count?.products > 0 || subCats.length > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={14} /></button>
+                            </div>
                           </div>
-                          <p className="text-[10px] text-charcoal/40">{c._count?.products ?? 0} products</p>
-                        </div>
-                        <label className="flex cursor-pointer items-center gap-1 text-xs text-charcoal/60 hover:text-indigo">
-                          <input type="checkbox" checked={c.flagship} onChange={() => toggleFlagship(c)} />
-                          Flagship
-                        </label>
-                        <button onClick={() => deleteCategory(c)} disabled={c._count?.products > 0} className="ml-2 text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={14} /></button>
-                      </div>
-                    )}
-                  </li>
-                ))}
+                          
+                          {/* Accordion indicator icon */}
+                          {subCats.length > 0 && (
+                            <div className="ml-4 flex h-6 w-6 items-center justify-center rounded bg-sand/30 transition-transform group-open:rotate-180">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                          )}
+                        </summary>
+                        
+                        {/* Subcategories list */}
+                        {subCats.length > 0 && (
+                          <ul className="bg-sand/10 pb-2">
+                            {subCats.map(sub => (
+                              <li key={sub.id} className="flex items-center gap-3 px-4 py-2 pl-12 hover:bg-sand/20">
+                                {sub.image ? <img src={sub.image} alt="" className="h-8 w-8 rounded object-cover" /> : <div className="h-8 w-8 rounded bg-sand/30" />}
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium text-charcoal/80">{sub.name} <span className="text-xs font-normal text-charcoal/40">/{sub.slug}</span></p>
+                                    <span className="text-[10px] bg-sand/50 px-1 rounded text-charcoal/60">Sub</span>
+                                    <button onClick={() => setEditingCategory(sub)} className="text-[10px] text-indigo hover:underline">edit</button>
+                                  </div>
+                                  <p className="text-[10px] text-charcoal/40">{sub._count?.products ?? 0} products</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <label className="flex cursor-pointer items-center gap-1 text-[10px] text-charcoal/60 hover:text-indigo">
+                                    <input type="checkbox" checked={sub.flagship} onChange={() => toggleFlagship(sub)} />
+                                    Flagship
+                                  </label>
+                                  <button onClick={() => deleteCategory(sub)} disabled={sub._count?.products > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={12} /></button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </details>
+                    </li>
+                  );
+                })}
                 {categories.length === 0 && <li className="px-4 py-6 text-charcoal/50">No categories configured.</li>}
               </ul>
+
+              {/* Editing category modal/inline form overlay */}
+              {editingCategory && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/40 p-4">
+                  <div className="w-full max-w-md rounded-lg bg-cream p-6 shadow-xl">
+                    <p className="mb-4 font-serif text-lg text-indigo">Edit Category</p>
+                    <div className="flex flex-col gap-4">
+                      <input value={editingCategory.name} onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })} className="w-full border-b border-charcoal/30 bg-transparent px-1 py-1 outline-none focus:border-indigo" placeholder="Name" />
+                      <input value={editingCategory.slug} onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })} className="w-full border-b border-charcoal/30 bg-transparent px-1 py-1 outline-none focus:border-indigo" placeholder="Slug" />
+                      
+                      <div>
+                        <label className="mb-1 block text-xs text-charcoal/50">Parent Category</label>
+                        <select value={editingCategory.parentId || ''} onChange={(e) => setEditingCategory({ ...editingCategory, parentId: e.target.value })} className="w-full border-b border-charcoal/30 bg-transparent px-1 py-1 outline-none focus:border-indigo">
+                          <option value="">No Parent (Main)</option>
+                          {categories.filter(c => c.id !== editingCategory.id && !c.parentId).map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-3 mt-2">
+                        {editingCategory.image ? (
+                          <img src={editingCategory.image} alt="cover" className="h-12 w-12 rounded object-cover" />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded border border-dashed border-charcoal/30 text-[10px] text-charcoal/50">None</div>
+                        )}
+                        <label className="cursor-pointer text-sm text-indigo underline hover:text-indigo-deep">
+                          Upload image
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setEditingCategory({ ...editingCategory, image: img }))} />
+                        </label>
+                      </div>
+
+                      <div className="mt-4 flex justify-end gap-3">
+                        <button onClick={() => setEditingCategory(null)} className="px-4 py-2 text-sm text-charcoal/60 hover:text-charcoal">Cancel</button>
+                        <button onClick={updateCategory} className="rounded bg-indigo px-4 py-2 text-sm text-cream hover:bg-indigo-deep">Save Changes</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="mt-3 rounded border border-sand/30 bg-white/50 p-4">
-                <p className="mb-3 text-xs uppercase tracking-wide text-charcoal/50">Add category</p>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-charcoal/50">Add category</p>
+                  <label className="cursor-pointer text-xs text-indigo underline hover:text-indigo-deep">
+                    Bulk upload CSV
+                    <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleBulkUpload(e.target.files[0])} />
+                  </label>
+                </div>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} placeholder="Name" className={inputStyle} />

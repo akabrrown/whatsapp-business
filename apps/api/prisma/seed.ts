@@ -27,11 +27,12 @@ async function main() {
   ];
   const catIds: Record<string, string> = {};
   for (const c of cats) {
-    const row = await db.category.upsert({
-      where: { slug: c.slug },
-      update: { flagship: c.flagship },
-      create: c,
-    });
+    let row = await db.category.findFirst({ where: { slug: c.slug, parentId: null } });
+    if (row) {
+      row = await db.category.update({ where: { id: row.id }, data: { flagship: c.flagship } });
+    } else {
+      row = await db.category.create({ data: c });
+    }
     catIds[c.slug] = row.id;
   }
   void catIds; // retained shape for future category-dependent seeding

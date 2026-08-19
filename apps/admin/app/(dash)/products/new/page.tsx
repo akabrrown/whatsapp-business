@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ImagePlus, Plus, Trash2, Upload } from 'lucide-react';
 import { apiFetch, API } from '@/lib/api';
+import React from 'react';
 
-interface Category { id: string; name: string; slug: string }
+interface Category { id: string; name: string; slug: string; parentId?: string | null }
 interface VariantDraft { size: string; color: string; price: string; stock: string }
 
 const emptyVariant = (): VariantDraft => ({ size: '', color: '', price: '', stock: '' });
@@ -26,12 +27,14 @@ export default function NewProductPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/api/categories`)
-      .then((r) => r.json())
-      .then((r: { categories?: Category[], error?: string }) => {
+    apiFetch<{ categories?: Category[], error?: string }>(`/api/admin/categories`)
+      .then(r => {
         if (r.categories) {
-          setCategories(r.categories);
-          if (r.categories[0]) setCategoryId(r.categories[0].id);
+          const flat = r.categories;
+          setCategories(flat);
+          // Default to first main category
+          const firstMain = flat.find((c) => !c.parentId);
+          if (firstMain) setCategoryId(firstMain.id);
         } else {
           setError(r.error || 'Failed to load categories');
         }
@@ -120,12 +123,42 @@ export default function NewProductPage() {
             <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Slug</span>
             <input value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} className={input} placeholder="auto-generated" />
           </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Category</span>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`${input} bg-cream`}>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </label>
+          
+          {(() => {
+            const mainCategories = categories.filter((c) => !c.parentId);
+            const selectedCategory = categories.find((c) => c.id === categoryId);
+            const currentMainId = selectedCategory?.parentId || selectedCategory?.id || '';
+            const availableSubs = categories.filter((c) => c.parentId === currentMainId);
+            const currentSubId = selectedCategory?.parentId ? selectedCategory.id : '';
+
+            return (
+              <>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Main Category</span>
+                  <select value={currentMainId} onChange={(e) => setCategoryId(e.target.value)} className={`${input} bg-cream`}>
+                    {mainCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </label>
+                
+                {availableSubs.length > 0 && (
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Subcategory</span>
+                    <select 
+                      value={currentSubId} 
+                      onChange={(e) => {
+                        if (e.target.value) setCategoryId(e.target.value);
+                        else setCategoryId(currentMainId);
+                      }} 
+                      className={`${input} bg-cream`}
+                    >
+                      <option value="">-- General / No Subcategory --</option>
+                      {availableSubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </label>
+                )}
+              </>
+            );
+          })()}
         </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Description</span>

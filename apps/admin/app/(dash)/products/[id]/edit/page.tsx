@@ -4,8 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ImagePlus, Plus, Trash2, Upload } from 'lucide-react';
 import { apiFetch, API } from '@/lib/api';
+import React from 'react';
 
-interface Category { id: string; name: string; slug: string }
+interface Category { id: string; name: string; slug: string; parentId?: string | null }
 interface VariantDraft { id?: string; size: string; color: string; price: string; stock: string; reservedStock?: number }
 interface ProductData {
   name: string;
@@ -34,7 +35,7 @@ export default function EditProductPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/api/categories`).then(r => r.json()),
+      apiFetch<{ categories?: Category[], error?: string }>(`/api/admin/categories`),
       apiFetch<{ product: ProductData }>(`/api/admin/products/${id}`)
     ])
       .then(([catsRes, prodRes]) => {
@@ -137,13 +138,42 @@ export default function EditProductPage() {
             <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
           </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Category</span>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`${input} bg-cream`}>
-              <option value="" disabled>Select...</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </label>
+          {(() => {
+            const mainCategories = categories.filter((c) => !c.parentId);
+            const selectedCategory = categories.find((c) => c.id === categoryId);
+            const currentMainId = selectedCategory?.parentId || selectedCategory?.id || '';
+            const availableSubs = categories.filter((c) => c.parentId === currentMainId);
+            const currentSubId = selectedCategory?.parentId ? selectedCategory.id : '';
+
+            return (
+              <>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Main Category</span>
+                  <select value={currentMainId} onChange={(e) => setCategoryId(e.target.value)} className={`${input} bg-cream`}>
+                    <option value="" disabled>Select...</option>
+                    {mainCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </label>
+                
+                {availableSubs.length > 0 && (
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Subcategory</span>
+                    <select 
+                      value={currentSubId} 
+                      onChange={(e) => {
+                        if (e.target.value) setCategoryId(e.target.value);
+                        else setCategoryId(currentMainId);
+                      }} 
+                      className={`${input} bg-cream`}
+                    >
+                      <option value="">-- General / No Subcategory --</option>
+                      {availableSubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </label>
+                )}
+              </>
+            );
+          })()}
         </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Description</span>

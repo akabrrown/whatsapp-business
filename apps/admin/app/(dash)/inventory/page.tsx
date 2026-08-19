@@ -3,7 +3,7 @@
 // inline restock (§11.3) and manual adjustment (§6.6), product hide/show (§11.2).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, SlidersHorizontal } from 'lucide-react';
+import { Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 
@@ -31,6 +31,9 @@ export default function InventoryPage() {
   // Filtering state
   const [searchQuery, setSearchQuery] = useState('');
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'sold_out'>('all');
+
+  // Selection state for bulk actions
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     const r = await apiFetch<{ variants: VariantRow[] }>('/api/admin/inventory');
@@ -80,16 +83,50 @@ export default function InventoryPage() {
     }
   };
 
+  const deleteProduct = async (productId: string, productName: string) => {
+    if (!confirm(`Delete "${productName}" and all its variants? This cannot be undone.`)) return;
+    setError('');
+    try {
+      await apiFetch(`/api/admin/products/${productId}`, { method: 'DELETE' });
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (selectedProducts.size === 0) return;
+    if (!confirm(`Delete ${selectedProducts.size} product(s) and all their variants? This cannot be undone.`)) return;
+    setError('');
+    try {
+      await apiFetch('/api/admin/products/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ productIds: Array.from(selectedProducts) }),
+      });
+      setSelectedProducts(new Set());
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const toggleSelect = (productId: string) => {
+    setSelectedProducts((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
   const lowCount = variants.filter((v) => v.lowStock).length;
-  
+
   // Apply filtering
   const filteredVariants = variants.filter((v) => {
-    // 1. Stock filter
     if (stockFilter === 'in_stock' && v.stockQuantity === 0) return false;
     if (stockFilter === 'low_stock' && !v.lowStock) return false;
     if (stockFilter === 'sold_out' && v.stockQuantity > 0) return false;
     
-    // 2. Search query
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const searchable = [
@@ -106,6 +143,16 @@ export default function InventoryPage() {
     return true;
   });
 
+  // Get unique product IDs from filtered list for "select all"
+  const filteredProductIds = [...new Set(filteredVariants.map((v) => v.product.id))];
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === filteredProductIds.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProductIds));
+    }
+  };
   const seenProducts = new Set<string>();
 
   return (
@@ -136,19 +183,48 @@ export default function InventoryPage() {
           </Link>
         </div>
       </div>
+
+      {/* Bulk action bar */}
+      {selectedProducts.size > 0 && (
+        <div className="mb-4 flex items-center gap-4 rounded border border-rose/30 bg-rose/5 px-4 py-2.5">
+          <span className="text-sm text-charcoal">{selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} selected</span>
+          <button
+            onClick={bulkDelete}
+            className="flex items-center gap-1.5 rounded bg-rose px-3 py-1 text-xs text-cream hover:bg-rose/80"
+          >
+            <Trash2 size={13} aria-hidden /> Delete selected
+          </button>
+          <button
+            onClick={() => setSelectedProducts(new Set())}
+            className="text-xs text-charcoal/50 underline hover:text-charcoal"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {error && <p className="mb-4 text-sm text-rose">{error}</p>}
 
       <div className="overflow-x-auto rounded border border-sand/30 bg-white/50">
-        <table className="w-full min-w-[860px] text-sm">
+        <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b border-sand/30 text-left text-xs uppercase tracking-wide text-charcoal/50">
+              <th className="px-3 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={filteredProductIds.length > 0 && selectedProducts.size === filteredProductIds.length}
+                  onChange={toggleSelectAll}
+                  title="Select all"
+                  className="accent-indigo"
+                />
+              </th>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Variant</th>
               <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Stock</th>
               <th className="px-4 py-3">Available</th>
               <th className="px-4 py-3">Restock</th>
-              <th className="px-4 py-3">Adjust (§6.6)</th>
+              <th className="px-4 py-3">Adjust</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -158,6 +234,16 @@ export default function InventoryPage() {
               seenProducts.add(v.product.id);
               return (
                 <tr key={v.id} className={`border-b border-sand/20 last:border-0 ${v.lowStock ? 'bg-sand/10' : ''}`}>
+                  <td className="px-3 py-3">
+                    {firstOfProduct && (
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.has(v.product.id)}
+                        onChange={() => toggleSelect(v.product.id)}
+                        className="accent-indigo"
+                      />
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     {firstOfProduct && (
                       <>
@@ -209,19 +295,28 @@ export default function InventoryPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {firstOfProduct && (
-                      <button
-                        onClick={() => toggleProduct(v.product.id, v.productStatus)}
-                        className={`text-xs underline ${v.productStatus === 'active' ? 'text-charcoal/50' : 'text-rose'}`}
-                      >
-                        {v.productStatus === 'active' ? 'Hide from store' : 'Unhide'}
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => toggleProduct(v.product.id, v.productStatus)}
+                          className={`text-xs underline ${v.productStatus === 'active' ? 'text-charcoal/50' : 'text-rose'}`}
+                        >
+                          {v.productStatus === 'active' ? 'Hide' : 'Unhide'}
+                        </button>
+                        <button
+                          onClick={() => deleteProduct(v.product.id, v.product.name)}
+                          className="text-charcoal/40 hover:text-rose"
+                          title="Delete product"
+                        >
+                          <Trash2 size={14} aria-hidden />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
               );
             })}
             {filteredVariants.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-charcoal/50">No variants found matching criteria.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-10 text-center text-charcoal/50">No variants found matching criteria.</td></tr>
             )}
           </tbody>
         </table>

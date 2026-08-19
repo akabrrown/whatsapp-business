@@ -280,6 +280,58 @@ admin.patch('/products/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+admin.delete('/products/:id', requireOwner, async (req, res) => {
+  try {
+    const product = await db.product.findUnique({
+      where: { id: req.params.id },
+      include: { variants: true },
+    });
+    if (!product) return res.status(404).json({ ok: false, error: 'not_found' });
+
+    // Block deletion if any variant has reserved stock (active orders)
+    const hasReserved = product.variants.some(v => v.reservedStock > 0);
+    if (hasReserved) return res.status(409).json({ ok: false, error: 'Cannot delete product with reserved stock. Fulfill or cancel active orders first.' });
+
+    // Delete related inventory logs first, then variants, then product
+    await db.inventoryLog.deleteMany({
+      where: { variant: { productId: req.params.id } }
+    });
+    await db.productVariant.deleteMany({ where: { productId: req.params.id } });
+    await db.product.delete({ where: { id: req.params.id } });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+
+admin.post('/products/bulk-delete', requireOwner, async (req, res) => {
+  const { productIds } = req.body as { productIds?: string[] };
+  if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+    return res.status(400).json({ ok: false, error: 'productIds array required' });
+  }
+
+  try {
+    // Check for reserved stock across all targeted products
+    const blocked = await db.productVariant.findMany({
+      where: { productId: { in: productIds }, reservedStock: { gt: 0 } },
+      select: { productId: true },
+    });
+    if (blocked.length > 0) {
+      return res.status(409).json({ ok: false, error: `${blocked.length} product(s) have reserved stock and cannot be deleted.` });
+    }
+
+    // Delete related inventory logs first
+    await db.inventoryLog.deleteMany({
+      where: { variant: { productId: { in: productIds } } }
+    });
+    await db.productVariant.deleteMany({ where: { productId: { in: productIds } } });
+    await db.product.deleteMany({ where: { id: { in: productIds } } });
+    res.json({ ok: true, deleted: productIds.length });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+
 // ---- Delivery zones (§11.4: new fees apply to new orders only by design) ----
 admin.get('/zones', requireOwner, async (_req, res) => {
   res.json({ ok: true, zones: await db.deliveryZone.findMany({ orderBy: { name: 'asc' } }) });
@@ -342,6 +394,60 @@ admin.post('/categories', requireOwner, async (req, res) => {
     res.json({ ok: true, category });
   } catch (e) {
     res.status(409).json({ ok: false, error: 'category name or slug already exists' });
+  }
+});
+admin.post('/categories/bulk', requireOwner, async (req, res) => {
+  const { categories } = req.body as { categories?: { name: string; slug?: string; flagship?: boolean; parentName?: string }[] };
+  if (!categories || !Array.isArray(categories)) return res.status(400).json({ ok: false, error: 'categories array required' });
+  
+  try {
+    const results = [];
+    
+    // Pass 1: Insert main categories (no parent)
+    const mains = categories.filter(c => !c.parentName);
+    for (const m of mains) {
+      if (!m.name) continue;
+      const slug = m.slug || m.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      let cat = await db.category.findFirst({ where: { name: m.name, parentId: null } });
+      if (cat) {
+        cat = await db.category.update({
+          where: { id: cat.id },
+          data: { slug, flagship: !!m.flagship }
+        });
+      } else {
+        cat = await db.category.create({
+          data: { name: m.name, slug, flagship: !!m.flagship }
+        });
+      }
+      results.push(cat);
+    }
+    
+    // Pass 2: Insert subcategories
+    const subs = categories.filter(c => c.parentName);
+    for (const s of subs) {
+      if (!s.name) continue;
+      // Find parent by name (parent has no parentId so use compound key)
+      const parent = await db.category.findFirst({ where: { name: s.parentName, parentId: null } });
+      if (!parent) continue;
+      
+      const slug = s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      let cat = await db.category.findFirst({ where: { name: s.name, parentId: parent.id } });
+      if (cat) {
+        cat = await db.category.update({
+          where: { id: cat.id },
+          data: { slug, flagship: !!s.flagship, parentId: parent.id }
+        });
+      } else {
+        cat = await db.category.create({
+          data: { name: s.name, slug, flagship: !!s.flagship, parentId: parent.id }
+        });
+      }
+      results.push(cat);
+    }
+    
+    res.json({ ok: true, count: results.length });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
   }
 });
 admin.patch('/categories/:id', requireOwner, async (req, res) => {
