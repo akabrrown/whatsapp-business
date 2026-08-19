@@ -8,7 +8,7 @@ import { webhooks } from './routes/webhooks.js';
 import { admin } from './routes/admin.js';
 import { logger } from './logger.js';
 
-const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001')
+const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001,https://mystore-web.vercel.app')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
