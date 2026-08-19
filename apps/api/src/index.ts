@@ -19,8 +19,18 @@ const SWEEP_INTERVAL_MS = 60_000; // §6.3: release expired reservations
 const RETENTION_INTERVAL_MS = 15 * 60_000; // §16: retention cadence
 
 if (process.env.NODE_ENV !== 'test') {
-  const sweep = setInterval(() => sweepExpiredTokens().catch(console.error), SWEEP_INTERVAL_MS);
-  const retention = setInterval(() => tick().catch(console.error), RETENTION_INTERVAL_MS);
+  const sweep = setInterval(() => {
+    sweepExpiredTokens().catch((err) => {
+      logger.warn('Token sweep skipped (database reconnecting)', { message: err?.message });
+    });
+  }, SWEEP_INTERVAL_MS);
+
+  const retention = setInterval(() => {
+    tick().catch((err) => {
+      logger.warn('Retention tick skipped (database reconnecting)', { message: err?.message });
+    });
+  }, RETENTION_INTERVAL_MS);
+
   sweep.unref();
   retention.unref();
 
