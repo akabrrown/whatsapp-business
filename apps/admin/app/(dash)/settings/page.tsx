@@ -361,7 +361,6 @@ export default function SettingsPage() {
                               return (
                                 <li key={sub.id} className="flex flex-col border-t border-sand/20 first:border-t-0">
                                   <div className="flex items-center gap-3 px-4 py-2 pl-12 hover:bg-sand/20">
-                                    {sub.image ? <img src={sub.image} alt="" className="h-8 w-8 rounded object-cover" /> : <div className="h-8 w-8 rounded bg-sand/30" />}
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
                                         <p className="text-sm font-medium text-charcoal/80">{sub.name} <span className="text-xs font-normal text-charcoal/40">/{sub.slug}</span></p>
@@ -434,17 +433,20 @@ export default function SettingsPage() {
                         </select>
                       </div>
 
-                      <div className="flex items-center gap-3 mt-2">
-                        {editingCategory.image ? (
-                          <img src={editingCategory.image} alt="cover" className="h-12 w-12 rounded object-cover" />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded border border-dashed border-charcoal/30 text-[10px] text-charcoal/50">None</div>
-                        )}
-                        <label className="cursor-pointer text-sm text-indigo underline hover:text-indigo-deep">
-                          Upload image
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setEditingCategory({ ...editingCategory, image: img }))} />
-                        </label>
-                      </div>
+                      {/* Only main categories have cover images */}
+                      {!editingCategory.parentId && (
+                        <div className="flex items-center gap-3 mt-2">
+                          {editingCategory.image ? (
+                            <img src={editingCategory.image} alt="cover" className="h-12 w-12 rounded object-cover" />
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded border border-dashed border-charcoal/30 text-[10px] text-charcoal/50">None</div>
+                          )}
+                          <label className="cursor-pointer text-sm text-indigo underline hover:text-indigo-deep">
+                            Upload image
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setEditingCategory({ ...editingCategory, image: img }))} />
+                          </label>
+                        </div>
+                      )}
 
                       <div className="mt-4 flex justify-end gap-3">
                         <button onClick={() => setEditingCategory(null)} className="px-4 py-2 text-sm text-charcoal/60 hover:text-charcoal">Cancel</button>
@@ -466,7 +468,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} placeholder="Name" className={inputStyle} />
                     <input value={newCategory.slug} onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })} placeholder="Slug (opt)" className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
-                    <select value={newCategory.parentId} onChange={(e) => setNewCategory({ ...newCategory, parentId: e.target.value })} className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo">
+                    <select value={newCategory.parentId} onChange={(e) => setNewCategory({ ...newCategory, parentId: e.target.value, image: e.target.value ? '' : newCategory.image })} className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo">
                       <option value="">No Parent (Main)</option>
                       {categories
                         // Allow selecting Main or Sub categories (prevent Tier 3 from having children)
@@ -479,19 +481,27 @@ export default function SettingsPage() {
                     </select>
                     <label className="flex shrink-0 items-center gap-1 text-xs text-charcoal/60"><input type="checkbox" checked={newCategory.flagship} onChange={(e) => setNewCategory({ ...newCategory, flagship: e.target.checked })} /> Flagship</label>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {newCategory.image ? (
-                      <img src={newCategory.image} alt="cover preview" className="h-10 w-10 rounded object-cover" />
-                    ) : (
-                      <div className="h-10 w-10 rounded border border-dashed border-charcoal/30 flex items-center justify-center text-charcoal/40 text-[10px]">Img</div>
-                    )}
-                    <label className="text-xs text-indigo underline cursor-pointer">
-                      Upload cover
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setNewCategory({ ...newCategory, image: img }))} />
-                    </label>
-                    <div className="flex-1" />
-                    <button onClick={addCategory} className="flex shrink-0 items-center gap-1 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep"><Plus size={14} /> Add</button>
-                  </div>
+                  
+                  {/* Only main categories have cover images */}
+                  {!newCategory.parentId ? (
+                    <div className="flex items-center gap-3">
+                      {newCategory.image ? (
+                        <img src={newCategory.image} alt="cover preview" className="h-10 w-10 rounded object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded border border-dashed border-charcoal/30 flex items-center justify-center text-charcoal/40 text-[10px]">Img</div>
+                      )}
+                      <label className="text-xs text-indigo underline cursor-pointer">
+                        Upload cover
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], (img) => setNewCategory({ ...newCategory, image: img }))} />
+                      </label>
+                      <div className="flex-1" />
+                      <button onClick={addCategory} className="flex shrink-0 items-center gap-1 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep"><Plus size={14} /> Add Category</button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end">
+                      <button onClick={addCategory} className="flex shrink-0 items-center gap-1 rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep"><Plus size={14} /> Add Subcategory</button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
