@@ -21,6 +21,7 @@ function createPrismaClient() {
                 err?.code === 'P1017' ||
                 err?.message?.includes('Server has closed the connection') ||
                 err?.message?.includes('connection closed') ||
+                err?.message?.includes('forcibly closed by the remote host') ||
                 err?.message?.includes('Can\'t reach database server');
 
               if (isTransient && attempts < maxAttempts) {
