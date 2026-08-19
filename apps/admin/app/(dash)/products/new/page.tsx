@@ -15,6 +15,7 @@ const emptyVariant = (): VariantDraft => ({ size: '', color: '', price: '', stoc
 export default function NewProductPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
@@ -26,20 +27,29 @@ export default function NewProductPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const loadCategories = () => {
+    setLoadingCategories(true);
     apiFetch<{ categories?: Category[], error?: string }>(`/api/admin/categories`)
       .then(r => {
         if (r.categories) {
           const flat = r.categories;
           setCategories(flat);
-          // Default to first main category
-          const firstMain = flat.find((c) => !c.parentId);
-          if (firstMain) setCategoryId(firstMain.id);
+          // Default to first main category if not set
+          setCategoryId(prev => {
+            if (prev) return prev;
+            const firstMain = flat.find((c) => !c.parentId);
+            return firstMain ? firstMain.id : '';
+          });
         } else {
           setError(r.error || 'Failed to load categories');
         }
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoadingCategories(false));
+  };
+
+  useEffect(() => {
+    loadCategories();
   }, []);
 
   const setNameAndSlug = (v: string) => {
@@ -175,9 +185,19 @@ export default function NewProductPage() {
             return (
               <>
                 <label className="block text-sm">
-                  <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Main Category</span>
-                  <select value={currentMainId} onChange={(e) => setCategoryId(e.target.value)} className={`${input} bg-cream`}>
-                    <option value="" disabled>Select...</option>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wide text-charcoal/50">Main Category</span>
+                    {loadingCategories && <span className="text-[10px] text-charcoal/40 animate-pulse">Loading...</span>}
+                  </div>
+                  <select
+                    value={currentMainId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    disabled={loadingCategories}
+                    className={`${input} bg-cream disabled:opacity-60`}
+                  >
+                    <option value="" disabled>
+                      {loadingCategories ? 'Loading categories...' : mainCategories.length === 0 ? 'No categories found' : 'Select Main Category...'}
+                    </option>
                     {mainCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </label>
