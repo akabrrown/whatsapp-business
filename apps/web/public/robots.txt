@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 
-Sitemap: https://roseanddenim.com/sitemap.xml
+Sitemap: https://tobiclothings.com/sitemap.xml

@@ -159,7 +159,7 @@ export async function initPaymentForToken(tokenCode: string, extra?: { phone?: s
 
   const reference = `rd_${crypto.randomUUID()}`;
   const res = await paystack.initialize({
-    email: `${token.phone.replace(/\D/g, '')}@orders.roseanddenim.com`,
+    email: `${token.phone.replace(/\D/g, '')}@orders.tobiclothings.com`,
     amountP: totalP,
     reference,
     metadata: {

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { api } from '@/lib/api';
 
-const BASE_URL = 'https://roseanddenim.com';
+const BASE_URL = 'https://tobiclothings.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let products: Awaited<ReturnType<typeof api.catalog>> = [];

@@ -203,7 +203,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
       >
         {/* Drawer header */}
         <div className="flex items-center justify-between border-b border-sand/30 px-5 py-4">
-          <span className="headline text-lg">ROSE <span className="text-rose">&amp;</span> DENIM</span>
+          <span className="headline text-lg">TOBI <span className="text-rose">CLOTHINGS</span></span>
           <button aria-label="Close navigation menu" className="text-charcoal/60 transition-colors hover:text-indigo" onClick={() => setMenuOpen(false)}>
             <X size={22} aria-hidden />
           </button>
