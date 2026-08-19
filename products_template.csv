@@ -1,0 +1,6 @@
+Name,Description,Category (e.g. Men's Fashion),Subcategory (e.g. Tops),Sub-Subcategory (e.g. T-shirts),Price (GHS),Stock,Size (optional),Color (optional)
+Basic T-Shirt,Comfortable cotton t-shirt,Men's Fashion,Tops,T-shirts,40,50,L,Black
+Basic T-Shirt,Comfortable cotton t-shirt,Men's Fashion,Tops,T-shirts,40,30,M,Black
+Classic Blue Jeans,Slim fit denim,Men's Fashion,Bottoms,Jeans,120,15,32,Blue
+Classic Blue Jeans,Slim fit denim,Men's Fashion,Bottoms,Jeans,120,20,34,Blue
+Silk Scarf,100% silk printed scarf,Women's Fashion,Jewelry & Neckwear,Scarves,80,10,,

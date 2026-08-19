@@ -3,7 +3,7 @@
 // inline restock (§11.3) and manual adjustment (§6.6), product hide/show (§11.2).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 
@@ -34,6 +34,9 @@ export default function InventoryPage() {
 
   // Selection state for bulk actions
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  
+  // Collapse/Expand state
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     const r = await apiFetch<{ variants: VariantRow[] }>('/api/admin/inventory');
@@ -43,6 +46,20 @@ export default function InventoryPage() {
   useEffect(() => {
     load().catch((e: Error) => setError(e.message));
   }, [load]);
+
+  const toggleExpand = (productId: string) => {
+    setExpandedProducts((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const variantCounts = variants.reduce((acc, v) => {
+    acc[v.product.id] = (acc[v.product.id] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const restock = async (id: string) => {
     const n = Number(qty[id] ?? 0);
@@ -232,6 +249,11 @@ export default function InventoryPage() {
             {filteredVariants.map((v) => {
               const firstOfProduct = !seenProducts.has(v.product.id);
               seenProducts.add(v.product.id);
+              const count = variantCounts[v.product.id] || 1;
+              const isExpanded = expandedProducts.has(v.product.id);
+
+              if (!firstOfProduct && !isExpanded) return null;
+
               return (
                 <tr key={v.id} className={`border-b border-sand/20 last:border-0 ${v.lowStock ? 'bg-sand/10' : ''}`}>
                   <td className="px-3 py-3">
@@ -248,16 +270,32 @@ export default function InventoryPage() {
                     {firstOfProduct && (
                       <>
                         <div className="flex items-center gap-2">
+                          {count > 1 ? (
+                            <button
+                              onClick={() => toggleExpand(v.product.id)}
+                              className="text-charcoal/50 transition-colors hover:text-indigo flex items-center justify-center"
+                              title={isExpanded ? 'Collapse variants' : 'Expand variants'}
+                            >
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                          ) : (
+                            <div className="w-[14px]" />
+                          )}
                           <p className="font-medium text-charcoal">{v.product.name}</p>
                           <Link href={`/products/${v.product.id}/edit`} className="text-[10px] text-indigo underline hover:text-indigo-deep">edit</Link>
                         </div>
-                        <p className="text-xs text-charcoal/40">{v.product.category.name}</p>
+                        <p className={`text-xs text-charcoal/40 ${count > 1 ? 'ml-6' : 'ml-[22px]'}`}>{v.product.category.name}</p>
                       </>
                     )}
                   </td>
                   <td className="px-4 py-3 text-charcoal/70">
                     {[v.size, v.color].filter(Boolean).join(' · ') || '—'}
                     <p className="font-mono text-[10px] text-charcoal/30">{v.sku}</p>
+                    {firstOfProduct && count > 1 && !isExpanded && (
+                      <button onClick={() => toggleExpand(v.product.id)} className="mt-1 block text-[10px] text-indigo/70 hover:text-indigo hover:underline">
+                        +{count - 1} more variant{count > 2 ? 's' : ''}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3">{formatGHS(v.priceP)}</td>
                   <td className="px-4 py-3">
