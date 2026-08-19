@@ -447,15 +447,20 @@ export default function SettingsPage() {
                       <div>
                         <label className="mb-1 block text-xs text-charcoal/50">Parent Category</label>
                         <select value={editingCategory.parentId || ''} onChange={(e) => setEditingCategory({ ...editingCategory, parentId: e.target.value })} className="w-full border-b border-charcoal/30 bg-transparent px-1 py-1 outline-none focus:border-indigo">
-                          <option value="">No Parent (Main)</option>
-                          {categories
-                            // Prevent setting parent to itself, its own children, or a tier-3 category (max depth 3)
-                            .filter(c => c.id !== editingCategory.id && c.parentId !== editingCategory.id && (!c.parentId || categories.find(p => p.id === c.parentId && !p.parentId)))
-                            .map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.parentId ? `└ ${c.name}` : c.name}
-                              </option>
-                            ))}
+                          <option value="">No Parent (Main Category)</option>
+                          {categories.filter(c => !c.parentId && c.id !== editingCategory.id).map(main => {
+                            const subs = categories.filter(s => s.parentId === main.id && s.id !== editingCategory.id);
+                            return (
+                              <optgroup key={main.id} label={`📁 ${main.name}`}>
+                                <option value={main.id}>└ Subcategory of "{main.name}"</option>
+                                {subs.map(sub => (
+                                  <option key={sub.id} value={sub.id}>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;└ Type under "{main.name} › {sub.name}"
+                                  </option>
+                                ))}
+                              </optgroup>
+                            );
+                          })}
                         </select>
                       </div>
 
@@ -494,16 +499,21 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} placeholder="Name" className={inputStyle} />
                     <input value={newCategory.slug} onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })} placeholder="Slug (opt)" className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo" />
-                    <select value={newCategory.parentId} onChange={(e) => setNewCategory({ ...newCategory, parentId: e.target.value, image: e.target.value ? '' : newCategory.image })} className="w-32 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo">
-                      <option value="">No Parent (Main)</option>
-                      {categories
-                        // Allow selecting Main or Sub categories (prevent Tier 3 from having children)
-                        .filter(c => !c.parentId || categories.find(p => p.id === c.parentId && !p.parentId))
-                        .map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.parentId ? `└ ${c.name}` : c.name}
-                          </option>
-                        ))}
+                    <select value={newCategory.parentId} onChange={(e) => setNewCategory({ ...newCategory, parentId: e.target.value, image: e.target.value ? '' : newCategory.image })} className="w-64 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm outline-none focus:border-indigo">
+                      <option value="">No Parent (New Main Category)</option>
+                      {categories.filter(c => !c.parentId).map(main => {
+                        const subs = categories.filter(s => s.parentId === main.id);
+                        return (
+                          <optgroup key={main.id} label={`📁 ${main.name}`}>
+                            <option value={main.id}>└ Add Subcategory under "{main.name}"</option>
+                            {subs.map(sub => (
+                              <option key={sub.id} value={sub.id}>
+                                &nbsp;&nbsp;&nbsp;&nbsp;└ Add Type under "{main.name} › {sub.name}"
+                              </option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
                     </select>
                     <label className="flex shrink-0 items-center gap-1 text-xs text-charcoal/60"><input type="checkbox" checked={newCategory.flagship} onChange={(e) => setNewCategory({ ...newCategory, flagship: e.target.checked })} /> Flagship</label>
                   </div>
