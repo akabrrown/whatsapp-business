@@ -122,11 +122,16 @@ export async function createToken(input: {
       color: ti.variant.color,
       qty: ti.qty,
       lineP,
-    };
-  });
-  const feeP = input.deliveryFeeP ?? 0;
-  totalP += feeP;
-  const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
+  const hasFee = feeP > 0;
+  const deliveryText = input.zoneName
+    ? hasFee
+      ? `   ${input.zoneName} — *${formatGHS(feeP)}*`
+      : `   ${input.zoneName} — _(Delivery fee to be quoted on WhatsApp)_`
+    : `   Accra & Beyond — _(Delivery fee to be quoted on WhatsApp)_`;
+
+  const totalText = hasFee
+    ? `*ORDER TOTAL:* *${formatGHS(totalP)}*`
+    : `*ITEMS SUBTOTAL:* *${formatGHS(totalP)}* _(+ Delivery fee to be quoted on WhatsApp)_`;
 
   const text =
     `*ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
@@ -140,10 +145,11 @@ export async function createToken(input: {
       (l.imageUrl ? `\n   Photo: ${l.imageUrl}` : '')
     ).join('\n\n') +
     `\n\n*DELIVERY LOCATION:*\n` +
-    (input.zoneName ? `   ${input.zoneName} — *${formatGHS(feeP)}*` : `   Accra Delivery — *${formatGHS(feeP)}*`) +
-    `\n\n*ORDER TOTAL:* *${formatGHS(totalP)}*\n` +
-    `----------------------------------------\n` +
-    `_Press the green Send button to receive your instant payment link!_`;
+    deliveryText +
+    `\n\n` +
+    totalText +
+    `\n----------------------------------------\n` +
+    `_Press the green Send button to confirm your location and receive your payment link!_`;
 
   const whatsappNumber = await getWhatsAppNumber();
   return {
