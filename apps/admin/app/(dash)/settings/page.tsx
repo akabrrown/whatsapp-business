@@ -133,7 +133,7 @@ export default function SettingsPage() {
     reader.onload = (e) => {
       const img = new window.Image();
       img.onload = () => {
-        const MAX_SIZE = 800;
+        const MAX_SIZE = 1600;
         let width = img.width;
         let height = img.height;
 
@@ -151,7 +151,7 @@ export default function SettingsPage() {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          setter(canvas.toDataURL('image/jpeg', 0.8));
+          setter(canvas.toDataURL('image/jpeg', 0.95));
         } else {
           setter(String(e.target?.result));
         }

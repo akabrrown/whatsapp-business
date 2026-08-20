@@ -69,7 +69,7 @@ export default function NewProductPage() {
     reader.onload = (e) => {
       const img = new window.Image();
       img.onload = () => {
-        const MAX_SIZE = 1000;
+        const MAX_SIZE = 1600;
         let width = img.width;
         let height = img.height;
 
@@ -87,7 +87,7 @@ export default function NewProductPage() {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          setImages((prev) => [...prev, { src: canvas.toDataURL('image/jpeg', 0.82), color: '' }]);
+          setImages((prev) => [...prev, { src: canvas.toDataURL('image/jpeg', 0.95), color: '' }]);
         } else {
           setImages((prev) => [...prev, { src: String(e.target?.result), color: '' }]);
         }
