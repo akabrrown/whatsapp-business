@@ -1,15 +1,9 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/serverless.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "api/serverless.ts"
+      "source": "/(.*)",
+      "destination": "/api/serverless"
     }
   ],
   "crons": [
