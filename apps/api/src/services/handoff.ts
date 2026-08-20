@@ -106,11 +106,17 @@ export async function createToken(input: {
   const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
 
   const text =
-    `Hi TOBI CLOTHINGS! I'd like to complete my order.\n` +
-    `Order token: ${code}\n` +
-    lines.map((l) => `• ${l.name}${l.size ? ` (${l.size})` : ''}${l.color ? `: ${l.color}` : ''} ×${l.qty}: ${formatGHS(l.lineP)}`).join('\n') +
-    (input.zoneName ? `\nDelivery: ${input.zoneName}: ${formatGHS(feeP)}` : '') +
-    `\nTotal: ${formatGHS(totalP)}`;
+    `*🛍️ ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🔑 *Order Token:* \`${code}\`\n` +
+    `⏳ *Stock Reserved:* 15 Minutes\n\n` +
+    `📦 *ITEMS IN YOUR BAG:*\n` +
+    lines.map((l) => `• *${l.name}*${l.size ? ` (Size: ${l.size})` : ''}${l.color ? ` (${l.color})` : ''}\n   Qty: ${l.qty} × ${formatGHS(l.lineP / l.qty)} = *${formatGHS(l.lineP)}*`).join('\n') +
+    `\n\n📍 *DELIVERY LOCATION:*\n` +
+    (input.zoneName ? `   ${input.zoneName} — *${formatGHS(feeP)}*` : `   Accra Delivery — *${formatGHS(feeP)}*`) +
+    `\n\n💰 *ORDER TOTAL:* *${formatGHS(totalP)}*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `_Tap send to confirm your delivery address & get your instant payment link!_ ✨`;
 
   const whatsappNumber = await getWhatsAppNumber();
   return {
