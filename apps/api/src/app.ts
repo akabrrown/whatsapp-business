@@ -39,7 +39,7 @@ export function createApp() {
   app.use(corsMiddleware);
   app.options('*', corsMiddleware);
 
-  app.use(helmet({
+  app.use((helmet as any)({
     contentSecurityPolicy: false, // Managed by Next.js edge for web storefront
     crossOriginEmbedderPolicy: false,
   }));
