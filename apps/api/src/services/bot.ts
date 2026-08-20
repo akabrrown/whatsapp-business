@@ -8,7 +8,6 @@ import { createToken, cancelToken, HandoffError } from './handoff.js';
 import { initPaymentForToken } from './payments.js';
 import { sendReliable } from './messaging.js';
 import { getOrCreateCustomer } from './orders.js';
-import { hub } from './realtime.js';
 import { formatGHS, ConversationStatus, OrderSource, VIP_THRESHOLD_PESWAS, type CartItem } from '../shared.js';
 
 interface BotState {
