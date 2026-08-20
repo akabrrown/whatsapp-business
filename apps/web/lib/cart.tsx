@@ -104,7 +104,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         
       setLines(nextLines);
       persistMeta(nextLines);
-      setDrawerOpen(true);
 
       try {
         const res = await fetch(`${API}/api/cart/${sessionId}/items`, {

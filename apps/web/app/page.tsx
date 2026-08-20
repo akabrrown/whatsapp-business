@@ -24,7 +24,7 @@ export default async function HomePage() {
               ACCRA · BY TOBI
             </p>
             <h1 className="headline text-4xl leading-tight md:text-6xl">
-              Denim and wear that fits the life you&apos;re actually living.
+              The New Standard
             </h1>
             <p className="mt-5 max-w-md text-charcoal/70">
               Tops, footwears, buttoms, bags &amp; eyewears: browse here, finish your order
