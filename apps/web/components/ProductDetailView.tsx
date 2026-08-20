@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { MessageCircle, Check, ChevronLeft, ChevronRight, Share2, Sparkles } from 'lucide-react';
+import { MessageCircle, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
 import { AddToBag } from './AddToBag';
@@ -175,11 +175,6 @@ export function ProductDetailView({
                 <p className="text-xs uppercase tracking-widest text-charcoal/60 font-semibold">
                   Colour: <span className="font-bold text-indigo">{selectedColor}</span>
                 </p>
-                {colors.length > 1 && (
-                  <span className="text-[11px] text-charcoal/50 flex items-center gap-1">
-                    <Sparkles size={12} className="text-rose" /> Tap colour to view piece
-                  </span>
-                )}
               </div>
               <div className="flex flex-wrap gap-2.5">
                 {colors.map((c, idx) => {
