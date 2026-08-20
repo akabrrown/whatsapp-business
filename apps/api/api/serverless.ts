@@ -1,6 +1,32 @@
 import { createApp } from '../src/app.js';
 
-// Export the Express app so Vercel can run it as a serverless function
-const app = createApp();
+let appInstance: any = null;
 
-export default app;
+function getApp() {
+  if (!appInstance) {
+    appInstance = createApp();
+  }
+  return appInstance;
+}
+
+export default async function handler(req: any, res: any) {
+  try {
+    const app = getApp();
+    return app(req, res);
+  } catch (err: any) {
+    console.error('SERVERLESS_INVOCATION_ERROR:', err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        ok: false,
+        error: 'SERVERLESS_INVOCATION_ERROR',
+        message: err?.message,
+        stack: process.env.NODE_ENV === 'production' ? err?.stack : undefined,
+        diagnostics: {
+          hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+          hasJwtSecret: Boolean(process.env.JWT_SECRET),
+          nodeEnv: process.env.NODE_ENV,
+        },
+      });
+    }
+  }
+}
