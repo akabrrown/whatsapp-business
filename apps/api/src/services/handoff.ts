@@ -109,15 +109,13 @@ export async function createToken(input: {
       const parsedImages = typeof ti.variant.product.images === 'string'
         ? JSON.parse(ti.variant.product.images)
         : ti.variant.product.images;
-      if (Array.isArray(parsedImages) && parsedImages.length > 0) {
-        if (parsedImages[0].startsWith('http')) {
-          imageUrl = parsedImages[0];
-        } else {
-          imageUrl = `${config.apiUrl}/api/products/${ti.variant.product.slug}/image`;
-        }
+      if (Array.isArray(parsedImages) && parsedImages.length > 0 && parsedImages[0].startsWith('http')) {
+        imageUrl = parsedImages[0];
+      } else {
+        imageUrl = `${config.apiUrl}/api/products/${ti.variant.product.slug}/image`;
       }
     } catch {
-      /* ignore invalid image json */
+      imageUrl = `${config.apiUrl}/api/products/${ti.variant.product.slug}/image`;
     }
     return {
       name: ti.variant.product.name,
@@ -147,7 +145,7 @@ export async function createToken(input: {
 
   const text =
     `*🛍️ ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `----------------------------------------\n` +
     `🔑 *Order Token:* \`${code}\`\n` +
     `⏳ *Stock Reserved:* 15 Minutes\n\n` +
     `📦 *ITEMS IN YOUR BAG:*\n` +
@@ -160,7 +158,7 @@ export async function createToken(input: {
     deliveryText +
     `\n\n💰 ` +
     totalText +
-    `\n━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `\n----------------------------------------\n` +
     `👉 *Press the green Send button to receive your instant payment link!* ✨`;
 
   const whatsappNumber = await getWhatsAppNumber();
