@@ -242,15 +242,15 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
       }
       await setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
       const msg =
-        `*🧾 ORDER INVOICE — TOBI CLOTHINGS*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `*ORDER INVOICE — TOBI CLOTHINGS*\n` +
+        `----------------------------------------\n` +
         result.items.map((l) => `• *${l.name}* × ${l.qty} = *${formatGHS(l.lineP)}*`).join('\n') +
-        `\n\n📍 *Delivery (${result.zoneName}):* ${formatGHS(result.deliveryFeeP ?? 0)}\n` +
-        `💰 *TOTAL DUE:* *${formatGHS(result.totalP)}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `💳 *Tap link below to pay via MoMo / Card:*\n` +
+        `\n\n*Delivery (${result.zoneName}):* ${formatGHS(result.deliveryFeeP ?? 0)}\n` +
+        `*TOTAL DUE:* *${formatGHS(result.totalP)}*\n` +
+        `----------------------------------------\n` +
+        `*Pay here via MoMo / Card:*\n` +
         `${link}\n\n` +
-        `_Stock is held for 15 minutes. Once paid, your delivery will be dispatched immediately!_ 🚀`;
+        `_Stock is held for 15 minutes. Once paid, your delivery will be dispatched immediately!_`;
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };

@@ -129,21 +129,21 @@ export async function createToken(input: {
   const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
 
   const text =
-    `*🛍️ ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `🔑 *Order Token:* \`${code}\`\n` +
-    `⏳ *Stock Reserved:* 15 Minutes\n\n` +
-    `📦 *ITEMS IN YOUR BAG:*\n` +
+    `*ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
+    `----------------------------------------\n` +
+    `*Order Token:* \`${code}\`\n` +
+    `*Stock Reserved:* 15 Minutes\n\n` +
+    `*ITEMS IN YOUR BAG:*\n` +
     lines.map((l) =>
       `• *${l.name}*${l.size ? ` (Size: ${l.size})` : ''}${l.color ? ` (${l.color})` : ''}\n` +
       `   Qty: ${l.qty} × ${formatGHS(l.lineP / l.qty)} = *${formatGHS(l.lineP)}*` +
-      (l.imageUrl ? `\n   🖼️ Photo: ${l.imageUrl}` : '')
+      (l.imageUrl ? `\n   Photo: ${l.imageUrl}` : '')
     ).join('\n\n') +
-    `\n\n📍 *DELIVERY LOCATION:*\n` +
+    `\n\n*DELIVERY LOCATION:*\n` +
     (input.zoneName ? `   ${input.zoneName} — *${formatGHS(feeP)}*` : `   Accra Delivery — *${formatGHS(feeP)}*`) +
-    `\n\n💰 *ORDER TOTAL:* *${formatGHS(totalP)}*\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `👉 *Press the green Send button (✈️) to receive your instant payment link!* ✨`;
+    `\n\n*ORDER TOTAL:* *${formatGHS(totalP)}*\n` +
+    `----------------------------------------\n` +
+    `_Press the green Send button to receive your instant payment link!_`;
 
   const whatsappNumber = await getWhatsAppNumber();
   return {
