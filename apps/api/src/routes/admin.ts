@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
-import { requireAuth, requireOwner, issueToken, rateLimitLogin } from '../middleware/auth.js';
+import { requireAuth, requireOwner, issueToken, issueTempToken, verifyTempToken, rateLimitLogin } from '../middleware/auth.js';
 import * as orders from '../services/orders.js';
 import * as inventory from '../services/inventory.js';
 import * as retention from '../services/retention.js';
@@ -13,6 +13,8 @@ import { validateUpload } from '../adapters/images.js';
 import { now, DAY } from '../clock.js';
 import { STALE_PACKED_HOURS } from '@rose/shared';
 import { hub } from '../services/realtime.js';
+import { generateSecret, generateURI, generateSync, verifySync } from 'otplib';
+import QRCode from 'qrcode';
 
 export const admin = Router();
 
@@ -23,6 +25,29 @@ admin.post('/login', rateLimitLogin, async (req, res) => {
   if (!user || !(await bcrypt.compare(password ?? '', user.password))) {
     return res.status(401).json({ ok: false, error: 'invalid_credentials' });
   }
+
+  // 2FA check
+  if (user.twoFactorSecret) {
+    const tempToken = issueTempToken(user.id);
+    return res.json({ ok: true, require2fa: true, tempToken });
+  }
+
+  res.json({ ok: true, token: issueToken({ sub: user.id, email: user.email, role: user.role as 'owner' | 'staff' }), user: { email: user.email, name: user.name, role: user.role } });
+});
+
+admin.post('/login/verify-2fa', rateLimitLogin, async (req, res) => {
+  const { tempToken, code } = req.body as { tempToken?: string; code?: string };
+  if (!tempToken || !code) return res.status(400).json({ ok: false, error: 'token and code required' });
+
+  const userId = verifyTempToken(tempToken);
+  if (!userId) return res.status(401).json({ ok: false, error: 'invalid_or_expired_token' });
+
+  const user = await db.adminUser.findUnique({ where: { id: userId } });
+  if (!user || !user.twoFactorSecret) return res.status(401).json({ ok: false, error: 'invalid_user' });
+
+  const result = verifySync({ token: code, secret: user.twoFactorSecret });
+  if (!result.valid) return res.status(401).json({ ok: false, error: 'invalid_code' });
+
   res.json({ ok: true, token: issueToken({ sub: user.id, email: user.email, role: user.role as 'owner' | 'staff' }), user: { email: user.email, name: user.name, role: user.role } });
 });
 
@@ -482,13 +507,55 @@ admin.patch('/categories/:id', requireOwner, async (req, res) => {
 });
 admin.delete('/categories/:id', requireOwner, async (req, res) => {
   try {
-    const category = await db.category.findUnique({ where: { id: req.params.id }, include: { _count: { select: { products: true } } } });
-    if (!category) return res.status(404).json({ ok: false, error: 'not_found' });
-    if (category._count.products > 0) return res.status(409).json({ ok: false, error: 'Cannot delete category with products attached' });
-    await db.category.delete({ where: { id: req.params.id } });
+    const category = await db.category.findUnique({
+      where: { id: req.params.id },
+      include: { _count: { select: { products: true } } },
+    });
+    if (!category) return res.status(404).json({ ok: false, error: 'Category not found' });
+
+    // Recursively collect all descendant category IDs
+    async function collectDescendantIds(parentId: string): Promise<string[]> {
+      const subs = await db.category.findMany({ where: { parentId }, select: { id: true } });
+      const ids = subs.map((s) => s.id);
+      for (const id of ids) {
+        const nested = await collectDescendantIds(id);
+        ids.push(...nested);
+      }
+      return ids;
+    }
+
+    const descendantIds = await collectDescendantIds(req.params.id);
+    const allIds = [req.params.id, ...descendantIds];
+
+    // Check if any product is attached to this category or any of its subcategories
+    const productCount = await db.product.count({
+      where: { categoryId: { in: allIds } },
+    });
+
+    if (productCount > 0) {
+      return res.status(409).json({
+        ok: false,
+        error: `Cannot delete "${category.name}": contains ${productCount} product(s). Please reassign or delete products first.`,
+      });
+    }
+
+    // Safely delete all in a transaction by detaching parent references first
+    await db.$transaction(async (tx) => {
+      if (descendantIds.length > 0) {
+        await tx.category.updateMany({
+          where: { id: { in: descendantIds } },
+          data: { parentId: null },
+        });
+      }
+      await tx.category.deleteMany({
+        where: { id: { in: allIds } },
+      });
+    });
+
     hub.broadcast('web', 'catalog_updated', { time: Date.now() });
-    res.json({ ok: true });
+    res.json({ ok: true, deletedCount: allIds.length });
   } catch (e) {
+    console.error('DELETE /categories/:id error:', e);
     res.status(500).json({ ok: false, error: (e as Error).message });
   }
 });
@@ -622,7 +689,8 @@ import { getSetting, setSetting, getWhatsAppNumber } from '../services/settings.
 
 admin.get('/settings', requireOwner, async (_req, res) => {
   const whatsappNumber = await getWhatsAppNumber();
-  res.json({ ok: true, settings: { whatsappNumber } });
+  const user = await db.adminUser.findUnique({ where: { id: _req.admin!.sub } });
+  res.json({ ok: true, settings: { whatsappNumber }, twoFactorEnabled: !!user?.twoFactorSecret });
 });
 
 admin.patch('/settings', requireOwner, async (req, res) => {
@@ -632,4 +700,40 @@ admin.patch('/settings', requireOwner, async (req, res) => {
   }
   const updated = await getWhatsAppNumber();
   res.json({ ok: true, settings: { whatsappNumber: updated } });
+});
+
+admin.get('/settings/2fa/setup', requireAuth, async (req, res) => {
+  const user = await db.adminUser.findUnique({ where: { id: req.admin!.sub } });
+  if (!user) return res.status(404).json({ ok: false, error: 'not_found' });
+  
+  const secret = generateSecret();
+  const otpauth = generateURI({ secret, label: user.email, issuer: 'TOBI CLOTHINGS' });
+  const qrCodeUrl = await QRCode.toDataURL(otpauth);
+  
+  res.json({ ok: true, secret, qrCodeUrl });
+});
+
+admin.post('/settings/2fa/enable', requireAuth, async (req, res) => {
+  const { secret, code } = req.body as { secret?: string; code?: string };
+  if (!secret || !code) return res.status(400).json({ ok: false, error: 'secret and code required' });
+
+  const result = verifySync({ token: code, secret });
+  if (!result.valid) return res.status(400).json({ ok: false, error: 'invalid_code' });
+
+  await db.adminUser.update({ where: { id: req.admin!.sub }, data: { twoFactorSecret: secret } });
+  res.json({ ok: true });
+});
+
+admin.post('/settings/2fa/disable', requireAuth, async (req, res) => {
+  const { code } = req.body as { code?: string };
+  if (!code) return res.status(400).json({ ok: false, error: 'code required' });
+
+  const user = await db.adminUser.findUnique({ where: { id: req.admin!.sub } });
+  if (!user || !user.twoFactorSecret) return res.status(400).json({ ok: false, error: '2fa_not_enabled' });
+
+  const result = verifySync({ token: code, secret: user.twoFactorSecret });
+  if (!result.valid) return res.status(400).json({ ok: false, error: 'invalid_code' });
+
+  await db.adminUser.update({ where: { id: req.admin!.sub }, data: { twoFactorSecret: null } });
+  res.json({ ok: true });
 });

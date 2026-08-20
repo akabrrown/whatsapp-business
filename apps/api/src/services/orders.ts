@@ -169,6 +169,10 @@ export async function setStatus(orderId: string, next: string, opts: { notify?: 
     await sendReliable(customer.phone, STATUS_MESSAGES[next](fresh), {
       templateName: `order_${next.toLowerCase()}`,
       conversationId: order.conversationId ?? undefined,
+      buttons: next === OrderStatus.PAID ? [
+        { id: 'btn_chat', title: '💬 Chat with Tobi' },
+        { id: 'btn_shop', title: '🛍️ Shop More' }
+      ] : undefined
     });
   }
 }

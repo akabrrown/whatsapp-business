@@ -35,8 +35,8 @@ storefront.get('/zones/match', async (req, res) => {
 });
 
 // ---- Cart sessions (§4) --------------------------------------------------
-storefront.get('/cart/:sessionId', (req, res) => {
-  const c = cart.get(req.params.sessionId);
+storefront.get('/cart/:sessionId', async (req, res) => {
+  const c = await cart.get(req.params.sessionId);
   res.json({ ok: true, cart: c ?? { sessionId: req.params.sessionId, items: [] } });
 });
 storefront.post('/cart/:sessionId/items', async (req, res) => {
@@ -57,10 +57,10 @@ storefront.patch('/cart/:sessionId/items', async (req, res) => {
   const c = await cart.setQty(req.params.sessionId, variantId, qty);
   res.json({ ok: true, cart: c ?? { sessionId: req.params.sessionId, items: [] } });
 });
-storefront.post('/cart/:sessionId/sync', (req, res) => {
+storefront.post('/cart/:sessionId/sync', async (req, res) => {
   const { items } = req.body as { items?: { variantId: string; qty: number }[] };
   if (!Array.isArray(items)) return res.status(400).json({ ok: false, error: 'items required' });
-  res.json({ ok: true, cart: cart.sync(req.params.sessionId, items) }); // §4.5
+  res.json({ ok: true, cart: await cart.sync(req.params.sessionId, items) }); // §4.5
 });
 
 // ---- Handoff (§4.6–4.8) ---------------------------------------------------
@@ -75,10 +75,10 @@ storefront.post('/handoff', async (req, res) => {
   };
   if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
   // §4.5: reconcile: server cart wins when a session is provided.
-  const cartItems = sessionId ? (cart.get(sessionId)?.items ?? items ?? []) : items ?? [];
+  const cartItems = sessionId ? ((await cart.get(sessionId))?.items ?? items ?? []) : items ?? [];
   try {
     const result = await handoff.createToken({ phone, items: cartItems, zoneName, deliveryFeeP, confirmedDuplicate });
-    if (sessionId) cart.clear(sessionId);
+    if (sessionId) await cart.clear(sessionId);
     res.json({ ok: true, handoff: result });
   } catch (e) {
     if (e instanceof handoff.HandoffError) {

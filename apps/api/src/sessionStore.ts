@@ -1,18 +1,20 @@
-// Session/cache layer behind a single interface.
+// Session/cache layer behind a single async interface.
 // Default: in-memory store with real TTL semantics (cart sessions §4.3,
 // order tokens §4.7, rate-limit windows §14.1).
-// Production: point REDIS_URL at Redis and implement the same interface.
+// Production: Upstash Redis is used if UPSTASH_REDIS_REST_URL is present.
 import { now } from './clock.js';
+import { Redis } from '@upstash/redis';
+import { config } from './config.js';
 
 export interface KVStore {
-  get<T>(key: string): T | null;
-  set<T>(key: string, value: T, ttlMs: number): void;
-  del(key: string): void;
-  keys(prefix?: string): string[];
+  get<T>(key: string): Promise<T | null>;
+  set<T>(key: string, value: T, ttlMs: number): Promise<void>;
+  del(key: string): Promise<void>;
+  keys(prefix?: string): Promise<string[]>;
   /** Extend TTL of an existing key (cart refresh on activity, §4.4). */
-  touch(key: string, ttlMs: number): boolean;
+  touch(key: string, ttlMs: number): Promise<boolean>;
   /** Drop all keys (test isolation / §13.5 cache-layer loss simulation). */
-  clear(): void;
+  clear(): Promise<void>;
 }
 
 interface Entry {
@@ -27,7 +29,7 @@ export class MemoryKVStore implements KVStore {
     return e.expiresAt > now().getTime();
   }
 
-  get<T>(key: string): T | null {
+  async get<T>(key: string): Promise<T | null> {
     const e = this.map.get(key);
     if (!e) return null;
     if (!this.alive(e)) {
@@ -37,15 +39,15 @@ export class MemoryKVStore implements KVStore {
     return e.value as T;
   }
 
-  set<T>(key: string, value: T, ttlMs: number): void {
+  async set<T>(key: string, value: T, ttlMs: number): Promise<void> {
     this.map.set(key, { value, expiresAt: now().getTime() + ttlMs });
   }
 
-  del(key: string): void {
+  async del(key: string): Promise<void> {
     this.map.delete(key);
   }
 
-  keys(prefix = ''): string[] {
+  async keys(prefix = ''): Promise<string[]> {
     const out: string[] = [];
     for (const [k, e] of this.map) {
       if (!this.alive(e)) {
@@ -57,16 +59,55 @@ export class MemoryKVStore implements KVStore {
     return out;
   }
 
-  touch(key: string, ttlMs: number): boolean {
+  async touch(key: string, ttlMs: number): Promise<boolean> {
     const e = this.map.get(key);
     if (!e || !this.alive(e)) return false;
     e.expiresAt = now().getTime() + ttlMs;
     return true;
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.map.clear();
   }
 }
 
-export const kv: KVStore = new MemoryKVStore();
+export class UpstashRedisStore implements KVStore {
+  private redis: Redis;
+
+  constructor(url: string, token: string) {
+    this.redis = new Redis({ url, token });
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    const data = await this.redis.get<T>(key);
+    return data ?? null;
+  }
+
+  async set<T>(key: string, value: T, ttlMs: number): Promise<void> {
+    await this.redis.set(key, value, { px: ttlMs });
+  }
+
+  async del(key: string): Promise<void> {
+    await this.redis.del(key);
+  }
+
+  async keys(prefix = '*'): Promise<string[]> {
+    // Upstash Redis provides SCAN or Keys. For simplicity in this interface we use keys.
+    // In a massive production system you'd want to use SCAN.
+    return await this.redis.keys(prefix === '' ? '*' : `${prefix}*`);
+  }
+
+  async touch(key: string, ttlMs: number): Promise<boolean> {
+    const res = await this.redis.pexpire(key, ttlMs);
+    return res === 1;
+  }
+
+  async clear(): Promise<void> {
+    await this.redis.flushdb();
+  }
+}
+
+// Auto-detect which store to use
+export const kv: KVStore = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new UpstashRedisStore(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN)
+  : new MemoryKVStore();

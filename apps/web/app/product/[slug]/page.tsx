@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { VariantPicker } from '@/components/VariantPicker';
+import { ShareButton } from '@/components/ShareButton';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -66,9 +67,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </div>
 
       <div>
-        <p className="text-xs uppercase tracking-widest text-charcoal/50">
-          <Link href={`/shop/${product.category.slug}`} className="hover:text-indigo">{product.category.name}</Link>
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-widest text-charcoal/50">
+            <Link href={`/shop/${product.category.slug}`} className="hover:text-indigo">{product.category.name}</Link>
+          </p>
+          <ShareButton title={`${product.name} | TOBI CLOTHINGS`} text={product.description.slice(0, 100)} />
+        </div>
         <h1 className="headline mt-2 text-3xl md:text-4xl">{product.name}</h1>
         <p className="mt-4 leading-relaxed text-charcoal/70">{product.description}</p>
         <div className="mt-8">

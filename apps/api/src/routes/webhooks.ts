@@ -54,6 +54,11 @@ webhooks.post('/whatsapp', metaRaw, async (req, res) => {
         await handleInbound({ phone, kind: 'voice' }); // §10.3
       } else if (msg.type === 'location') {
         await handleInbound({ phone, kind: 'location', lat: msg.location?.latitude, lng: msg.location?.longitude }); // §7.2
+      } else if (msg.type === 'interactive') {
+        const id = msg.interactive?.button_reply?.id ?? '';
+        const title = msg.interactive?.button_reply?.title ?? '';
+        const text = id === 'btn_chat' ? 'human' : id === 'btn_shop' ? 'menu' : title;
+        await handleInbound({ phone, text });
       } else {
         await handleInbound({ phone, text: msg.text?.body ?? '' });
       }

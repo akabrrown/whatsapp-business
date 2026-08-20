@@ -3,7 +3,13 @@
 import { api } from '@/lib/api';
 
 export async function Footer() {
-  const { whatsappNumber } = await api.settings();
+  let whatsappNumber = '';
+  try {
+    const res = await api.settings();
+    whatsappNumber = res.whatsappNumber;
+  } catch {
+    // API down, storefront still renders its shell (§13.3 browsing resilience).
+  }
   const WA_NUMBER = whatsappNumber;
   return (
     <footer className="mt-24 border-t border-sand/40 bg-cream">

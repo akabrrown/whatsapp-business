@@ -128,8 +128,8 @@ async function chargeFailure(data: { reference: string; metadata?: Record<string
 
   // §5.3/§5.4: reservation retained for exactly one retry.
   const failKey = `payfail:${tokenCode}`;
-  const failures = (kv.get<number>(failKey) ?? 0) + 1;
-  kv.set(failKey, failures, 3_600_000);
+  const failures = ((await kv.get<number>(failKey)) ?? 0) + 1;
+  await kv.set(failKey, failures, 3_600_000);
 
   const token = await db.orderToken.findUnique({ where: { code: tokenCode } });
   const phone = token?.phone;

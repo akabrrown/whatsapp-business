@@ -22,6 +22,20 @@ export function issueToken(p: AdminPrincipal): string {
   return jwt.sign(p, config.jwtSecret, { expiresIn: '12h' });
 }
 
+export function issueTempToken(sub: string): string {
+  return jwt.sign({ sub, type: '2fa_temp' }, config.jwtSecret, { expiresIn: '5m' });
+}
+
+export function verifyTempToken(token: string): string | null {
+  try {
+    const decoded = jwt.verify(token, config.jwtSecret) as any;
+    if (decoded.type === '2fa_temp' && decoded.sub) return decoded.sub;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization ?? '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';

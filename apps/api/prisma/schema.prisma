@@ -212,12 +212,13 @@ model InventoryLog {
 }
 
 model AdminUser {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      String   @default("staff") // owner | staff (§11.6)
-  password  String // bcrypt hash
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  role            String   @default("staff") // owner | staff (§11.6)
+  password        String // bcrypt hash
+  twoFactorSecret String?
+  createdAt       DateTime @default(now())
 }
 
 model RetentionState {

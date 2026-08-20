@@ -27,12 +27,12 @@ export interface HandoffResult {
 }
 
 /** §14.1: max 5 token requests per phone per rolling hour. */
-function checkRateLimit(phone: string) {
+async function checkRateLimit(phone: string) {
   const k = `rl:token:${phone}`;
-  const hits = (kv.get<number[]>(k) ?? []).filter((t) => now().getTime() - t < 3_600_000);
+  const hits = ((await kv.get<number[]>(k)) ?? []).filter((t) => now().getTime() - t < 3_600_000);
   if (hits.length >= TOKEN_RATE_LIMIT_PER_HOUR) throw new HandoffError('RATE_LIMITED', 'Too many order attempts: please wait a few minutes and try again.');
   hits.push(now().getTime());
-  kv.set(k, hits, 3_600_000);
+  await kv.set(k, hits, 3_600_000);
 }
 
 /** §14.5: same phone, same items within 10 minutes → ask for confirmation. */
@@ -66,7 +66,7 @@ export async function createToken(input: {
 }): Promise<HandoffResult> {
   const phone = input.phone.trim();
   if (!input.items.length) throw new HandoffError('EMPTY_CART', 'Add items to your cart first');
-  checkRateLimit(phone);
+  await checkRateLimit(phone);
   await checkDuplicate(phone, input.items, !!input.confirmedDuplicate);
 
   // §6.2: soft-reserve every line; release all on any failure.

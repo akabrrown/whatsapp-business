@@ -20,8 +20,8 @@ interface BotState {
 }
 
 const stateKey = (phone: string) => `bot:${phone}`;
-const getState = (phone: string): BotState => kv.get<BotState>(stateKey(phone)) ?? { stage: 'IDLE', cart: [] };
-const setState = (phone: string, s: BotState) => kv.set(stateKey(phone), s, 30 * 60_000);
+const getState = async (phone: string): Promise<BotState> => (await kv.get<BotState>(stateKey(phone))) ?? { stage: 'IDLE', cart: [] };
+const setState = async (phone: string, s: BotState) => await kv.set(stateKey(phone), s, 30 * 60_000);
 
 const HANDOFF_WORDS = /\b(human|agent|manager|someone|tobi|representative)\b/i;
 const NEGOTIATE = /\b(discount|best price|reduce|negotiate|cheaper|deal)\b/i;
@@ -81,7 +81,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
   }
 
   const text = (input.text ?? '').trim();
-  const st = getState(phone);
+  const st = await getState(phone);
 
   // Intent: marketing opt-out (§16.5): transactional messages continue.
   if (/^(stop|unsubscribe|opt ?out)\b/i.test(text)) {
@@ -124,7 +124,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
   if (CANCEL_WORDS.test(text)) {
     if (st.tokenCode) {
       await cancelToken(st.tokenCode);
-      setState(phone, { stage: 'IDLE', cart: [] });
+      await setState(phone, { stage: 'IDLE', cart: [] });
       const msg = "No problem, your order has been cancelled. Let us know if you'd like to start a new one!";
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
@@ -132,15 +132,25 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
     }
   }
 
-  // Menu / browse.
-  if (/^(hi|hello|hey|menu|start|shop|browse)\b/i.test(text) || st.stage === 'IDLE') {
-    if (/^(menu|start|hi|hello|hey)\b/i.test(text) && st.cart.length === 0) {
+  // Explicit shop commands
+  if (/^(menu|shop|browse|order|buy|start)\b/i.test(text)) {
+    if (st.cart.length === 0) {
       const products = await listActive();
       const returning = await db.customer.findUnique({ where: { phone } });
       // §9.3: personalize returning customers.
       const headline = returning && returning.totalOrders > 0 ? 'Welcome back to TOBI CLOTHINGS 🛍️' : 'Welcome to TOBI CLOTHINGS 🛍️';
       const lines = products.slice(0, 8).map((p, i) => `${i + 1}. ${p.name}: ${formatGHS(p.minPriceP)}${p.soldOut ? ' (Sold Out)' : ''}`);
       const msg = `${headline}\nWhat would you like?\n\n${lines.join('\n')}\n\nReply with a number to view it, "add <number>" to add to your bag, or "checkout" when ready.`;
+      await sendReliable(phone, msg, { conversationId: conv.id });
+      await recordOutbound(conv.id, msg);
+      return { replies: [msg] };
+    }
+  }
+
+  // Soft greetings
+  if (/^(hi|hello|hey|good morning|good afternoon|good evening|wassup|sup)\b/i.test(text)) {
+    if (st.cart.length === 0) {
+      const msg = `Hi! 👋 Welcome to TOBI CLOTHINGS.\n\nIf you'd like to see what we have in stock, just reply "menu". Otherwise, let me know how I can help you today!`;
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
@@ -166,7 +176,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
         const existing = st.cart.find((c) => c.variantId === variant.id);
         if (existing) existing.qty += 1;
         else st.cart.push({ variantId: variant.id, qty: 1, name: p.name, priceP: variant.priceP });
-        setState(phone, st);
+        await setState(phone, st);
         const subtotal = st.cart.reduce((s, c) => s + c.priceP * c.qty, 0);
         // §10.4: VIP carts alert the owner silently.
         if (subtotal >= VIP_THRESHOLD_PESWAS) hub.broadcastAdmin('alert.vip', { phone, subtotalP: subtotal });
@@ -190,7 +200,7 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
     }
-    setState(phone, { ...st, stage: 'ADDRESS' });
+    await setState(phone, { ...st, stage: 'ADDRESS' });
     const msg = 'Lovely! Where should we deliver? Send your area (e.g. "East Legon, Accra") or share a location pin.';
     await sendReliable(phone, msg, { conversationId: conv.id });
     await recordOutbound(conv.id, msg);
@@ -223,12 +233,12 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
       if (!link) {
         // §13.1: payment provider down: friendly message, reservation kept until TTL.
         const msg = "We're having trouble processing payments right now: please try again shortly, or Tobi can assist.";
-        setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
+        await setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
         await sendReliable(phone, msg, { conversationId: conv.id });
         await recordOutbound(conv.id, msg);
         return { replies: [msg] };
       }
-      setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
+      await setState(phone, { ...st, stage: 'PAYING', tokenCode: result.code });
       const msg = `Order summary:\n${result.items.map((l) => `• ${l.name} ×${l.qty}: ${formatGHS(l.lineP)}`).join('\n')}\nDelivery (${result.zoneName}): ${formatGHS(result.deliveryFeeP ?? 0)}\nTotal: ${formatGHS(result.totalP)}\n\nPay here to confirm: ${link}`;
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
@@ -263,8 +273,8 @@ async function addressResult(
   st?: BotState,
 ): Promise<BotReply> {
   if (match.ok && match.zone) {
-    const state = st ?? getState(phone);
-    setState(phone, { ...state, stage: 'CONFIRM_PHONE', zoneName: match.zone.name, deliveryFeeP: match.zone.feeP });
+    const state = st ?? await getState(phone);
+    await setState(phone, { ...state, stage: 'CONFIRM_PHONE', zoneName: match.zone.name, deliveryFeeP: match.zone.feeP });
     const msg = `Delivery to ${match.zone.name}: ${formatGHS(match.zone.feeP)}. Confirm your WhatsApp number to finish.`;
     await sendReliable(phone, msg, { conversationId: conv.id });
     await recordOutbound(conv.id, msg);

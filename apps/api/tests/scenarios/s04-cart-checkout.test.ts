@@ -39,21 +39,21 @@ describe('§4 Cart & Checkout', () => {
   it('Scenario §4.3: cart session expires after 30 min idle', async () => {
     await cart.add('sess-3', data.v.id, 1);
     advance(31 * MIN);
-    expect(cart.get('sess-3')).toBeNull();
+    expect(await cart.get('sess-3')).toBeNull();
   });
 
   it('Scenario §4.4: returning within 30 minutes restores cart exactly', async () => {
     await cart.add('sess-4', data.v.id, 2);
     advance(20 * MIN);
-    const c = cart.get('sess-4');
+    const c = await cart.get('sess-4');
     expect(c?.items[0].qty).toBe(2);
   });
 
   it('Scenario §4.5: checkout sync reconciles to the server copy', async () => {
     await cart.add('sess-5', data.v.id, 1);
     // Tab B version wins at "Complete Order" time.
-    const synced = cart.sync('sess-5', [{ variantId: data.v.id, qty: 3 }]);
-    expect(cart.get('sess-5')?.items[0].qty).toBe(3);
+    const synced = await cart.sync('sess-5', [{ variantId: data.v.id, qty: 3 }]);
+    expect((await cart.get('sess-5'))?.items[0].qty).toBe(3);
     expect(synced.sessionId).toBe('sess-5');
   });
 

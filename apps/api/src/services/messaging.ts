@@ -9,6 +9,7 @@ const BACKOFF_MS = [500, 2000, 8000]; // Exponential backoff between retries
 export interface SendOptions {
   templateName?: string; // pre-approved template for outside-24h sends
   conversationId?: string;
+  buttons?: { id: string; title: string }[];
 }
 
 /**
@@ -20,9 +21,11 @@ export async function sendReliable(to: string, body: string, opts: SendOptions =
   let lastError: string | undefined;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    let res = opts.templateName
-      ? await whatsapp.sendTemplate(to, opts.templateName, body)
-      : await whatsapp.sendText(to, body);
+    let res = opts.buttons
+      ? await whatsapp.sendInteractiveButtons(to, body, opts.buttons)
+      : opts.templateName
+        ? await whatsapp.sendTemplate(to, opts.templateName, body)
+        : await whatsapp.sendText(to, body);
 
     if (!res.ok && res.error === 'template_required' && opts.templateName) {
       // §12.4: fall back to pre-approved template.

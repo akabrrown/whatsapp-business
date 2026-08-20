@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { MapPin, MessageCircle, RefreshCw, UserPlus, Tag, Plus, Trash2 } from 'lucide-react';
 import { apiFetch, getUser } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
+import Image from 'next/image';
 
 interface Zone {
   id: string;
@@ -48,6 +49,10 @@ export default function SettingsPage() {
   const [whatsappInput, setWhatsappInput] = useState('');
   const [whatsappSaved, setWhatsappSaved] = useState(false);
   
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [setup2fa, setSetup2fa] = useState<{ secret: string; qrCodeUrl: string } | null>(null);
+  const [verifyCode, setVerifyCode] = useState('');
+  
   const isOwner = getUser()?.role === 'owner';
 
   const loadZones = useCallback(async () => {
@@ -69,9 +74,10 @@ export default function SettingsPage() {
 
   const loadSettings = useCallback(async () => {
     if (!isOwner) return;
-    const r = await apiFetch<{ settings: { whatsappNumber: string } }>('/api/admin/settings');
+    const r = await apiFetch<{ settings: { whatsappNumber: string }, twoFactorEnabled: boolean }>('/api/admin/settings');
     setWhatsappNumber(r.settings.whatsappNumber);
     setWhatsappInput(r.settings.whatsappNumber);
+    setTwoFactorEnabled(r.twoFactorEnabled);
   }, [isOwner]);
 
   useEffect(() => {
@@ -241,8 +247,13 @@ export default function SettingsPage() {
     }
   };
   const deleteCategory = async (c: Category) => {
-    if (c._count.products > 0) return setError('Cannot delete category with products');
-    if (!confirm('Delete this category?')) return;
+    const subCats = categories.filter((sub) => sub.parentId === c.id);
+    const msg =
+      subCats.length > 0
+        ? `Delete "${c.name}" and its ${subCats.length} subcategories? This cannot be undone.`
+        : `Are you sure you want to delete "${c.name}"?`;
+    if (!confirm(msg)) return;
+    setError('');
     try {
       await apiFetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
       await loadCategories();
@@ -285,6 +296,47 @@ export default function SettingsPage() {
       setWhatsappNumber(r.settings.whatsappNumber);
       setWhatsappSaved(true);
       setTimeout(() => setWhatsappSaved(false), 2000);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const start2faSetup = async () => {
+    setError('');
+    try {
+      const r = await apiFetch<{ secret: string; qrCodeUrl: string }>('/api/admin/settings/2fa/setup');
+      setSetup2fa(r);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const enable2fa = async () => {
+    if (!setup2fa || !verifyCode) return;
+    setError('');
+    try {
+      await apiFetch('/api/admin/settings/2fa/enable', {
+        method: 'POST',
+        body: JSON.stringify({ secret: setup2fa.secret, code: verifyCode }),
+      });
+      setTwoFactorEnabled(true);
+      setSetup2fa(null);
+      setVerifyCode('');
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const disable2fa = async () => {
+    if (!verifyCode) return setError('Enter current 2FA code to disable');
+    setError('');
+    try {
+      await apiFetch('/api/admin/settings/2fa/disable', {
+        method: 'POST',
+        body: JSON.stringify({ code: verifyCode }),
+      });
+      setTwoFactorEnabled(false);
+      setVerifyCode('');
     } catch (e) {
       setError((e as Error).message);
     }
@@ -367,7 +419,17 @@ export default function SettingsPage() {
                                 <input type="checkbox" checked={mainCat.flagship} onChange={() => toggleFlagship(mainCat)} />
                                 Flagship
                               </label>
-                              <button onClick={(e) => { e.preventDefault(); deleteCategory(mainCat); }} disabled={mainCat._count?.products > 0 || subCats.length > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={14} /></button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  deleteCategory(mainCat);
+                                }}
+                                title="Delete category"
+                                className="p-1 text-charcoal/40 hover:text-rose transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
                           
@@ -400,7 +462,17 @@ export default function SettingsPage() {
                                         <input type="checkbox" checked={sub.flagship} onChange={() => toggleFlagship(sub)} />
                                         Flagship
                                       </label>
-                                      <button onClick={() => deleteCategory(sub)} disabled={sub._count?.products > 0 || subSubCats.length > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={12} /></button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          deleteCategory(sub);
+                                        }}
+                                        title="Delete subcategory"
+                                        className="p-1 text-charcoal/40 hover:text-rose transition-colors"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
                                     </div>
                                   </div>
                                   
@@ -418,7 +490,17 @@ export default function SettingsPage() {
                                             <p className="text-[9px] text-charcoal/40">{ss._count?.products ?? 0} products</p>
                                           </div>
                                           <div className="flex items-center gap-3">
-                                            <button onClick={() => deleteCategory(ss)} disabled={ss._count?.products > 0} className="text-charcoal/40 hover:text-rose disabled:opacity-30"><Trash2 size={12} /></button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                deleteCategory(ss);
+                                              }}
+                                              title="Delete type"
+                                              className="p-1 text-charcoal/40 hover:text-rose transition-colors"
+                                            >
+                                              <Trash2 size={12} />
+                                            </button>
                                           </div>
                                         </li>
                                       ))}
@@ -602,6 +684,58 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          {/* Security (2FA) */}
+          <div className="rounded border border-sand/30 bg-white/50 p-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Security (2FA)</p>
+            <p className="mb-3 text-xs text-charcoal/60">Protect your account with an Authenticator App.</p>
+            
+            {!twoFactorEnabled && !setup2fa && (
+              <button onClick={start2faSetup} className="rounded bg-indigo px-3 py-1.5 text-xs text-cream hover:bg-indigo-deep">
+                Setup 2FA
+              </button>
+            )}
+
+            {setup2fa && !twoFactorEnabled && (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-charcoal/70">1. Scan this QR code with Google Authenticator or Authy:</p>
+                <div className="bg-white p-2 w-fit rounded">
+                  <Image src={setup2fa.qrCodeUrl} alt="2FA QR Code" width={150} height={150} className="rounded" />
+                </div>
+                <p className="text-xs text-charcoal/70">2. Enter the 6-digit code to verify:</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value)}
+                    placeholder="123456"
+                    className="w-24 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm tracking-widest outline-none focus:border-indigo"
+                  />
+                  <button onClick={enable2fa} className="rounded bg-indigo px-3 py-1 text-xs text-cream hover:bg-indigo-deep">Verify & Enable</button>
+                  <button onClick={() => setSetup2fa(null)} className="text-xs text-charcoal/50 hover:text-charcoal">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {twoFactorEnabled && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-wagreen">✓ 2FA is currently enabled.</p>
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value)}
+                    placeholder="000000"
+                    className="w-24 border-b border-charcoal/30 bg-transparent px-1 py-1 text-sm tracking-widest outline-none focus:border-indigo"
+                  />
+                  <button onClick={disable2fa} className="rounded border border-rose/30 px-3 py-1 text-xs text-rose hover:bg-rose/10">Disable 2FA</button>
+                </div>
+                <p className="text-[10px] text-charcoal/40">Enter a code from your app to disable.</p>
+              </div>
+            )}
+          </div>
 
           {/* Retention */}
           <div className="rounded border border-sand/30 bg-white/50 p-4">

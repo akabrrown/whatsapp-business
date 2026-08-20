@@ -9,13 +9,13 @@ import { InsufficientStock } from './inventory.js';
 const key = (sessionId: string) => `cart:${sessionId}`;
 const ttl = CART_TTL_MIN * 60_000;
 
-export function get(sessionId: string): Cart | null {
-  return kv.get<Cart>(key(sessionId));
+export async function get(sessionId: string): Promise<Cart | null> {
+  return await kv.get<Cart>(key(sessionId));
 }
 
-export function empty(sessionId: string): Cart {
+export async function empty(sessionId: string): Promise<Cart> {
   const cart: Cart = { sessionId, items: [], updatedAt: now().toISOString() };
-  kv.set(key(sessionId), cart, ttl);
+  await kv.set(key(sessionId), cart, ttl);
   return cart;
 }
 
@@ -29,7 +29,7 @@ export async function add(sessionId: string, variantId: string, qty = 1): Promis
   if (!v || v.product.status !== 'active') throw new Error('VARIANT_UNAVAILABLE');
   const available = v.stockQuantity - v.reservedStock;
 
-  const cart = get(sessionId) ?? empty(sessionId);
+  const cart = (await get(sessionId)) ?? (await empty(sessionId));
   const inCart = cart.items.find((i) => i.variantId === variantId)?.qty ?? 0;
   if (available <= 0) throw new InsufficientStock(variantId);
   const nextQty = Math.min(inCart + qty, available); // cap at stock
@@ -41,12 +41,12 @@ export async function add(sessionId: string, variantId: string, qty = 1): Promis
     cart.items.push({ variantId, qty: nextQty });
   }
   cart.updatedAt = now().toISOString();
-  kv.set(key(sessionId), cart, ttl);
+  await kv.set(key(sessionId), cart, ttl);
   return cart;
 }
 
 export async function setQty(sessionId: string, variantId: string, qty: number): Promise<Cart | null> {
-  const cart = get(sessionId);
+  const cart = await get(sessionId);
   if (!cart) return null;
   if (qty <= 0) {
     cart.items = cart.items.filter((i) => i.variantId !== variantId);
@@ -62,19 +62,19 @@ export async function setQty(sessionId: string, variantId: string, qty: number):
     }
   }
   cart.updatedAt = now().toISOString();
-  kv.set(key(sessionId), cart, ttl);
+  await kv.set(key(sessionId), cart, ttl);
   return cart;
 }
 
 /** §4.5: at checkout, client cart is reconciled onto the server copy. */
-export function sync(sessionId: string, items: CartItem[]): Cart {
+export async function sync(sessionId: string, items: CartItem[]): Promise<Cart> {
   const cart: Cart = { sessionId, items, updatedAt: now().toISOString() };
-  kv.set(key(sessionId), cart, ttl);
+  await kv.set(key(sessionId), cart, ttl);
   return cart;
 }
 
-export function clear(sessionId: string) {
-  kv.del(key(sessionId));
+export async function clear(sessionId: string) {
+  await kv.del(key(sessionId));
 }
 
 export async function subtotalP(cart: Cart): Promise<number> {

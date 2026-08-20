@@ -10,20 +10,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  
+  // 2FA state
+  const [step, setStep] = useState<1 | 2>(1);
+  const [tempToken, setTempToken] = useState('');
+  const [code, setCode] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError('');
     try {
-      const r = await apiFetch<{ token: string; user: { email: string; name: string; role: string } }>('/api/admin/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      setAuth(r.token, r.user);
-      router.push('/orders');
+      if (step === 1) {
+        const r = await apiFetch<{ token?: string; user?: any; require2fa?: boolean; tempToken?: string }>('/api/admin/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        if (r.require2fa && r.tempToken) {
+          setTempToken(r.tempToken);
+          setStep(2);
+        } else if (r.token && r.user) {
+          setAuth(r.token, r.user);
+          router.push('/orders');
+        }
+      } else {
+        const r = await apiFetch<{ token: string; user: any }>('/api/admin/login/verify-2fa', {
+          method: 'POST',
+          body: JSON.stringify({ tempToken, code }),
+        });
+        setAuth(r.token, r.user);
+        router.push('/orders');
+      }
     } catch (err) {
-      setError(err instanceof Error && err.message.includes('invalid') ? 'Wrong email or password.' : (err as Error).message);
+      setError(err instanceof Error && err.message.includes('invalid') ? 'Wrong credentials or code.' : (err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -43,35 +62,70 @@ export default function LoginPage() {
       </div>
       <div className="flex items-center justify-center px-6">
         <form onSubmit={submit} className="w-full max-w-sm">
-          <h1 className="font-serif text-2xl text-indigo">Sign in</h1>
-          <label className="mt-8 block text-sm text-charcoal/70">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-2 outline-none focus:border-indigo"
-            />
-          </label>
-          <label className="mt-5 block text-sm text-charcoal/70">
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-2 outline-none focus:border-indigo"
-            />
-          </label>
+          <h1 className="font-serif text-2xl text-indigo">{step === 1 ? 'Sign in' : 'Two-Factor Authentication'}</h1>
+          
+          {step === 1 ? (
+            <>
+              <label className="mt-8 block text-sm text-charcoal/70">
+                Email
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-2 outline-none focus:border-indigo"
+                />
+              </label>
+              <label className="mt-5 block text-sm text-charcoal/70">
+                Password
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-2 outline-none focus:border-indigo"
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <p className="mt-4 text-sm text-charcoal/70">Enter the 6-digit code from your authenticator app.</p>
+              <label className="mt-5 block text-sm text-charcoal/70">
+                Authenticator Code
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                  autoFocus
+                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-2 text-xl tracking-[0.5em] outline-none focus:border-indigo"
+                />
+              </label>
+            </>
+          )}
+
           {error && <p className="mt-4 text-sm text-rose">{error}</p>}
+          
           <button
             type="submit"
             disabled={busy}
-            className="mt-8 w-full rounded bg-indigo px-6 py-3 text-sm font-medium text-cream hover:bg-indigo-deep"
+            className="mt-8 w-full rounded bg-indigo px-6 py-3 text-sm font-medium text-cream hover:bg-indigo-deep transition-colors"
           >
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? 'Verifying…' : step === 1 ? 'Continue' : 'Verify & Sign in'}
           </button>
+
+          {step === 2 && (
+            <button
+              type="button"
+              onClick={() => { setStep(1); setCode(''); setError(''); }}
+              className="mt-4 w-full text-center text-sm text-charcoal/50 hover:text-indigo"
+            >
+              Back to login
+            </button>
+          )}
         </form>
       </div>
     </div>

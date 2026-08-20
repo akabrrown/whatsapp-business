@@ -55,6 +55,11 @@ export const api = {
       return null;
     }
   },
-  settings: () =>
-    get<{ ok: boolean; whatsappNumber: string }>('/api/settings/whatsapp'),
+  settings: async () => {
+    try {
+      return await get<{ ok: boolean; whatsappNumber: string }>('/api/settings/whatsapp');
+    } catch {
+      return { ok: false, whatsappNumber: '' };
+    }
+  },
 };
