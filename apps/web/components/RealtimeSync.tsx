@@ -28,14 +28,18 @@ export function RealtimeSync() {
             // Tell Next.js App Router to re-fetch Server Components quietly in the background
             router.refresh();
           }
-        } catch (err) {
+        } catch {
           // ignore parse errors
         }
       };
 
+      ws.onerror = () => {
+        // Quietly failover on server cold-starts; onclose handles reconnection
+      };
+
       ws.onclose = () => {
         wsRef.current = null;
-        reconnectTimer = setTimeout(connect, 5000);
+        reconnectTimer = setTimeout(connect, 6000);
       };
     }
 

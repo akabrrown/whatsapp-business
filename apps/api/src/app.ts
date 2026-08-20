@@ -25,16 +25,18 @@ const allowedOrigins = [...new Set([...defaultOrigins, ...configuredOrigins])];
 export function createApp() {
   const app = express();
   
-  app.use(cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Allow during transition but log
-      }
-    },
+  // Enable CORS with origin reflection so Vercel deployments, custom domains, and local environments work seamlessly
+  const corsMiddleware = cors({
+    origin: true,
     credentials: true,
-  }));
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Set-Cookie'],
+    optionsSuccessStatus: 204,
+  });
+
+  app.use(corsMiddleware);
+  app.options('*', corsMiddleware);
 
   app.use(helmet({
     contentSecurityPolicy: false, // Managed by Next.js edge for web storefront
