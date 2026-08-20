@@ -10,10 +10,12 @@ export function AddToBag({
   product,
   variantId,
   compact = false,
+  image,
 }: {
   product: CatalogProduct;
   variantId?: string;
   compact?: boolean;
+  image?: string;
 }) {
   const { add } = useCart();
   const [error, setError] = useState('');
@@ -24,6 +26,23 @@ export function AddToBag({
     : product.variants.find((v) => v.available > 0);
 
   if (!target || target.available <= 0) return null;
+
+  // Resolve matching image for this variant
+  const variantColor = target.color?.trim().toLowerCase();
+  const colorMatchImage = variantColor
+    ? product.imageDetails?.find((img) => img.color?.trim().toLowerCase() === variantColor)?.url
+    : undefined;
+
+  const resolvedImage =
+    image ||
+    colorMatchImage ||
+    (target.color
+      ? product.images[
+          [...new Set(product.variants.map((v) => v.color))].indexOf(target.color)
+        ]
+      : undefined) ||
+    product.images[0] ||
+    '';
 
   return (
     <div className={compact ? '' : 'w-full'}>
@@ -39,7 +58,7 @@ export function AddToBag({
             size: target.size,
             color: target.color,
             priceP: target.priceP,
-            image: product.images[0],
+            image: resolvedImage,
             maxQty: target.available,
           });
           setBusy(false);

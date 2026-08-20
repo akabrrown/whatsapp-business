@@ -279,7 +279,7 @@ export function ProductDetailView({
           )}
 
           {/* Add to Bag CTA */}
-          {selectedVariant && <AddToBag product={product} variantId={selectedVariant.id} />}
+          {selectedVariant && <AddToBag product={product} variantId={selectedVariant.id} image={activeImage} />}
 
           {/* Sizing Help Link */}
           <a
