@@ -1,9 +1,8 @@
-import { createApp } from '../src/app.js';
-
 let appInstance: any = null;
 
-function getApp() {
+async function getApp() {
   if (!appInstance) {
+    const { createApp } = await import('../src/app.js');
     appInstance = createApp();
   }
   return appInstance;
@@ -11,7 +10,7 @@ function getApp() {
 
 export default async function handler(req: any, res: any) {
   try {
-    const app = getApp();
+    const app = await getApp();
     return app(req, res);
   } catch (err: any) {
     console.error('SERVERLESS_INVOCATION_ERROR:', err);
@@ -19,12 +18,14 @@ export default async function handler(req: any, res: any) {
       res.status(500).json({
         ok: false,
         error: 'SERVERLESS_INVOCATION_ERROR',
-        message: err?.message,
-        stack: process.env.NODE_ENV === 'production' ? err?.stack : undefined,
+        name: err?.name,
+        message: err?.message || String(err),
+        stack: err?.stack,
         diagnostics: {
           hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
           hasJwtSecret: Boolean(process.env.JWT_SECRET),
           nodeEnv: process.env.NODE_ENV,
+          time: new Date().toISOString(),
         },
       });
     }

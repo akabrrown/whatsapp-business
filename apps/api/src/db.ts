@@ -49,4 +49,22 @@ function createPrismaClient() {
   });
 }
 
-export const db = createPrismaClient() as unknown as PrismaClient;
+let _client: any = null;
+
+function getClient(): PrismaClient {
+  if (!_client) {
+    _client = createPrismaClient();
+  }
+  return _client;
+}
+
+export const db: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getClient();
+    const value = Reflect.get(client, prop, receiver);
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
