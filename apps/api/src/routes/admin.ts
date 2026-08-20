@@ -289,7 +289,8 @@ admin.post('/inventory/:variantId/adjust', async (req, res) => {
 admin.post('/products', async (req, res) => {
   const { name, slug, description, categoryId, images, variants, upload } = req.body as {
     name?: string; slug?: string; description?: string; categoryId?: string;
-    images?: string[]; variants?: { size?: string; color?: string; priceP: number; stockQuantity: number }[];
+    images?: (string | { src?: string; url?: string; color?: string })[];
+    variants?: { size?: string; color?: string; priceP: number; stockQuantity: number }[];
     upload?: { contentType: string; size: number };
   };
   if (upload) {
@@ -300,7 +301,14 @@ admin.post('/products', async (req, res) => {
 
   const finalSlug = slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const resolvedImages = await Promise.all(
-    (images ?? []).map((img, i) => uploadToCloudinary(img, 'tobi_clothings/products', `${finalSlug}-${Date.now()}-${i}`))
+    (images ?? []).map(async (img, i) => {
+      if (typeof img === 'string') {
+        return uploadToCloudinary(img, 'tobi_clothings/products', `${finalSlug}-${Date.now()}-${i}`);
+      }
+      const rawSrc = img.src || img.url || '';
+      const uploadedUrl = await uploadToCloudinary(rawSrc, 'tobi_clothings/products', `${finalSlug}-${Date.now()}-${i}`);
+      return { url: uploadedUrl, color: img.color || undefined };
+    })
   );
 
   const product = await db.product.create({
@@ -340,7 +348,7 @@ admin.patch('/products/:id', async (req, res) => {
     name?: string;
     description?: string;
     categoryId?: string;
-    images?: string[];
+    images?: (string | { src?: string; url?: string; color?: string })[];
     variants?: { id?: string; size?: string; color?: string; priceP: number; stockQuantity?: number }[];
   };
 
@@ -357,7 +365,14 @@ admin.patch('/products/:id', async (req, res) => {
 
   const resolvedImages = images
     ? await Promise.all(
-        images.map((img, i) => uploadToCloudinary(img, 'tobi_clothings/products', `${(name ?? 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${i}`))
+        images.map(async (img, i) => {
+          if (typeof img === 'string') {
+            return uploadToCloudinary(img, 'tobi_clothings/products', `${(name ?? 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${i}`);
+          }
+          const rawSrc = img.src || img.url || '';
+          const uploadedUrl = await uploadToCloudinary(rawSrc, 'tobi_clothings/products', `${(name ?? 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${i}`);
+          return { url: uploadedUrl, color: img.color || undefined };
+        })
       )
     : undefined;
 

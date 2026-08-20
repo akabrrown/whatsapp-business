@@ -12,6 +12,11 @@ export interface CatalogVariant {
   available: number; // stock - reserved (§6.2: others see Sold Out when reserved)
 }
 
+export interface ProductImageDetail {
+  url: string;
+  color?: string;
+}
+
 export interface CatalogProduct {
   id: string;
   slug: string;
@@ -19,6 +24,7 @@ export interface CatalogProduct {
   description: string;
   category: { slug: string; name: string };
   images: string[];
+  imageDetails?: ProductImageDetail[];
   minPriceP: number;
   soldOut: boolean;
   totalAvailable: number;
@@ -37,11 +43,21 @@ function toCatalog(p: {
     available: Math.max(0, v.stockQuantity - v.reservedStock),
   }));
   const totalAvailable = variants.reduce((s, v) => s + v.available, 0);
-  const seeds: string[] = JSON.parse(p.images || '[]');
+  const rawSeeds: (string | { url?: string; src?: string; color?: string })[] = JSON.parse(p.images || '[]');
+  const imageDetails: ProductImageDetail[] = rawSeeds.map((s) => {
+    if (typeof s === 'string') {
+      const url = s.startsWith('http') || s.startsWith('data:') ? s : productImage(s.replace('/api/img/', ''));
+      return { url };
+    }
+    const rawUrl = s.url || s.src || '';
+    const url = rawUrl.startsWith('http') || rawUrl.startsWith('data:') ? rawUrl : productImage(rawUrl.replace('/api/img/', ''));
+    return { url, color: s.color || undefined };
+  });
   return {
     id: p.id, slug: p.slug, name: p.name, description: p.description,
     category: p.category,
-    images: seeds.map((s: string) => (s.startsWith('http') || s.startsWith('data:') ? s : productImage(s.replace('/api/img/', '')))),
+    images: imageDetails.map((i) => i.url),
+    imageDetails,
     minPriceP: Math.min(...variants.map((v) => v.priceP)),
     soldOut: totalAvailable === 0, // §3.2: flag, never hide
     totalAvailable,

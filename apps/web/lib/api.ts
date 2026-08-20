@@ -12,6 +12,11 @@ export interface CatalogVariant {
   available: number;
 }
 
+export interface ProductImageDetail {
+  url: string;
+  color?: string;
+}
+
 export interface CatalogProduct {
   id: string;
   slug: string;
@@ -19,6 +24,7 @@ export interface CatalogProduct {
   description: string;
   category: { slug: string; name: string };
   images: string[];
+  imageDetails?: ProductImageDetail[];
   minPriceP: number;
   soldOut: boolean;
   totalAvailable: number;

@@ -2,7 +2,8 @@
 // Add product (§11.1): visible on site + bot immediately on save.
 // Uploads go through §14.6 validation; variants carry price in GHS.
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { ChevronLeft, ImagePlus, Plus, Trash2, Upload } from 'lucide-react';
 import { apiFetch, API } from '@/lib/api';
 import React from 'react';
@@ -21,11 +22,16 @@ export default function NewProductPage() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{ src: string; color?: string }[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   const [variants, setVariants] = useState<VariantDraft[]>([emptyVariant()]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const availableColors = useMemo(
+    () => [...new Set(variants.map((v) => v.color.trim()).filter(Boolean))],
+    [variants],
+  );
 
   const loadCategories = () => {
     setLoadingCategories(true);
@@ -34,7 +40,6 @@ export default function NewProductPage() {
         if (r.categories) {
           const flat = r.categories;
           setCategories(flat);
-          // Default to first main category if not set
           setCategoryId(prev => {
             if (prev) return prev;
             const firstMain = flat.find((c) => !c.parentId);
@@ -82,15 +87,19 @@ export default function NewProductPage() {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          setImages((prev) => [...prev, canvas.toDataURL('image/jpeg', 0.82)]);
+          setImages((prev) => [...prev, { src: canvas.toDataURL('image/jpeg', 0.82), color: '' }]);
         } else {
-          setImages((prev) => [...prev, String(e.target?.result)]);
+          setImages((prev) => [...prev, { src: String(e.target?.result), color: '' }]);
         }
       };
       img.src = String(e.target?.result);
     };
     reader.readAsDataURL(file);
   }, []);
+
+  const setImageColor = (index: number, color: string) => {
+    setImages((prev) => prev.map((img, i) => (i === index ? { ...img, color } : img)));
+  };
 
   const setVariant = (i: number, patch: Partial<VariantDraft>) =>
     setVariants((vs) => vs.map((v, j) => (j === i ? { ...v, ...patch } : v)));
@@ -104,18 +113,13 @@ export default function NewProductPage() {
     setVariants((vs) => {
       const current = vs[i];
       const newVariants = [...vs];
-      
-      // Update the current row with the first part
       newVariants[i] = { ...current, [field]: parts[0] };
-      
-      // Insert new rows immediately after the current row
       const rowsToAdd = parts.slice(1).map(part => ({
         size: field === 'size' ? part : current.size,
         color: field === 'color' ? part : current.color,
         price: current.price,
-        stock: '' // Force user to input individual stock
+        stock: ''
       }));
-      
       newVariants.splice(i + 1, 0, ...rowsToAdd);
       return newVariants;
     });
@@ -143,7 +147,7 @@ export default function NewProductPage() {
           slug: slug || undefined,
           description,
           categoryId,
-          images,
+          images: images.map(i => ({ url: i.src, color: i.color })),
           upload: images.length > 0 ? { contentType: 'image/upload', size: 1 } : undefined,
           variants: expandedVariants,
         }),
@@ -158,53 +162,40 @@ export default function NewProductPage() {
   const input = 'w-full border-b border-charcoal/30 bg-transparent px-1 py-1.5 text-sm outline-none focus:border-indigo';
 
   return (
-    <div className="max-w-3xl">
-      <button onClick={() => router.back()} className="mb-4 flex items-center gap-1 text-sm text-charcoal/50 underline">
-        <ChevronLeft size={14} aria-hidden /> back to inventory
-      </button>
-      <h1 className="mb-6 font-serif text-2xl text-indigo">Add product</h1>
-      {error && <p className="mb-4 text-sm text-rose">{error}</p>}
+    <div className="max-w-2xl">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="font-serif text-2xl text-indigo">Add Product</h1>
+        <Link href="/inventory" className="text-sm text-charcoal/60 hover:text-indigo">← Back to inventory</Link>
+      </div>
 
-      <div className="space-y-6 rounded border border-sand/30 bg-white/50 p-6">
-        {/* Basics */}
+      {error && <p className="mb-4 rounded bg-rose/10 px-3 py-2 text-sm text-rose">{error}</p>}
+
+      <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Name</span>
-            <input value={name} onChange={(e) => setNameAndSlug(e.target.value)} className={input} placeholder="Osu Wide-Leg Denim" />
+            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Product Name</span>
+            <input value={name} onChange={(e) => setNameAndSlug(e.target.value)} className={input} />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Slug</span>
-            <input value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} className={input} placeholder="auto-generated" />
+            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Slug (URL path)</span>
+            <input value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} placeholder="auto-generated-from-name" className={input} />
           </label>
-          
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
           {(() => {
             const mainCategories = categories.filter((c) => !c.parentId);
             const selectedCategory = categories.find((c) => c.id === categoryId);
-            
-            let currentMainId = '';
-            let currentSubId = '';
-            let currentTypeId = '';
+            let currentMainId = ''; let currentSubId = ''; let currentTypeId = '';
 
             if (selectedCategory) {
               const parent = categories.find(c => c.id === selectedCategory.parentId);
               if (parent) {
                 const grandParent = categories.find(c => c.id === parent.parentId);
-                if (grandParent) {
-                  // selectedCategory is Tier 3
-                  currentMainId = grandParent.id;
-                  currentSubId = parent.id;
-                  currentTypeId = selectedCategory.id;
-                } else {
-                  // selectedCategory is Tier 2
-                  currentMainId = parent.id;
-                  currentSubId = selectedCategory.id;
-                }
-              } else {
-                // selectedCategory is Tier 1
-                currentMainId = selectedCategory.id;
-              }
+                if (grandParent) { currentMainId = grandParent.id; currentSubId = parent.id; currentTypeId = selectedCategory.id; }
+                else { currentMainId = parent.id; currentSubId = selectedCategory.id; }
+              } else { currentMainId = selectedCategory.id; }
             }
-
             const availableSubs = currentMainId ? categories.filter((c) => c.parentId === currentMainId) : [];
             const availableTypes = currentSubId ? categories.filter((c) => c.parentId === currentSubId) : [];
 
@@ -212,51 +203,27 @@ export default function NewProductPage() {
               <>
                 <label className="block text-sm">
                   <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wide text-charcoal/50">Main Category</span>
-                    {loadingCategories && <span className="text-[10px] text-charcoal/40 animate-pulse">Loading...</span>}
+                    <span className="text-xs uppercase tracking-wide text-charcoal/50">Main</span>
                   </div>
-                  <select
-                    value={currentMainId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    disabled={loadingCategories}
-                    className={`${input} bg-cream disabled:opacity-60`}
-                  >
-                    <option value="" disabled>
-                      {loadingCategories ? 'Loading categories...' : mainCategories.length === 0 ? 'No categories found' : 'Select Main Category...'}
-                    </option>
+                  <select value={currentMainId} onChange={(e) => setCategoryId(e.target.value)} disabled={loadingCategories} className={`${input} bg-cream`}>
+                    <option value="" disabled>Select...</option>
                     {mainCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </label>
-                
                 {availableSubs.length > 0 && (
                   <label className="block text-sm">
                     <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Subcategory</span>
-                    <select 
-                      value={currentSubId} 
-                      onChange={(e) => {
-                        if (e.target.value) setCategoryId(e.target.value);
-                        else setCategoryId(currentMainId);
-                      }} 
-                      className={`${input} bg-cream`}
-                    >
-                      <option value="">-- General / No Subcategory --</option>
+                    <select value={currentSubId} onChange={(e) => setCategoryId(e.target.value || currentMainId)} className={`${input} bg-cream`}>
+                      <option value="">-- General --</option>
                       {availableSubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </label>
                 )}
-
                 {availableTypes.length > 0 && (
                   <label className="block text-sm">
                     <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Type</span>
-                    <select 
-                      value={currentTypeId} 
-                      onChange={(e) => {
-                        if (e.target.value) setCategoryId(e.target.value);
-                        else setCategoryId(currentSubId);
-                      }} 
-                      className={`${input} bg-cream`}
-                    >
-                      <option value="">-- General / No Type --</option>
+                    <select value={currentTypeId} onChange={(e) => setCategoryId(e.target.value || currentSubId)} className={`${input} bg-cream`}>
+                      <option value="">-- General --</option>
                       {availableTypes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </label>
@@ -265,47 +232,61 @@ export default function NewProductPage() {
             );
           })()}
         </div>
+
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Description</span>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded border border-charcoal/20 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-indigo" />
         </label>
 
-        {/* Images */}
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Images</p>
-          <div className="flex flex-wrap items-center gap-3">
-            {images.map((src, i) => (
-              <div key={i} className="relative h-20 w-16 overflow-hidden rounded border border-sand/40">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={`upload ${i + 1}`} className="h-full w-full object-cover" />
-                <button onClick={() => setImages(images.filter((_, j) => j !== i))} aria-label="Remove image" className="absolute right-0 top-0 bg-charcoal/60 p-0.5 text-cream">
-                  <Trash2 size={12} aria-hidden />
-                </button>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wide text-charcoal/50">Images & Color Assignment</p>
+            {availableColors.length > 0 && (
+              <span className="text-[11px] text-indigo">{availableColors.length} color variant{availableColors.length > 1 ? 's' : ''} detected</span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-start gap-3">
+            {images.map((img, i) => (
+              <div key={i} className="flex flex-col w-28 rounded-lg border border-sand/60 bg-cream p-1.5 shadow-sm space-y-1.5">
+                <div className="relative h-28 w-full overflow-hidden rounded bg-sand/20">
+                  <img src={img.src} alt={`upload ${i + 1}`} className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => setImages(images.filter((_, j) => j !== i))} aria-label="Remove image" className="absolute right-1 top-1 rounded-full bg-charcoal/70 p-1 text-cream hover:bg-rose transition">
+                    <Trash2 size={12} aria-hidden />
+                  </button>
+                </div>
+                <label className="block">
+                  <span className="text-[10px] text-charcoal/50 uppercase tracking-wider block mb-0.5 font-medium">Color:</span>
+                  <select value={img.color || ''} onChange={(e) => setImageColor(i, e.target.value)} className="w-full text-xs rounded border border-sand/80 bg-white px-1 py-1 text-charcoal outline-none focus:border-indigo">
+                    <option value="">All / General</option>
+                    {availableColors.map((c: string) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
               </div>
             ))}
-            <label className="flex h-20 w-16 cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed border-charcoal/30 text-charcoal/50 hover:border-indigo hover:text-indigo">
-              <Upload size={16} aria-hidden />
-              <span className="text-[10px]">Upload</span>
+
+            <label className="flex h-36 w-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-charcoal/30 text-charcoal/50 hover:border-indigo hover:text-indigo transition">
+              <Upload size={18} aria-hidden />
+              <span className="text-xs font-medium">Upload</span>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && addImageFile(e.target.files[0])} />
             </label>
           </div>
-          <div className="mt-2 flex items-center gap-2">
+
+          <div className="mt-3 flex items-center gap-2">
             <ImagePlus size={14} className="text-charcoal/40" aria-hidden />
             <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="…or paste an image URL" className="flex-1 border-b border-charcoal/30 bg-transparent px-1 py-1 text-xs outline-none focus:border-indigo" />
-            <button
-              onClick={() => { if (imageUrl.trim()) { setImages([...images, imageUrl.trim()]); setImageUrl(''); } }}
-              className="text-xs text-indigo underline"
-            >
-              Add
-            </button>
+            <button type="button" onClick={() => { if (imageUrl.trim()) { setImages([...images, { src: imageUrl.trim(), color: '' }]); setImageUrl(''); } }} className="text-xs text-indigo underline">Add</button>
           </div>
         </div>
 
-        {/* Variants */}
         <div>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs uppercase tracking-wide text-charcoal/50">Variants</p>
-            <button onClick={() => setVariants([...variants, emptyVariant()])} className="flex items-center gap-1 text-xs text-indigo underline">
+            <button
+              type="button"
+              onClick={() => setVariants([...variants, emptyVariant()])}
+              className="flex items-center gap-1 text-xs text-indigo underline"
+            >
               <Plus size={12} aria-hidden /> Add variant
             </button>
           </div>

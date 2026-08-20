@@ -1,7 +1,8 @@
 'use client';
 // Edit product (§11.1).
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { ChevronLeft, ImagePlus, Plus, Trash2, Upload } from 'lucide-react';
 import { apiFetch, API } from '@/lib/api';
 import React from 'react';
@@ -18,6 +19,8 @@ interface ProductData {
 
 const emptyVariant = (): VariantDraft => ({ size: '', color: '', price: '', stock: '' });
 
+interface ImageDraft { src: string; color?: string }
+
 export default function EditProductPage() {
   const router = useRouter();
   const { id } = useParams() as { id: string };
@@ -26,12 +29,17 @@ export default function EditProductPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageDraft[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   const [variants, setVariants] = useState<VariantDraft[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const availableColors = useMemo(
+    () => [...new Set(variants.map((v) => v.color.trim()).filter(Boolean))],
+    [variants],
+  );
 
   useEffect(() => {
     Promise.all([
@@ -45,7 +53,11 @@ export default function EditProductPage() {
         setName(p.name);
         setDescription(p.description || '');
         setCategoryId(p.categoryId);
-        setImages(JSON.parse(p.images || '[]'));
+        const parsedImages: (string | { url?: string; src?: string; color?: string })[] = JSON.parse(p.images || '[]');
+        setImages(parsedImages.map(img => {
+          if (typeof img === 'string') return { src: img, color: '' };
+          return { src: img.url || img.src || '', color: img.color || '' };
+        }));
         setVariants(p.variants.map(v => ({
           id: v.id,
           size: v.size || '',
@@ -87,15 +99,19 @@ export default function EditProductPage() {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          setImages((prev) => [...prev, canvas.toDataURL('image/jpeg', 0.82)]);
+          setImages((prev) => [...prev, { src: canvas.toDataURL('image/jpeg', 0.82), color: '' }]);
         } else {
-          setImages((prev) => [...prev, String(e.target?.result)]);
+          setImages((prev) => [...prev, { src: String(e.target?.result), color: '' }]);
         }
       };
       img.src = String(e.target?.result);
     };
     reader.readAsDataURL(file);
   }, []);
+
+  const setImageColor = (index: number, color: string) => {
+    setImages((prev) => prev.map((img, i) => (i === index ? { ...img, color } : img)));
+  };
 
   const setVariant = (i: number, patch: Partial<VariantDraft>) =>
     setVariants((vs) => vs.map((v, j) => (j === i ? { ...v, ...patch } : v)));
@@ -149,7 +165,7 @@ export default function EditProductPage() {
           name,
           description,
           categoryId,
-          images,
+          images: images.map(i => ({ url: i.src, color: i.color })),
           variants: expandedVariants,
         }),
       });
@@ -165,18 +181,19 @@ export default function EditProductPage() {
   if (loading) return <div className="text-sm text-charcoal/50">Loading product...</div>;
 
   return (
-    <div className="max-w-3xl">
-      <button onClick={() => router.back()} className="mb-4 flex items-center gap-1 text-sm text-charcoal/50 underline">
-        <ChevronLeft size={14} aria-hidden /> back to inventory
-      </button>
-      <h1 className="mb-6 font-serif text-2xl text-indigo">Edit product</h1>
-      {error && <p className="mb-4 text-sm text-rose">{error}</p>}
+    <div className="max-w-2xl">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="headline text-2xl">Edit Product</h1>
+        <Link href="/inventory" className="text-sm text-charcoal/60 hover:text-indigo">← Back to inventory</Link>
+      </div>
 
-      <div className="space-y-6 rounded border border-sand/30 bg-white/50 p-6">
+      {error && <p className="mb-4 rounded bg-rose/10 px-3 py-2 text-sm text-rose">{error}</p>}
+
+      <div className="space-y-6">
         {/* Basics */}
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Name</span>
+            <span className="mb-1 block text-xs uppercase tracking-wide text-charcoal/50">Product Name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
           </label>
           {(() => {
@@ -192,17 +209,14 @@ export default function EditProductPage() {
               if (parent) {
                 const grandParent = categories.find(c => c.id === parent.parentId);
                 if (grandParent) {
-                  // selectedCategory is Tier 3
                   currentMainId = grandParent.id;
                   currentSubId = parent.id;
                   currentTypeId = selectedCategory.id;
                 } else {
-                  // selectedCategory is Tier 2
                   currentMainId = parent.id;
                   currentSubId = selectedCategory.id;
                 }
               } else {
-                // selectedCategory is Tier 1
                 currentMainId = selectedCategory.id;
               }
             }
@@ -262,30 +276,71 @@ export default function EditProductPage() {
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded border border-charcoal/20 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-indigo" />
         </label>
 
-        {/* Images */}
+        {/* Images & Color Assignment */}
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Images</p>
-          <div className="flex flex-wrap items-center gap-3">
-            {images.map((src, i) => (
-              <div key={i} className="relative h-20 w-16 overflow-hidden rounded border border-sand/40">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={`product ${i + 1}`} className="h-full w-full object-cover" />
-                <button onClick={() => setImages(images.filter((_, j) => j !== i))} aria-label="Remove image" className="absolute right-0 top-0 bg-charcoal/60 p-0.5 text-cream">
-                  <Trash2 size={12} aria-hidden />
-                </button>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wide text-charcoal/50">Images & Color Assignment</p>
+            {availableColors.length > 0 && (
+              <span className="text-[11px] text-indigo">
+                {availableColors.length} color variant{availableColors.length > 1 ? 's' : ''} detected
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-start gap-3">
+            {images.map((img, i) => (
+              <div key={i} className="flex flex-col w-28 rounded-lg border border-sand/60 bg-cream p-1.5 shadow-sm space-y-1.5">
+                <div className="relative h-28 w-full overflow-hidden rounded bg-sand/20">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.src} alt={`product ${i + 1}`} className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImages(images.filter((_, j) => j !== i))}
+                    aria-label="Remove image"
+                    className="absolute right-1 top-1 rounded-full bg-charcoal/70 p-1 text-cream hover:bg-rose transition"
+                  >
+                    <Trash2 size={12} aria-hidden />
+                  </button>
+                </div>
+                <label className="block">
+                  <span className="text-[10px] text-charcoal/50 uppercase tracking-wider block mb-0.5 font-medium">Color:</span>
+                  <select
+                    value={img.color || ''}
+                    onChange={(e) => setImageColor(i, e.target.value)}
+                    className="w-full text-xs rounded border border-sand/80 bg-white px-1 py-1 text-charcoal outline-none focus:border-indigo"
+                  >
+                    <option value="">All / General</option>
+                    {availableColors.map((c: string) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
             ))}
-            <label className="flex h-20 w-16 cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed border-charcoal/30 text-charcoal/50 hover:border-indigo hover:text-indigo">
-              <Upload size={16} aria-hidden />
-              <span className="text-[10px]">Upload</span>
+
+            <label className="flex h-36 w-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-charcoal/30 text-charcoal/50 hover:border-indigo hover:text-indigo transition">
+              <Upload size={18} aria-hidden />
+              <span className="text-xs font-medium">Upload</span>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && addImageFile(e.target.files[0])} />
             </label>
           </div>
-          <div className="mt-2 flex items-center gap-2">
+
+          <div className="mt-3 flex items-center gap-2">
             <ImagePlus size={14} className="text-charcoal/40" aria-hidden />
-            <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="…or paste an image URL" className="flex-1 border-b border-charcoal/30 bg-transparent px-1 py-1 text-xs outline-none focus:border-indigo" />
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="…or paste an image URL"
+              className="flex-1 border-b border-charcoal/30 bg-transparent px-1 py-1 text-xs outline-none focus:border-indigo"
+            />
             <button
-              onClick={() => { if (imageUrl.trim()) { setImages([...images, imageUrl.trim()]); setImageUrl(''); } }}
+              type="button"
+              onClick={() => {
+                if (imageUrl.trim()) {
+                  setImages([...images, { src: imageUrl.trim(), color: '' }]);
+                  setImageUrl('');
+                }
+              }}
               className="text-xs text-indigo underline"
             >
               Add

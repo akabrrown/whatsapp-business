@@ -32,6 +32,17 @@ export function ProductDetailView({
   // When a color is selected, automatically switch the main image to the matching color image
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
+    // 1. Look for explicit image tagged with this color
+    if (product.imageDetails && product.imageDetails.length > 0) {
+      const matchIdx = product.imageDetails.findIndex(
+        (img) => img.color?.trim().toLowerCase() === color.trim().toLowerCase()
+      );
+      if (matchIdx !== -1) {
+        setActiveImageIndex(matchIdx);
+        return;
+      }
+    }
+    // 2. Fallback to index-based mapping
     const colorIndex = colors.indexOf(color);
     if (colorIndex !== -1 && product.images[colorIndex]) {
       setActiveImageIndex(colorIndex);
@@ -41,9 +52,22 @@ export function ProductDetailView({
   // When a thumbnail is clicked, switch image and sync matching color if applicable
   const handleThumbnailClick = (index: number) => {
     setActiveImageIndex(index);
-    if (colors[index]) {
+    const assignedColor = product.imageDetails?.[index]?.color;
+    if (assignedColor && colors.includes(assignedColor)) {
+      setSelectedColor(assignedColor);
+    } else if (colors[index]) {
       setSelectedColor(colors[index]);
     }
+  };
+
+  const getThumbnailForColor = (c: string, idx: number) => {
+    if (product.imageDetails && product.imageDetails.length > 0) {
+      const match = product.imageDetails.find(
+        (img) => img.color?.trim().toLowerCase() === c.trim().toLowerCase()
+      );
+      if (match) return match.url;
+    }
+    return product.images[idx] || product.images[0];
   };
 
   const selectedVariant =
@@ -117,7 +141,7 @@ export function ProductDetailView({
           <div className="flex gap-3 overflow-x-auto pb-2 pt-1 scrollbar-none">
             {product.images.map((src, i) => {
               const isSelected = i === activeImageIndex;
-              const matchingColor = colors[i];
+              const matchingColor = product.imageDetails?.[i]?.color || colors[i];
               return (
                 <button
                   key={i}
@@ -179,7 +203,7 @@ export function ProductDetailView({
               <div className="flex flex-wrap gap-2.5">
                 {colors.map((c, idx) => {
                   const isSelected = selectedColor === c;
-                  const thumbnail = product.images[idx];
+                  const thumbnail = getThumbnailForColor(c, idx);
                   return (
                     <button
                       key={c}
