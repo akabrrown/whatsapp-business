@@ -43,7 +43,7 @@ async function get<T>(path: string): Promise<T> {
 
 export const api = {
   catalog: (category?: string) =>
-    get<{ ok: boolean; products: CatalogProduct[] }>(`/api/catalog${category ? `?category=${category}` : ''}`).then((r) => r.products),
+    get<{ ok: boolean; products: CatalogProduct[] }>(`/api/catalog${category ? `?category=${encodeURIComponent(category)}` : ''}`).then((r) => r.products),
   search: (q: string, category?: string) =>
     get<{ ok: boolean; products: CatalogProduct[] }>(`/api/catalog/search?q=${encodeURIComponent(q)}${category ? `&category=${encodeURIComponent(category)}` : ''}`).then((r) => r.products),
   categories: () => get<{ ok: boolean; categories: Category[] }>('/api/categories').then((r) => r.categories),

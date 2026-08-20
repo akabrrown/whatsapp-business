@@ -55,9 +55,69 @@ const include = {
   variants: true,
 } as const;
 
+function getSlugVariations(slugOrName: string): string[] {
+  const decoded = decodeURIComponent(slugOrName).trim();
+  const set = new Set<string>();
+  set.add(slugOrName);
+  set.add(decoded);
+  set.add(decoded.toLowerCase());
+  // -s- to 's conversions (e.g. men-s-fashion -> men's fashion)
+  set.add(decoded.replace(/-s-/g, "'s "));
+  set.add(decoded.replace(/-s-/g, "’s "));
+  set.add(decoded.replace(/-s-/g, "s "));
+  set.add(decoded.replace(/-s-/g, "-"));
+  // Common replacements
+  set.add(decoded.replace(/-/g, ' '));
+  set.add(decoded.replace(/['’]/g, '-'));
+  set.add(decoded.replace(/['’]/g, ''));
+  set.add(decoded.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase());
+  set.add(decoded.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g, ' ').trim());
+  return Array.from(set).filter(Boolean);
+}
+
 export async function listActive(categorySlug?: string): Promise<CatalogProduct[]> {
+  let categoryFilter = {};
+
+  if (categorySlug) {
+    const variations = getSlugVariations(categorySlug);
+
+    // 1. Find matching categories across all variations of slug and name
+    const matchingCategories = await db.category.findMany({
+      where: {
+        OR: [
+          { slug: { in: variations } },
+          { name: { in: variations, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (matchingCategories.length > 0) {
+      // 2. Recursively gather all child / grandchild category IDs
+      async function getDescendantIds(parentIds: string[]): Promise<string[]> {
+        if (parentIds.length === 0) return [];
+        const children = await db.category.findMany({
+          where: { parentId: { in: parentIds } },
+          select: { id: true },
+        });
+        if (children.length === 0) return [];
+        const childIds = children.map((c) => c.id);
+        const nextIds = await getDescendantIds(childIds);
+        return [...childIds, ...nextIds];
+      }
+
+      const rootIds = matchingCategories.map((c) => c.id);
+      const descendantIds = await getDescendantIds(rootIds);
+      const allCategoryIds = [...new Set([...rootIds, ...descendantIds])];
+
+      categoryFilter = { categoryId: { in: allCategoryIds } };
+    } else {
+      categoryFilter = { category: { slug: categorySlug } };
+    }
+  }
+
   const products = await db.product.findMany({
-    where: { status: 'active', ...(categorySlug ? { category: { slug: categorySlug } } : {}) },
+    where: { status: 'active', ...categoryFilter },
     include,
     orderBy: { createdAt: 'desc' },
   });
