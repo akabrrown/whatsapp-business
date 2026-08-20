@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
+import { LiveSearchBar } from '@/components/LiveSearchBar';
 
 export default async function HomePage() {
   let products: Awaited<ReturnType<typeof api.catalog>> = [];
@@ -20,6 +21,7 @@ export default async function HomePage() {
       <section className="relative -mx-4 md:-mx-6">
         <div className="grid md:grid-cols-[55%_45%]">
           <div className="relative z-10 flex flex-col justify-center px-6 py-16 md:py-24 lg:pr-0">
+            <LiveSearchBar />
             <p className="mb-4 inline-block w-fit bg-sand/30 px-2 py-1 text-xs tracking-widest text-charcoal/70">
               ACCRA · BY TOBI
             </p>

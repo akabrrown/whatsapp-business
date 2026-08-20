@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Menu, Search, ShoppingBag, X } from 'lucide-react';
+import { ChevronDown, Menu, ShoppingBag, X } from 'lucide-react';
 import { useCart } from '@/lib/cart';
+import { SearchOverlay } from './SearchOverlay';
 import type { Category } from '@/lib/api';
 
 export function Navbar({ categories }: { categories: Category[] }) {
@@ -61,16 +62,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
           {/* Actions: Search + Cart */}
           <div className="flex items-center gap-4">
-            <form action="/search" className="relative hidden md:block">
-              <Search size={14} aria-hidden className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-charcoal/40" />
-              <input
-                name="q"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search…"
-                className="w-40 rounded-full border border-sand/40 bg-white/60 py-1.5 pl-8 pr-3 text-sm outline-none transition-all focus:w-56 focus:border-indigo/40 focus:shadow-sm"
-              />
-            </form>
+            <SearchOverlay />
             <button
               aria-label="Shopping bag"
               onClick={() => setDrawerOpen(true)}
@@ -209,18 +201,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
           </button>
         </div>
 
-        {/* Mobile search */}
-        <form action="/search" className="border-b border-sand/20 px-5 py-3">
-          <div className="relative">
-            <Search size={14} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40" />
-            <input
-              name="q"
-              placeholder="Search products…"
-              className="w-full rounded-full border border-sand/40 bg-white/60 py-2 pl-9 pr-4 text-sm outline-none focus:border-indigo/40"
-              onKeyDown={(e) => { if (e.key === 'Enter') setMenuOpen(false); }}
-            />
-          </div>
-        </form>
+        {/* Mobile search is now handled by the SearchOverlay accessible from the top bar */}
 
         {/* Navigation links */}
         <nav className="flex-1 overflow-y-auto px-5 py-4" aria-label="Mobile navigation">
