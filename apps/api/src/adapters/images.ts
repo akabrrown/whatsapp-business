@@ -1,6 +1,37 @@
 // Image adapter: deterministic placeholder SVGs in sim mode,
 // Cloudinary passthrough in cloudinary mode (§3.4).
+import { v2 as cloudinary } from 'cloudinary';
 import { config } from '../config.js';
+
+const rawUrl = config.images.cloudinaryUrl || process.env.CLOUDINARY_URL || '';
+const match = rawUrl.match(/cloudinary:\/\/([^:]+):([^@]+)@(.+)/);
+
+if (match) {
+  cloudinary.config({
+    api_key: match[1],
+    api_secret: match[2],
+    cloud_name: match[3],
+    secure: true,
+  });
+}
+
+export async function uploadToCloudinary(base64OrUrl: string, folder: string = 'tobi_clothings/products', publicId?: string): Promise<string> {
+  if (!base64OrUrl) return base64OrUrl;
+  if (base64OrUrl.startsWith('http://') || base64OrUrl.startsWith('https://')) return base64OrUrl;
+  if (!base64OrUrl.startsWith('data:image/')) return base64OrUrl;
+
+  try {
+    const res = await cloudinary.uploader.upload(base64OrUrl, {
+      folder,
+      ...(publicId ? { public_id: publicId } : {}),
+      overwrite: true,
+    });
+    return res.secure_url;
+  } catch (err) {
+    console.error('Failed to upload image to Cloudinary:', err);
+    return base64OrUrl;
+  }
+}
 
 export function productImage(seed: string): string {
   if (config.images.mode === 'cloudinary' && seed.startsWith('http')) return seed;

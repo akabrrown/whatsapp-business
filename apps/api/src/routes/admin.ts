@@ -9,7 +9,7 @@ import * as retention from '../services/retention.js';
 import { refundOrder } from '../services/payments.js';
 import { takeOver, releaseToBot } from '../services/bot.js';
 import { sendReliable } from '../services/messaging.js';
-import { validateUpload } from '../adapters/images.js';
+import { validateUpload, uploadToCloudinary } from '../adapters/images.js';
 import { now, DAY } from '../clock.js';
 import { STALE_PACKED_HOURS, OrderSource } from '@rose/shared';
 import { hub } from '../services/realtime.js';
@@ -297,13 +297,19 @@ admin.post('/products', async (req, res) => {
     if (!v.ok) return res.status(400).json({ ok: false, error: v.error });
   }
   if (!name || !categoryId || !variants?.length) return res.status(400).json({ ok: false, error: 'name, categoryId, variants required' });
+
+  const finalSlug = slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const resolvedImages = await Promise.all(
+    (images ?? []).map((img, i) => uploadToCloudinary(img, 'tobi_clothings/products', `${finalSlug}-${Date.now()}-${i}`))
+  );
+
   const product = await db.product.create({
     data: {
       name,
-      slug: slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      slug: finalSlug,
       description: description ?? '',
       categoryId,
-      images: JSON.stringify(images ?? []),
+      images: JSON.stringify(resolvedImages),
       variants: {
         create: variants.map((v, i) => ({
           sku: `${(slug ?? name).toUpperCase().slice(0, 12)}-${Date.now()}-${i}`,
@@ -348,6 +354,12 @@ admin.patch('/products/:id', async (req, res) => {
   if (!name || !categoryId || !variants?.length) {
     return res.status(400).json({ ok: false, error: 'name, categoryId, variants required for full update' });
   }
+
+  const resolvedImages = images
+    ? await Promise.all(
+        images.map((img, i) => uploadToCloudinary(img, 'tobi_clothings/products', `${(name ?? 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${i}`))
+      )
+    : undefined;
 
   // Update core product details
   await db.product.update({

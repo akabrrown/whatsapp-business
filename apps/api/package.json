@@ -19,6 +19,7 @@
     "@rose/shared": "*",
     "@upstash/redis": "^1.38.2",
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.10.1",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.1",
     "dotenv": "^16.4.7",
