@@ -14,6 +14,8 @@ export const config = {
   port: Number(process.env.PORT ?? 4000),
   jwtSecret: jwtSecret || 'dev-secret',
   whatsappNumber: process.env.WHATSAPP_NUMBER ?? '233238136060',
+  apiUrl: process.env.API_URL ?? 'http://localhost:4000',
+  storefrontUrl: process.env.STOREFRONT_URL ?? 'http://localhost:3000',
 
   paystack: {
     mode: (process.env.PAYSTACK_MODE ?? 'sim') as 'sim' | 'real',

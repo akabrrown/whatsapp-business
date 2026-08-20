@@ -29,6 +29,27 @@ storefront.get('/products/:slug', async (req, res) => {
   if (!p) return res.status(404).json({ ok: false, error: 'not_found' });
   res.json({ ok: true, product: p });
 });
+storefront.get('/products/:slug/image', async (req, res) => {
+  const p = await catalog.bySlug(req.params.slug);
+  if (!p || !p.images || p.images.length === 0) {
+    return res.status(404).send('Not found');
+  }
+  const first = p.images[0];
+  if (first.startsWith('http://') || first.startsWith('https://')) {
+    return res.redirect(first);
+  }
+  if (first.startsWith('data:image/')) {
+    const matches = first.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      const type = matches[1];
+      const buffer = Buffer.from(matches[2], 'base64');
+      res.setHeader('Content-Type', type);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(buffer);
+    }
+  }
+  return res.status(404).send('Not found');
+});
 storefront.get('/zones/match', async (req, res) => {
   const text = typeof req.query.text === 'string' ? req.query.text : '';
   res.json({ ok: true, match: await matchZone(text) });

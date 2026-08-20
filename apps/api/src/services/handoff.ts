@@ -7,6 +7,7 @@ import { reserve, release } from './inventory.js';
 import { waDeepLink } from '../adapters/whatsapp.js';
 import { getWhatsAppNumber } from './settings.js';
 import { getOrCreateCustomer } from './orders.js';
+import { config } from '../config.js';
 import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, type CartItem } from '@rose/shared';
 
 export class HandoffError extends Error {
@@ -108,8 +109,12 @@ export async function createToken(input: {
       const parsedImages = typeof ti.variant.product.images === 'string'
         ? JSON.parse(ti.variant.product.images)
         : ti.variant.product.images;
-      if (Array.isArray(parsedImages) && parsedImages.length > 0 && parsedImages[0].startsWith('http')) {
-        imageUrl = parsedImages[0];
+      if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+        if (parsedImages[0].startsWith('http')) {
+          imageUrl = parsedImages[0];
+        } else {
+          imageUrl = `${config.apiUrl}/api/products/${ti.variant.product.slug}/image`;
+        }
       }
     } catch {
       /* ignore invalid image json */
@@ -141,22 +146,22 @@ export async function createToken(input: {
     : `*ITEMS SUBTOTAL:* *${formatGHS(totalP)}* _(+ Delivery fee to be quoted on WhatsApp)_`;
 
   const text =
-    `*ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
-    `----------------------------------------\n` +
-    `*Order Token:* \`${code}\`\n` +
-    `*Stock Reserved:* 15 Minutes\n\n` +
-    `*ITEMS IN YOUR BAG:*\n` +
+    `*🛍️ ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🔑 *Order Token:* \`${code}\`\n` +
+    `⏳ *Stock Reserved:* 15 Minutes\n\n` +
+    `📦 *ITEMS IN YOUR BAG:*\n` +
     lines.map((l) =>
       `• *${l.name}*${l.size ? ` (Size: ${l.size})` : ''}${l.color ? ` (${l.color})` : ''}\n` +
       `   Qty: ${l.qty} × ${formatGHS(l.lineP / l.qty)} = *${formatGHS(l.lineP)}*` +
-      (l.imageUrl ? `\n   Photo: ${l.imageUrl}` : '')
+      (l.imageUrl ? `\n   📸 Photo: ${l.imageUrl}` : '')
     ).join('\n\n') +
-    `\n\n*DELIVERY LOCATION:*\n` +
+    `\n\n📍 *DELIVERY LOCATION:*\n` +
     deliveryText +
-    `\n\n` +
+    `\n\n💰 ` +
     totalText +
-    `\n----------------------------------------\n` +
-    `_Press the green Send button to confirm your location and receive your payment link!_`;
+    `\n━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `👉 *Press the green Send button to receive your instant payment link!* ✨`;
 
   const whatsappNumber = await getWhatsAppNumber();
   return {
