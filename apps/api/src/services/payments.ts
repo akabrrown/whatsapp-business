@@ -149,10 +149,16 @@ async function chargeFailure(data: { reference: string; metadata?: Record<string
   return { status: 200, body: { ok: true, detail: failures <= MAX_PAYMENT_RETRIES ? 'retry_link_sent' : 'human_offered' } };
 }
 
+export let lastPaystackError: string | null = null;
+
 /** Initialize a Paystack charge for an active token (used by bot & website). */
 export async function initPaymentForToken(tokenCode: string, extra?: { phone?: string; zoneName?: string; deliveryFeeP?: number; address?: string; channel?: OrderSource }): Promise<string | null> {
+  lastPaystackError = null;
   const token = await findActiveToken(tokenCode);
-  if (!token) return null;
+  if (!token) {
+    lastPaystackError = 'Active order token not found';
+    return null;
+  }
   let subtotalP = 0;
   for (const ti of token.items) subtotalP += ti.variant.priceP * ti.qty;
   const totalP = subtotalP + (extra?.deliveryFeeP ?? 0);
@@ -171,7 +177,10 @@ export async function initPaymentForToken(tokenCode: string, extra?: { phone?: s
       channel: extra?.channel, // §9.1/§9.2: tag the originating channel
     },
   });
-  if (!res.ok) return null; // §13.1: surfaced by caller
+  if (!res.ok) {
+    lastPaystackError = res.error ?? 'Paystack rejected initialization';
+    return null; // §13.1: surfaced by caller
+  }
   await db.payment.create({ data: { paystackRef: reference, amountP: totalP, status: PaymentStatus.PENDING, tokenCode } });
   return res.authorizationUrl ?? reference;
 }

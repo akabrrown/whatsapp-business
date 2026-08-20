@@ -4,7 +4,7 @@ import * as catalog from '../services/catalog.js';
 import * as cart from '../services/cart.js';
 import * as handoff from '../services/handoff.js';
 import { findActiveToken } from '../services/handoff.js';
-import { initPaymentForToken } from '../services/payments.js';
+import { initPaymentForToken, lastPaystackError } from '../services/payments.js';
 import { matchZone } from '../services/address.js';
 import { InsufficientStock } from '../services/inventory.js';
 import { db } from '../db.js';
@@ -144,7 +144,8 @@ storefront.post('/checkout/online', async (req, res) => {
     });
 
     if (!paymentUrl) {
-      return res.status(500).json({ ok: false, error: 'payment_init_failed', message: 'Unable to initialize online payment. Please try again or checkout via WhatsApp.' });
+      const detail = lastPaystackError ? `: ${lastPaystackError}` : '';
+      return res.status(500).json({ ok: false, error: 'payment_init_failed', message: `Unable to start online payment${detail}. Please order via WhatsApp or try again.` });
     }
 
     if (sessionId) await cart.clear(sessionId);
