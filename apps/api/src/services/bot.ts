@@ -251,7 +251,8 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
         `*Pay here via MoMo / Card:*\n` +
         `${link}\n\n` +
         `_Stock is held for 15 minutes. Once paid, your delivery will be dispatched immediately!_`;
-      await sendReliable(phone, msg, { conversationId: conv.id });
+      const firstImage = result.items.find((i) => i.imageUrl)?.imageUrl;
+      await sendReliable(phone, msg, { conversationId: conv.id, ...(firstImage ? { imageUrl: firstImage } : {}) });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
     } catch (e) {

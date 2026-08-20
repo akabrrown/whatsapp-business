@@ -22,7 +22,7 @@ export interface HandoffResult {
   whatsappUrl: string;
   totalP: number;
   vip: boolean;
-  items: { name: string; size: string | null; color: string | null; qty: number; lineP: number }[];
+  items: { name: string; size: string | null; color: string | null; qty: number; lineP: number; imageUrl?: string }[];
   zoneName?: string;
   deliveryFeeP?: number;
 }
@@ -122,6 +122,13 @@ export async function createToken(input: {
       color: ti.variant.color,
       qty: ti.qty,
       lineP,
+    };
+  });
+
+  const feeP = input.deliveryFeeP ?? 0;
+  totalP += feeP;
+  const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
+
   const hasFee = feeP > 0;
   const deliveryText = input.zoneName
     ? hasFee

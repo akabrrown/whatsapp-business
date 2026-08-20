@@ -14,6 +14,7 @@ export interface WhatsAppSender {
   sendText(to: string, body: string): Promise<{ ok: boolean; error?: string }>;
   sendTemplate(to: string, templateName: string, body: string): Promise<{ ok: boolean; error?: string }>;
   sendInteractiveButtons(to: string, body: string, buttons: { id: string; title: string }[]): Promise<{ ok: boolean; error?: string }>;
+  sendImage(to: string, imageUrl: string, caption?: string): Promise<{ ok: boolean; error?: string }>;
 }
 
 // ---- Real adapter (Meta Cloud API) --------------------------------------
@@ -73,6 +74,17 @@ export class MetaSender implements WhatsAppSender {
       }
     });
   }
+  sendImage(to: string, imageUrl: string, caption?: string) {
+    return this.post({
+      messaging_product: 'whatsapp',
+      to,
+      type: 'image',
+      image: {
+        link: imageUrl,
+        ...(caption ? { caption } : {}),
+      },
+    });
+  }
 }
 
 // ---- Simulator -----------------------------------------------------------
@@ -116,6 +128,14 @@ export class SimSender implements WhatsAppSender {
       return { ok: false, error: 'template_required' };
     }
     this.outbox.push({ to, body: `${body} [Buttons: ${buttons.map(b => b.title).join(', ')}]`, sentAt: now().toISOString() });
+    return { ok: true };
+  }
+
+  async sendImage(to: string, imageUrl: string, caption?: string) {
+    if (this.outage) return { ok: false, error: 'meta_unreachable' };
+    if (this.blocked.has(to)) return { ok: false, error: 'undelivered' };
+    if (this.failing.has(to)) return { ok: false, error: 'api_error' };
+    this.outbox.push({ to, body: `[Image: ${imageUrl}] ${caption ?? ''}`, sentAt: now().toISOString() });
     return { ok: true };
   }
 
