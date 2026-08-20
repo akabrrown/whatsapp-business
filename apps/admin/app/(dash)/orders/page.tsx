@@ -1,9 +1,9 @@
 'use client';
 // Orders list: dense table, restrained pills, source tabs, inline quick
-// actions, "new orders" indicator (§3.8), stale-PACKED flag (§8.6).
+// actions, "new orders" indicator (§3.8), stale-PACKED flag (§8.6), and In-Flight WhatsApp Bags (§4.7).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw, ShoppingBag, CheckCircle } from 'lucide-react';
 import { apiFetch, subscribeAdminEvents } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { formatGHS } from '@rose/shared';
@@ -19,6 +19,20 @@ interface OrderRow {
   customer: { name: string | null; phone: string };
 }
 
+interface OrderTokenRow {
+  id: string;
+  code: string;
+  phone: string;
+  status: string;
+  totalP: number;
+  isExpired: boolean;
+  zoneName: string | null;
+  deliveryFeeP: number | null;
+  createdAt: string;
+  expiresAt: string;
+  items: { name: string; size: string | null; color: string | null; qty: number; lineP: number }[];
+}
+
 const NEXT_ACTION: Record<string, string> = {
   PAID: 'PACKED',
   PACKED: 'SHIPPED',
@@ -29,15 +43,17 @@ const STATUSES = ['RESERVED', 'PAID', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELL
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [source, setSource] = useState('');
+  const [tokens, setTokens] = useState<OrderTokenRow[]>([]);
+  const [source, setSource] = useState<'all' | 'website' | 'whatsapp_direct' | 'tokens'>('all');
   const [status, setStatus] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [newCount, setNewCount] = useState(0);
+  const [converting, setConverting] = useState<string | null>(null);
 
-  const load = useCallback(async (silent = false) => {
+  const loadOrders = useCallback(async (silent = false) => {
     const qs = new URLSearchParams();
-    if (source) qs.set('source', source);
+    if (source === 'website' || source === 'whatsapp_direct') qs.set('source', source);
     if (status) qs.set('status', status);
     const q = qs.toString();
     const r = await apiFetch<{ orders: OrderRow[] }>(`/api/admin/orders${q ? `?${q}` : ''}`);
@@ -45,22 +61,44 @@ export default function OrdersPage() {
     if (silent) setNewCount(0);
   }, [source, status]);
 
+  const loadTokens = useCallback(async () => {
+    const r = await apiFetch<{ tokens: OrderTokenRow[] }>('/api/admin/tokens');
+    setTokens(r.tokens);
+  }, []);
+
+  const loadAll = useCallback(async (silent = false) => {
+    await Promise.all([loadOrders(silent), loadTokens()]);
+  }, [loadOrders, loadTokens]);
+
   useEffect(() => {
-    load().catch(() => {});
+    loadAll().catch(() => {});
     const off = subscribeAdminEvents((e) => {
       if (e.type === 'order.created') setNewCount((n) => n + 1);
-      if (e.type === 'order.updated') load().catch(() => {});
+      if (e.type === 'order.created' || e.type === 'order.updated') loadAll().catch(() => {});
     });
-    const poll = setInterval(() => load().catch(() => {}), 30_000); // WS fallback
+    const poll = setInterval(() => loadAll().catch(() => {}), 5000); // 5s live polling
     return () => {
       off();
       clearInterval(poll);
     };
-  }, [load]);
+  }, [loadAll]);
 
   const act = async (id: string, status: string) => {
     await apiFetch(`/api/admin/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) });
-    await load();
+    await loadOrders();
+  };
+
+  const convertTokenToPaid = async (code: string) => {
+    if (!confirm(`Confirm order and mark token ${code} as PAID?`)) return;
+    setConverting(code);
+    try {
+      await apiFetch(`/api/admin/tokens/${code}/convert`, { method: 'POST' });
+      await loadAll();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setConverting(null);
+    }
   };
 
   const exportCsv = async () => {
@@ -80,91 +118,177 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   };
 
+  const activeTokensCount = tokens.filter((t) => t.status === 'ACTIVE' && !t.isExpired).length;
+
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center gap-4">
         <h1 className="font-serif text-2xl text-indigo">Orders</h1>
         <div className="flex gap-4 text-sm">
           {[
-            ['', 'All'],
+            ['all', 'All Orders'],
             ['website', 'Website'],
             ['whatsapp_direct', 'WhatsApp Direct'],
+            ['tokens', `In-Flight Bags (${activeTokensCount})`],
           ].map(([val, label]) => (
             <button
               key={val}
-              onClick={() => setSource(val)}
-              className={source === val ? 'border-b border-indigo text-indigo' : 'text-charcoal/60 hover:text-indigo'}
+              onClick={() => setSource(val as any)}
+              className={source === val ? 'border-b border-indigo font-medium text-indigo' : 'text-charcoal/60 hover:text-indigo'}
             >
               {label}
             </button>
           ))}
         </div>
         {newCount > 0 && (
-          <button onClick={() => load(true)} className="ml-auto bg-sand/40 px-3 py-1 text-xs text-charcoal hover:bg-sand/60">
-            {newCount} new order{newCount > 1 ? 's' : ''}: refresh
+          <button onClick={() => loadAll(true)} className="ml-auto flex items-center gap-1 bg-sand/40 px-3 py-1 text-xs text-charcoal hover:bg-sand/60">
+            <RefreshCw size={12} className="animate-spin" /> {newCount} new order{newCount > 1 ? 's' : ''}: refresh
           </button>
         )}
-        <div className="flex items-center gap-2 text-xs text-charcoal/60">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo">
-            <option value="">All statuses</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <label className="flex items-center gap-1">
-            from <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo" />
-          </label>
-          <label className="flex items-center gap-1">
-            to <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo" />
-          </label>
-          <button onClick={exportCsv} className="flex items-center gap-1 text-charcoal/50 underline hover:text-indigo">
-            <Download size={13} aria-hidden /> Export CSV
-          </button>
-        </div>
+        {source !== 'tokens' && (
+          <div className="flex items-center gap-2 text-xs text-charcoal/60">
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo">
+              <option value="">All statuses</option>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <label className="flex items-center gap-1">
+              from <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo" />
+            </label>
+            <label className="flex items-center gap-1">
+              to <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border-b border-charcoal/30 bg-transparent py-0.5 outline-none focus:border-indigo" />
+            </label>
+            <button onClick={exportCsv} className="flex items-center gap-1 text-charcoal/50 underline hover:text-indigo">
+              <Download size={13} aria-hidden /> Export CSV
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="overflow-x-auto rounded border border-sand/30 bg-white/50">
-        <table className="w-full min-w-[760px] text-sm">
-          <thead>
-            <tr className="border-b border-sand/30 text-left text-xs uppercase tracking-wide text-charcoal/50">
-              <th className="px-4 py-3">Order</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Source</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o, i) => (
-              <tr key={o.id} className={`border-b border-sand/20 last:border-0 ${i % 2 ? 'bg-cream/60' : ''}`}>
-                <td className="px-4 py-3">
-                  <Link href={`/orders/${o.id}`} className="font-medium text-indigo hover:underline">{o.number}</Link>
-                  <p className="text-xs text-charcoal/40">{new Date(o.createdAt).toLocaleString()}</p>
-                </td>
-                <td className="px-4 py-3">
-                  {o.customer.name ?? '—'}
-                  <p className="text-xs text-charcoal/40">{o.customer.phone}</p>
-                </td>
-                <td className="px-4 py-3 text-xs text-charcoal/60">{o.source === 'website' ? 'Website' : 'WhatsApp'}</td>
-                <td className="px-4 py-3">{formatGHS(o.totalP)}</td>
-                <td className="px-4 py-3">
-                  <StatusPill status={o.status} />
-                  {o.stalePacked && <span className="ml-2 bg-sand/40 px-1.5 py-0.5 text-[10px]">24h in packed</span>}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {NEXT_ACTION[o.status] && (
-                    <button onClick={() => act(o.id, NEXT_ACTION[o.status])} className="text-xs text-indigo underline">
-                      Mark {NEXT_ACTION[o.status].toLowerCase()}
-                    </button>
-                  )}
-                </td>
+      {source === 'tokens' ? (
+        <div className="overflow-x-auto rounded border border-sand/30 bg-white/50">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="border-b border-sand/30 text-left text-xs uppercase tracking-wide text-charcoal/50">
+                <th className="px-4 py-3">Token Code</th>
+                <th className="px-4 py-3">Customer Phone</th>
+                <th className="px-4 py-3">Items in Bag</th>
+                <th className="px-4 py-3">Total Value</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
-            ))}
-            {orders.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-charcoal/50">No orders yet: they&apos;ll appear here the moment someone pays.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {tokens.map((t, i) => (
+                <tr key={t.id} className={`border-b border-sand/20 last:border-0 ${i % 2 ? 'bg-cream/60' : ''}`}>
+                  <td className="px-4 py-3">
+                    <span className="font-mono font-medium text-indigo">{t.code}</span>
+                    <p className="text-xs text-charcoal/40">{new Date(t.createdAt).toLocaleTimeString()} ({new Date(t.createdAt).toLocaleDateString()})</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <a href={`https://wa.me/${t.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-xs text-wagreen font-medium hover:underline">
+                      {t.phone}
+                    </a>
+                    {t.zoneName && <p className="text-[11px] text-charcoal/50">📍 {t.zoneName}</p>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="space-y-0.5">
+                      {t.items.map((item, idx) => (
+                        <p key={idx} className="text-xs text-charcoal/80">
+                          • {item.name} {item.size ? `(${item.size})` : ''} ×{item.qty}
+                        </p>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-medium">{formatGHS(t.totalP)}</td>
+                  <td className="px-4 py-3">
+                    {t.status === 'USED' ? (
+                      <span className="inline-flex rounded-full bg-wagreen/10 px-2 py-0.5 text-[10px] font-medium text-wagreen">
+                        CONVERTED TO ORDER
+                      </span>
+                    ) : t.isExpired ? (
+                      <span className="inline-flex rounded-full bg-charcoal/10 px-2 py-0.5 text-[10px] text-charcoal/50">
+                        EXPIRED (RELEASED)
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-full bg-indigo/10 px-2 py-0.5 text-[10px] font-medium text-indigo animate-pulse">
+                        ACTIVE (HOLDING STOCK)
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {t.status === 'ACTIVE' && (
+                      <button
+                        onClick={() => convertTokenToPaid(t.code)}
+                        disabled={converting === t.code}
+                        className="inline-flex items-center gap-1 rounded bg-wagreen px-2.5 py-1 text-xs font-medium text-white hover:bg-wagreen/90 disabled:opacity-50"
+                      >
+                        <CheckCircle size={12} />
+                        {converting === t.code ? 'Processing...' : 'Confirm as Paid'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {tokens.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-charcoal/50">
+                    No checkout bags in-flight yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded border border-sand/30 bg-white/50">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="border-b border-sand/30 text-left text-xs uppercase tracking-wide text-charcoal/50">
+                <th className="px-4 py-3">Order</th>
+                <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3">Source</th>
+                <th className="px-4 py-3">Total</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((o, i) => (
+                <tr key={o.id} className={`border-b border-sand/20 last:border-0 ${i % 2 ? 'bg-cream/60' : ''}`}>
+                  <td className="px-4 py-3">
+                    <Link href={`/orders/${o.id}`} className="font-medium text-indigo hover:underline">{o.number}</Link>
+                    <p className="text-xs text-charcoal/40">{new Date(o.createdAt).toLocaleString()}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    {o.customer.name ?? '—'}
+                    <p className="text-xs text-charcoal/40">{o.customer.phone}</p>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-charcoal/60">{o.source === 'website' ? 'Website' : 'WhatsApp'}</td>
+                  <td className="px-4 py-3">{formatGHS(o.totalP)}</td>
+                  <td className="px-4 py-3">
+                    <StatusPill status={o.status} />
+                    {o.stalePacked && <span className="ml-2 bg-sand/40 px-1.5 py-0.5 text-[10px]">24h in packed</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {NEXT_ACTION[o.status] && (
+                      <button onClick={() => act(o.id, NEXT_ACTION[o.status])} className="text-xs text-indigo underline">
+                        Mark {NEXT_ACTION[o.status].toLowerCase()}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {orders.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-charcoal/50">
+                    No finalized orders yet. View &quot;In-Flight Bags&quot; to see active checkout tokens.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

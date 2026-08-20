@@ -11,7 +11,7 @@ import { takeOver, releaseToBot } from '../services/bot.js';
 import { sendReliable } from '../services/messaging.js';
 import { validateUpload } from '../adapters/images.js';
 import { now, DAY } from '../clock.js';
-import { STALE_PACKED_HOURS } from '@rose/shared';
+import { STALE_PACKED_HOURS, OrderSource } from '@rose/shared';
 import { hub } from '../services/realtime.js';
 import { generateSecret, generateURI, generateSync, verifySync } from 'otplib';
 import QRCode from 'qrcode';
@@ -80,6 +80,72 @@ admin.post('/change-password', async (req, res) => {
   });
 
   res.json({ ok: true, message: 'Password updated successfully' });
+});
+
+// ---- In-Flight Carts / Order Tokens ----
+admin.get('/tokens', async (_req, res) => {
+  const list = await db.orderToken.findMany({
+    include: {
+      items: {
+        include: {
+          variant: {
+            include: {
+              product: { select: { name: true, slug: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+
+  res.json({
+    ok: true,
+    tokens: list.map((t) => {
+      let totalP = 0;
+      const items = t.items.map((ti) => {
+        const lineP = ti.variant.priceP * ti.qty;
+        totalP += lineP;
+        return {
+          name: ti.variant.product.name,
+          size: ti.variant.size,
+          color: ti.variant.color,
+          qty: ti.qty,
+          lineP,
+        };
+      });
+      totalP += t.deliveryFeeP ?? 0;
+      return {
+        ...t,
+        items,
+        totalP,
+        isExpired: t.status === 'EXPIRED' || (t.status === 'ACTIVE' && t.expiresAt.getTime() <= now().getTime()),
+      };
+    }),
+  });
+});
+
+admin.post('/tokens/:code/convert', async (req, res) => {
+  const token = await db.orderToken.findUnique({
+    where: { code: req.params.code },
+    include: { items: true },
+  });
+  if (!token) return res.status(404).json({ ok: false, error: 'Token not found' });
+  if (token.status === 'USED') return res.status(400).json({ ok: false, error: 'Token already used' });
+
+  const { order } = await orders.createOrder({
+    phone: token.phone,
+    items: token.items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
+    source: OrderSource.WEBSITE,
+    paid: true,
+    zoneName: token.zoneName ?? undefined,
+    deliveryFeeP: token.deliveryFeeP ?? 0,
+  });
+
+  await db.orderToken.update({ where: { id: token.id }, data: { status: 'USED' } });
+  hub.broadcastAdmin('order.created', { id: order.id, number: order.number });
+  res.json({ ok: true, order });
 });
 
 // ---- Orders (§8, §11) -------------------------------------------------------

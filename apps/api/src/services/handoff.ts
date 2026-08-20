@@ -6,6 +6,7 @@ import { kv } from '../sessionStore.js';
 import { reserve, release } from './inventory.js';
 import { waDeepLink } from '../adapters/whatsapp.js';
 import { getWhatsAppNumber } from './settings.js';
+import { getOrCreateCustomer } from './orders.js';
 import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, type CartItem } from '@rose/shared';
 
 export class HandoffError extends Error {
@@ -94,6 +95,9 @@ export async function createToken(input: {
     },
     include: { items: { include: { variant: { include: { product: true } } } } },
   });
+
+  // Ensure customer profile exists in CRM (§9.3)
+  await getOrCreateCustomer(phone).catch(() => {});
 
   let totalP = 0;
   const lines = token.items.map((ti) => {

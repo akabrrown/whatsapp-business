@@ -3,7 +3,7 @@
 // opt-out respected at a glance (§16.5).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, subscribeAdminEvents } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 
 interface CustomerRow {
@@ -36,6 +36,14 @@ export default function CustomersPage() {
 
   useEffect(() => {
     load().catch((e: Error) => setError(e.message));
+    const off = subscribeAdminEvents((e) => {
+      if (e.type === 'order.created' || e.type === 'order.updated') load().catch(() => {});
+    });
+    const poll = setInterval(() => load().catch(() => {}), 5000);
+    return () => {
+      off();
+      clearInterval(poll);
+    };
   }, [load]);
 
   return (
