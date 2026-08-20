@@ -170,6 +170,13 @@ export function Navbar({ categories }: { categories: Category[] }) {
             >
               Shop All
             </Link>
+
+            <Link
+              href="/track"
+              className="px-4 py-2.5 text-sm tracking-wide text-charcoal/70 transition-colors hover:text-indigo"
+            >
+              Track Order
+            </Link>
           </div>
         </nav>
       </header>
@@ -178,37 +185,38 @@ export function Navbar({ categories }: { categories: Category[] }) {
       {/* Backdrop */}
       <div
         className={`fixed inset-0 z-50 bg-charcoal/30 transition-opacity duration-300 md:hidden ${
-          menuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+          menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={() => setMenuOpen(false)}
-        aria-hidden
+        aria-hidden="true"
       />
 
       {/* Slide-in panel */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 flex w-[85%] max-w-sm flex-col bg-cream shadow-2xl transition-transform duration-300 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-4/5 max-w-sm flex-col bg-cream shadow-xl transition-transform duration-300 ease-in-out md:hidden ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         role="dialog"
-        aria-modal="true"
-        aria-label="Navigation menu"
+        aria-label="Mobile navigation"
       >
         {/* Drawer header */}
         <div className="flex items-center justify-between border-b border-sand/30 px-5 py-4">
-          <span className="headline text-lg">TOBI <span className="text-rose">CLOTHINGS</span></span>
-          <button aria-label="Close navigation menu" className="text-charcoal/60 transition-colors hover:text-indigo" onClick={() => setMenuOpen(false)}>
-            <X size={22} aria-hidden />
+          <span className="headline text-lg text-indigo">Menu</span>
+          <button
+            aria-label="Close menu"
+            className="text-charcoal/60 transition-colors hover:text-indigo"
+            onClick={() => setMenuOpen(false)}
+          >
+            <X size={20} aria-hidden />
           </button>
         </div>
 
-        {/* Mobile search is now handled by the SearchOverlay accessible from the top bar */}
-
         {/* Navigation links */}
-        <nav className="flex-1 overflow-y-auto px-5 py-4" aria-label="Mobile navigation">
+        <nav className="flex-1 overflow-y-auto px-5 py-4" aria-label="Mobile categories">
           <Link
             href="/"
             onClick={() => setMenuOpen(false)}
-            className="block py-3 text-base font-medium text-charcoal transition-colors hover:text-indigo"
+            className="block py-2.5 text-base text-charcoal/80 transition-colors hover:text-indigo"
           >
             Home
           </Link>
@@ -223,7 +231,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
                   key={cat.slug}
                   href={`/shop/${cat.slug}`}
                   onClick={() => setMenuOpen(false)}
-                  className="block border-t border-sand/15 py-3 text-base font-medium text-charcoal transition-colors hover:text-indigo"
+                  className="block py-2.5 text-base text-charcoal/80 transition-colors hover:text-indigo"
                 >
                   {cat.name}
                 </Link>
@@ -231,10 +239,10 @@ export function Navbar({ categories }: { categories: Category[] }) {
             }
 
             return (
-              <div key={cat.slug} className="border-t border-sand/15">
+              <div key={cat.slug} className="border-b border-sand/15 last:border-b-0">
                 <button
                   onClick={() => toggleMobileSection(cat.slug)}
-                  className="flex w-full items-center justify-between py-3 text-left text-base font-medium text-charcoal transition-colors hover:text-indigo"
+                  className="flex w-full items-center justify-between py-2.5 text-left text-base text-charcoal/80 transition-colors hover:text-indigo"
                   aria-expanded={isExpanded}
                 >
                   {cat.name}
@@ -279,6 +287,14 @@ export function Navbar({ categories }: { categories: Category[] }) {
             className="mt-2 block border-t border-sand/15 py-3 text-base font-medium text-rose transition-colors hover:text-rose/80"
           >
             Shop All
+          </Link>
+          
+          <Link
+            href="/track"
+            onClick={() => setMenuOpen(false)}
+            className="block border-t border-sand/15 py-3 text-base text-charcoal/80 transition-colors hover:text-indigo"
+          >
+            Track Order
           </Link>
         </nav>
 

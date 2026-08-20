@@ -22,11 +22,11 @@ export async function Footer() {
           </p>
         </div>
         <div className="text-sm">
-          <p className="mb-3 font-medium text-indigo">Shop</p>
+          <p className="mb-3 font-medium text-indigo">Shop & Service</p>
           <ul className="space-y-2 text-charcoal/70">
             <li><a className="hover:text-indigo" href="/shop">All Collections</a></li>
             <li><a className="hover:text-indigo" href="/shop">New Arrivals</a></li>
-            <li><a className="hover:text-indigo" href="/shop">Everything</a></li>
+            <li><a className="hover:text-indigo font-medium text-indigo" href="/track">Track Your Order</a></li>
           </ul>
         </div>
         <div className="text-sm">

@@ -5,6 +5,7 @@ import { hardDeduct, restock, release } from './inventory.js';
 import { InsufficientStock } from './inventory.js';
 import { sendReliable } from './messaging.js';
 import { hub } from './realtime.js';
+import { config } from '../config.js';
 import { formatGHS, OrderStatus, VIP_THRESHOLD_PESWAS, type OrderSource, STALE_PACKED_HOURS } from '@rose/shared';
 
 export class InvalidTransition extends Error {
@@ -25,14 +26,31 @@ const ALLOWED: Record<string, string[]> = {
 };
 
 const STATUS_MESSAGES: Record<string, (o: { number: string; riderName?: string | null; riderPhone?: string | null; totalP: number }) => string> = {
-  PAID: (o) => `Payment Received! Your order ${o.number} is confirmed (${formatGHS(o.totalP)}). We'll start packing right away.`,
-  PACKED: (o) => `Good news: order ${o.number} is packed and ready. It ships soon!`,
+  PAID: (o) =>
+    `*Order Confirmed! — TOBI CLOTHINGS*\n` +
+    `----------------------------------------\n` +
+    `Payment of ${formatGHS(o.totalP)} received for Order *${o.number}*.\n` +
+    `We are preparing and quality-checking your pieces.\n\n` +
+    `Live Tracking: ${config.storefrontUrl}/track/${o.number}`,
+  PACKED: (o) =>
+    `*Order Packed! — TOBI CLOTHINGS*\n` +
+    `----------------------------------------\n` +
+    `Your order *${o.number}* is packed and ready for dispatch!\n\n` +
+    `Live Tracking: ${config.storefrontUrl}/track/${o.number}`,
   SHIPPED: (o) =>
-    `Your order ${o.number} is on the way!` +
-    (o.riderName ? ` Rider: ${o.riderName}${o.riderPhone ? `, ${o.riderPhone}` : ''}` : ''),
-  DELIVERED: (o) => `Order ${o.number} delivered. Thank you for shopping with TOBI CLOTHINGS!`,
-  CANCELLED: (o) => `Your order ${o.number} has been cancelled${o.totalP ? ` and a refund of ${formatGHS(o.totalP)} is being processed` : ''}.`,
-  REFUNDED: (o) => `Your refund of ${formatGHS(o.totalP)} has been processed and will reflect in 3–5 business days.`,
+    `*Out for Delivery! — TOBI CLOTHINGS*\n` +
+    `----------------------------------------\n` +
+    `Your order *${o.number}* is on its way with our dispatch rider.` +
+    (o.riderName ? `\n🛵 Rider: *${o.riderName}*${o.riderPhone ? ` (${o.riderPhone})` : ''}` : '') +
+    `\n\nLive Tracking: ${config.storefrontUrl}/track/${o.number}`,
+  DELIVERED: (o) =>
+    `*Order Delivered! — TOBI CLOTHINGS*\n` +
+    `----------------------------------------\n` +
+    `Your order *${o.number}* has been delivered. Thank you for shopping with TOBI CLOTHINGS! ✨`,
+  CANCELLED: (o) =>
+    `Your order ${o.number} has been cancelled${o.totalP ? ` and a refund of ${formatGHS(o.totalP)} is being processed` : ''}.`,
+  REFUNDED: (o) =>
+    `Your refund of ${formatGHS(o.totalP)} has been processed and will reflect in 3–5 business days.`,
 };
 
 export async function getOrCreateCustomer(phone: string, name?: string) {
