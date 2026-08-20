@@ -151,11 +151,8 @@ export class SimSender implements WhatsAppSender {
 export const whatsapp: WhatsAppSender & Partial<SimSender> =
   config.whatsapp.mode === 'real' ? new MetaSender() : new SimSender();
 
-/** Build the wa.me deep link used by the website handoff (§4.7). */
+/** Build the WhatsApp direct link used by the website handoff (§4.7). */
 export function waDeepLink(text: string, phoneNumber?: string): string {
   const number = phoneNumber ?? config.whatsappNumber;
-  // Strip variation selectors (\uFE00-\uFE0F) and zero-width joiners so iOS Safari & Android
-  // deep link URL handlers never corrupt emojis into missing/replacement characters ().
-  const cleanText = text.replace(/[\uFE00-\uFE0F\u200B-\u200D]/g, '');
-  return `https://wa.me/${number}?text=${encodeURIComponent(cleanText)}`;
+  return `https://api.whatsapp.com/send/?phone=${number}&text=${encodeURIComponent(text)}`;
 }

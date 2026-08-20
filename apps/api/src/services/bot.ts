@@ -251,8 +251,20 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
         `💳 *Tap link below to pay via MoMo / Card:*\n` +
         `${link}\n\n` +
         `_Stock is held for 15 minutes. Once paid, your delivery will be dispatched immediately!_ 🚀`;
-      const firstImage = result.items.find((i) => i.imageUrl)?.imageUrl;
-      await sendReliable(phone, msg, { conversationId: conv.id, ...(firstImage ? { imageUrl: firstImage } : {}) });
+      const itemsWithImages = result.items.filter((i) => i.imageUrl);
+      if (itemsWithImages.length > 1) {
+        for (let i = 1; i < itemsWithImages.length; i++) {
+          const item = itemsWithImages[i];
+          await sendReliable(
+            phone,
+            `• *${item.name}*${item.size ? ` (Size: ${item.size})` : ''}${item.color ? ` (${item.color})` : ''} — Qty: ${item.qty}`,
+            { conversationId: conv.id, imageUrl: item.imageUrl }
+          );
+        }
+      }
+
+      const primaryImage = itemsWithImages[0]?.imageUrl;
+      await sendReliable(phone, msg, { conversationId: conv.id, ...(primaryImage ? { imageUrl: primaryImage } : {}) });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };
     } catch (e) {
