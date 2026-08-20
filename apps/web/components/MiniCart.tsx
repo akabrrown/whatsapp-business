@@ -3,7 +3,7 @@
 // a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Minus, Plus, X } from 'lucide-react';
+import { Minus, Plus, X, CreditCard, MessageSquare } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -19,6 +19,7 @@ export function MiniCart() {
   const [error, setError] = useState('');
   const [confirmDup, setConfirmDup] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [onlineBusy, setOnlineBusy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -76,7 +77,7 @@ export function MiniCart() {
 
   const complete = async () => {
     setError('');
-    if (!phone.trim()) return setError('Add your WhatsApp number so Tobi can confirm your order.');
+    if (!phone.trim()) return setError('Please enter your phone number so Tobi can confirm delivery.');
     if (!zoneChecked) await checkZone();
     setBusy(true);
     const res = await fetch(`${API}/api/handoff`, {
@@ -109,6 +110,47 @@ export function MiniCart() {
     sessionStorage.setItem('rd-handoff', JSON.stringify({ url: body.handoff!.whatsappUrl, code: body.handoff!.code }));
     setDrawerOpen(false);
     router.push('/handoff');
+  };
+
+  const completeOnline = async () => {
+    setError('');
+    if (!phone.trim()) return setError('Please enter your phone number for your order receipt & delivery.');
+    if (!zoneChecked) await checkZone();
+    setOnlineBusy(true);
+    try {
+      const res = await fetch(`${API}/api/checkout/online`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phone.trim(),
+          sessionId,
+          zoneName: zone?.name,
+          deliveryFeeP: zone?.feeP,
+          confirmedDuplicate: confirmDup,
+        }),
+      });
+      const body = (await res.json()) as {
+        ok: boolean;
+        paymentUrl?: string;
+        tokenCode?: string;
+        error?: string;
+        message?: string;
+      };
+      setOnlineBusy(false);
+      if (!res.ok || !body.ok || !body.paymentUrl) {
+        if (body.error === 'DUPLICATE_SUSPECT') {
+          setConfirmDup(true);
+          setError(`${body.message ?? 'Looks like a duplicate order.'} Tap again to confirm.`);
+          return;
+        }
+        return setError(body.message ?? 'Unable to start online payment. Please order via WhatsApp.');
+      }
+      setDrawerOpen(false);
+      window.location.href = body.paymentUrl;
+    } catch {
+      setOnlineBusy(false);
+      setError('Network error starting payment. Please try again or order on WhatsApp.');
+    }
   };
 
   const total = subtotalP + (zone?.feeP ?? 0);
@@ -172,7 +214,7 @@ export function MiniCart() {
           {lines.length > 0 && (
             <div className="mt-6 space-y-3 border-t border-sand/40 pt-4">
               <label className="block text-xs text-charcoal/60">
-                Delivery area (optional: we&apos;ll quote in chat if we don&apos;t cover it yet)
+                Delivery area (e.g. East Legon, Cantonments, Tema)
                 <div className="mt-1 flex gap-2">
                   <input
                     value={zoneText}
@@ -185,7 +227,7 @@ export function MiniCart() {
               </label>
               {zone && <p className="text-xs text-charcoal/70">Delivery to {zone.name}: {formatGHS(zone.feeP)}</p>}
               <label className="block text-xs text-charcoal/60">
-                Your WhatsApp number
+                Phone Number (for order confirmation & delivery updates)
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -205,15 +247,34 @@ export function MiniCart() {
               <span className="headline text-2xl">{formatGHS(total)}</span>
             </div>
             {error && <p className="mb-3 text-xs text-rose">{error}</p>}
-            <button
-              onClick={complete}
-              disabled={busy}
-              className="w-full rounded bg-wagreen px-6 py-3 text-sm font-semibold text-white hover:brightness-95"
-            >
-              {busy ? 'Reserving your pieces…' : confirmDup ? 'Yes, place it again' : 'Complete Order on WhatsApp'}
-            </button>
-            <p className="mt-2 text-center text-xs text-charcoal/50">
-              You&apos;ll finish in WhatsApp: your pieces are held for 15 minutes.
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={completeOnline}
+                disabled={busy || onlineBusy}
+                className="w-full rounded bg-indigo px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo/90 flex items-center justify-center gap-2 touch-manipulation disabled:opacity-50"
+              >
+                <CreditCard size={18} />
+                {onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MoMo / Card)'}
+              </button>
+
+              <div className="relative my-0.5 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-sand/60"></div></div>
+                <span className="relative bg-cream px-3 text-[11px] uppercase tracking-wider text-charcoal/40 font-medium">or</span>
+              </div>
+
+              <button
+                onClick={complete}
+                disabled={busy || onlineBusy}
+                className="w-full rounded bg-wagreen px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 flex items-center justify-center gap-2 touch-manipulation disabled:opacity-50"
+              >
+                <MessageSquare size={18} />
+                {busy ? 'Reserving your pieces…' : confirmDup ? 'Yes, place it again' : 'Complete Order on WhatsApp'}
+              </button>
+            </div>
+
+            <p className="mt-2.5 text-center text-xs text-charcoal/50">
+              Stock reserved for 15 minutes upon checkout initiation.
             </p>
           </div>
         )}

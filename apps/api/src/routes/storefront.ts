@@ -8,6 +8,7 @@ import { initPaymentForToken } from '../services/payments.js';
 import { matchZone } from '../services/address.js';
 import { InsufficientStock } from '../services/inventory.js';
 import { db } from '../db.js';
+import { OrderSource } from '@rose/shared';
 
 export const storefront = Router();
 
@@ -109,6 +110,60 @@ storefront.post('/handoff', async (req, res) => {
     res.status(500).json({ ok: false, error: (e as Error).message });
   }
 });
+
+// ---- Direct Web Checkout (Online Payment via MoMo / Card) -----------------
+storefront.post('/checkout/online', async (req, res) => {
+  const { phone, address, items, sessionId, zoneName, deliveryFeeP, confirmedDuplicate } = req.body as {
+    phone?: string;
+    address?: string;
+    items?: { variantId: string; qty: number }[];
+    sessionId?: string;
+    zoneName?: string;
+    deliveryFeeP?: number;
+    confirmedDuplicate?: boolean;
+  };
+
+  if (!phone) return res.status(400).json({ ok: false, error: 'phone required', message: 'Phone number is required.' });
+  const cartItems = sessionId ? ((await cart.get(sessionId))?.items ?? items ?? []) : items ?? [];
+
+  try {
+    const token = await handoff.createToken({
+      phone,
+      items: cartItems,
+      zoneName,
+      deliveryFeeP,
+      confirmedDuplicate,
+    });
+
+    const paymentUrl = await initPaymentForToken(token.code, {
+      phone,
+      zoneName,
+      deliveryFeeP,
+      address,
+      channel: OrderSource.WEBSITE,
+    });
+
+    if (!paymentUrl) {
+      return res.status(500).json({ ok: false, error: 'payment_init_failed', message: 'Unable to initialize online payment. Please try again or checkout via WhatsApp.' });
+    }
+
+    if (sessionId) await cart.clear(sessionId);
+
+    res.json({
+      ok: true,
+      tokenCode: token.code,
+      paymentUrl,
+      totalP: token.totalP,
+    });
+  } catch (e) {
+    if (e instanceof handoff.HandoffError) {
+      const status = e.code === 'RATE_LIMITED' ? 429 : e.code === 'SOLD_OUT' ? 409 : e.code === 'EMPTY_CART' ? 400 : 409;
+      return res.status(status).json({ ok: false, error: e.code, message: e.message });
+    }
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+
 storefront.post('/handoff/:code/cancel', async (req, res) => {
   const ok = await handoff.cancelToken(req.params.code);
   res.json({ ok, message: ok ? "No problem, your order has been cancelled. Let us know if you'd like to start a new one!" : 'Token not active' });
