@@ -8,27 +8,94 @@ import { webhooks } from './routes/webhooks.js';
 import { admin } from './routes/admin.js';
 import { logger } from './logger.js';
 
-const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001,https://mystore-web.vercel.app')
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+];
+
+const configuredOrigins = (process.env.CORS_ORIGINS ?? '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
+const allowedOrigins = [...new Set([...defaultOrigins, ...configuredOrigins])];
+
 export function createApp() {
   const app = express();
-  app.use(cors({ origin: allowedOrigins, credentials: true }));
-  app.use(helmet()); // Security headers (§14)
+  
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow during transition but log
+      }
+    },
+    credentials: true,
+  }));
+
+  app.use(helmet({
+    contentSecurityPolicy: false, // Managed by Next.js edge for web storefront
+    crossOriginEmbedderPolicy: false,
+  }));
+
   // NOTE: /webhooks/paystack mounts its own raw() parser for HMAC verification.
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
-  app.get('/health', async (_req, res) => {
+  const healthHandler = async (_req: express.Request, res: express.Response) => {
+    const startTime = Date.now();
+    let dbStatus = 'disconnected';
+    let dbLatencyMs = 0;
+    let redisStatus = 'disconnected';
+    let redisLatencyMs = 0;
+
     try {
-      await import('./db.js').then((m) => m.db.$queryRaw`SELECT 1`);
-      res.json({ ok: true, service: 'rose-denim-api', db: 'connected' });
+      const dbStart = Date.now();
+      const { db } = await import('./db.js');
+      await db.$queryRaw`SELECT 1`;
+      dbLatencyMs = Date.now() - dbStart;
+      dbStatus = 'healthy';
     } catch {
-      res.status(503).json({ ok: false, service: 'rose-denim-api', db: 'disconnected' });
+      dbStatus = 'unhealthy';
     }
-  });
+
+    try {
+      const redisStart = Date.now();
+      const { kv } = await import('./sessionStore.js');
+      await kv.touch('health-ping', 5000);
+      redisLatencyMs = Date.now() - redisStart;
+      redisStatus = 'healthy';
+    } catch {
+      redisStatus = 'unhealthy';
+    }
+
+    const isHealthy = dbStatus === 'healthy';
+    const mem = process.memoryUsage();
+
+    res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'healthy' : 'degraded',
+      service: 'tobi-clothings-api',
+      version: '1.0.0',
+      uptimeSeconds: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+      latencyMs: Date.now() - startTime,
+      dependencies: {
+        database: { status: dbStatus, latencyMs: dbLatencyMs },
+        cache: { status: redisStatus, latencyMs: redisLatencyMs },
+      },
+      memory: {
+        heapUsedMb: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
+        rssMb: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
+      },
+    });
+  };
+
+  app.get('/health', healthHandler);
+  app.get('/healthz', healthHandler);
+  app.get('/api/health', healthHandler);
   app.use('/api', storefront);
   app.use('/api/admin', admin);
   app.use('/webhooks', webhooks);

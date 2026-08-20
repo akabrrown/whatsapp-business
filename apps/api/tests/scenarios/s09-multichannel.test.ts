@@ -53,7 +53,7 @@ describe('§9 Multi-Channel & Returning Customers', () => {
   it('Scenario §9.4: abandoned website cart expires quietly while direct chat proceeds', async () => {
     await cart.add('web-session', data.v.id, 1);
     advance(31 * MIN);
-    expect(cart.get('web-session')).toBeNull(); // cart simply expires
+    expect(await cart.get('web-session')).toBeNull(); // cart simply expires
     expect(await db.order.count()).toBe(0); // no order created from it
     // direct chat flow is unaffected:
     await handleInbound({ phone: PHONE, text: 'hi' });

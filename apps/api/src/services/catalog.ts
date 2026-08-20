@@ -86,7 +86,7 @@ export async function listActive(categorySlug?: string): Promise<CatalogProduct[
       where: {
         OR: [
           { slug: { in: variations } },
-          { name: { in: variations, mode: 'insensitive' } },
+          { name: { in: variations } },
         ],
       },
       select: { id: true },

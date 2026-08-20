@@ -107,7 +107,10 @@ export class UpstashRedisStore implements KVStore {
   }
 }
 
-// Auto-detect which store to use
-export const kv: KVStore = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? new UpstashRedisStore(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN)
-  : new MemoryKVStore();
+// Auto-detect which store to use (in tests, always use MemoryKVStore for simulated clock parity)
+export const kv: KVStore =
+  process.env.NODE_ENV !== 'test' &&
+  process.env.UPSTASH_REDIS_REST_URL &&
+  process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new UpstashRedisStore(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN)
+    : new MemoryKVStore();

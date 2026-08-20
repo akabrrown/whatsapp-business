@@ -69,7 +69,7 @@ describe('§13 Third-Party Outages', () => {
     const url = await initPaymentForToken(code);
     expect(url).not.toBeNull();
     kv.clear(); // simulate cache-layer crash
-    expect(cart.get('session-x')).toBeNull(); // customer rebuilds the cart
+    expect(await cart.get('session-x')).toBeNull(); // customer rebuilds the bag cleanly (§13.5)
     // but no payment/order data was lost: it lives in the database:
     const payment = await db.payment.findFirst({ where: { tokenCode: code } });
     expect(payment).not.toBeNull();

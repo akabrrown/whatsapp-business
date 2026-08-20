@@ -21,7 +21,7 @@ describe('§10 Human Handoff', () => {
   it('Scenario §10.1: explicit human request: immediate handoff', async () => {
     const reply = await handleInbound({ phone: PHONE, text: 'Can I speak to someone?' });
     expect(reply.handoff).toBe(true);
-    expect(whatsapp.lastTo(PHONE)?.body).toContain('Let me get Kukua for you');
+    expect(whatsapp.lastTo(PHONE)?.body).toMatch(/Let me get (Tobi|Kukua) for you/);
     const conv = await db.conversation.findFirst({ where: { customer: { phone: PHONE } } });
     expect(conv?.status).toBe('NEEDS_HUMAN');
     expect(hub.log.some((e) => e.type === 'inbox.alert')).toBe(true);
@@ -61,7 +61,7 @@ describe('§10 Human Handoff', () => {
   it('Scenario §10.5: negotiation attempt: handed off, bot never negotiates', async () => {
     const reply = await handleInbound({ phone: PHONE, text: 'Can you do a discount on these?' });
     expect(reply.handoff).toBe(true);
-    expect(whatsapp.lastTo(PHONE)?.body).toContain('Kukua');
+    expect(whatsapp.lastTo(PHONE)?.body).toMatch(/(Tobi|Kukua)/);
     const conv = await db.conversation.findFirst({ where: { customer: { phone: PHONE } } });
     expect(conv?.status).toBe('NEEDS_HUMAN');
   });

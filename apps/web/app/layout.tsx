@@ -47,8 +47,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } catch {
     // API down, storefront still renders its shell (§13.3 browsing resilience).
   }
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FashionStore',
+    name: 'TOBI CLOTHINGS',
+    url: 'https://tobiclothings.com',
+    description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra.',
+    telephone: '+233238136060',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Accra',
+      addressCountry: 'GH',
+    },
+    currenciesAccepted: 'GHS',
+    paymentAccepted: 'Mobile Money, Credit Card',
+    priceRange: 'GH₵30 - GH₵1,500',
+  };
+
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-indigo focus:px-4 focus:py-2 focus:text-cream">
           Skip to content

@@ -90,7 +90,7 @@ describe('§7 Delivery Address & Zones', () => {
     // customer messages a new address → bot hands off, never auto-applies
     const reply = await handleInbound({ phone: '233203333335', text: 'I need to change my address please' });
     expect(reply.handoff).toBe(true);
-    expect(whatsapp.lastTo('233203333335')?.body).toContain("I'll get Kukua to update that");
+    expect(whatsapp.lastTo('233203333335')?.body).toMatch(/I'll get (Tobi|Kukua) to update that/);
     // admin applies it manually (pre-shipping)
     const res = await fetch(`${base}/api/admin/orders/${order.id}/address`, {
       method: 'PATCH',

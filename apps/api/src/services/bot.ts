@@ -150,7 +150,9 @@ export async function handleInbound(input: { phone: string; text?: string; kind?
   // Soft greetings
   if (/^(hi|hello|hey|good morning|good afternoon|good evening|wassup|sup)\b/i.test(text)) {
     if (st.cart.length === 0) {
-      const msg = `Hi! 👋 Welcome to TOBI CLOTHINGS.\n\nIf you'd like to see what we have in stock, just reply "menu". Otherwise, let me know how I can help you today!`;
+      const returning = await db.customer.findUnique({ where: { phone } });
+      const welcome = returning && returning.totalOrders > 0 ? 'Hi! 👋 Welcome back to TOBI CLOTHINGS.' : 'Hi! 👋 Welcome to TOBI CLOTHINGS.';
+      const msg = `${welcome}\n\nIf you'd like to see what we have in stock, just reply "menu". Otherwise, let me know how I can help you today!`;
       await sendReliable(phone, msg, { conversationId: conv.id });
       await recordOutbound(conv.id, msg);
       return { replies: [msg] };

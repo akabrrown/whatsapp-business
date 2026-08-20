@@ -4,11 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "prisma generate --schema=prisma/schema.prisma && tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "pretest": "prisma generate --schema=prisma/schema.test.prisma",
     "test": "vitest run",
-    "posttest": "prisma generate || echo posttest: prisma generate failed (API may be running: restart it after tests)",
     "db:push": "prisma db push --skip-generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio"
