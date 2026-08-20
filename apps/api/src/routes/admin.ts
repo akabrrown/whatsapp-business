@@ -53,6 +53,35 @@ admin.post('/login/verify-2fa', rateLimitLogin, async (req, res) => {
 
 admin.use(requireAuth);
 
+admin.post('/change-password', async (req, res) => {
+  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ ok: false, error: 'Current password and new password are required' });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ ok: false, error: 'New password must be at least 8 characters long' });
+  }
+
+  const userId = req.admin?.sub;
+  if (!userId) return res.status(401).json({ ok: false, error: 'unauthorized' });
+
+  const user = await db.adminUser.findUnique({ where: { id: userId } });
+  if (!user) return res.status(404).json({ ok: false, error: 'user_not_found' });
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ ok: false, error: 'Current password is incorrect' });
+  }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+  await db.adminUser.update({
+    where: { id: userId },
+    data: { password: hashed },
+  });
+
+  res.json({ ok: true, message: 'Password updated successfully' });
+});
+
 // ---- Orders (§8, §11) -------------------------------------------------------
 const orderInclude = {
   items: { include: { variant: { include: { product: { select: { name: true, slug: true } } } } } },

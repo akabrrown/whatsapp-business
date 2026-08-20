@@ -2,7 +2,7 @@
 // Settings (owner-only nav): delivery-zone fees (§7, §11.4), staff
 // management (§11.6), manual retention tick (§16), WhatsApp number, categories.
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin, MessageCircle, RefreshCw, UserPlus, Tag, Plus, Trash2 } from 'lucide-react';
+import { MapPin, MessageCircle, RefreshCw, UserPlus, Tag, Plus, Trash2, KeyRound, Lock, Check } from 'lucide-react';
 import { apiFetch, getUser } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
 import Image from 'next/image';
@@ -52,6 +52,10 @@ export default function SettingsPage() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [setup2fa, setSetup2fa] = useState<{ secret: string; qrCodeUrl: string } | null>(null);
   const [verifyCode, setVerifyCode] = useState('');
+
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [passwordBusy, setPasswordBusy] = useState(false);
   
   const isOwner = getUser()?.role === 'owner';
 
@@ -684,6 +688,98 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          {/* Change Password */}
+          <div className="rounded border border-sand/30 bg-white/50 p-4">
+            <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
+              <KeyRound size={13} aria-hidden /> Change Password
+            </p>
+            <p className="mb-3 text-xs text-charcoal/60">Update your admin account password.</p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setError('');
+              setPasswordSuccess('');
+
+              if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+                return setError('Current password and new password are required');
+              }
+              if (passwordForm.newPassword.length < 8) {
+                return setError('New password must be at least 8 characters long');
+              }
+              if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                return setError('New passwords do not match');
+              }
+
+              setPasswordBusy(true);
+              try {
+                const res = await apiFetch<{ ok: boolean; message?: string }>('/api/admin/change-password', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    currentPassword: passwordForm.currentPassword,
+                    newPassword: passwordForm.newPassword,
+                  }),
+                });
+                setPasswordSuccess(res.message || 'Password updated successfully!');
+                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+              } catch (err) {
+                setError((err as Error).message);
+              } finally {
+                setPasswordBusy(false);
+              }
+            }} className="space-y-3">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-charcoal/60 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  placeholder="••••••••"
+                  className={inputStyle}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-charcoal/60 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    placeholder="Min 8 characters"
+                    className={inputStyle}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-charcoal/60 mb-1">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    placeholder="Repeat password"
+                    className={inputStyle}
+                    required
+                  />
+                </div>
+              </div>
+
+              {passwordSuccess && (
+                <div className="flex items-center gap-1.5 rounded bg-wagreen/10 px-3 py-2 text-xs text-wagreen font-medium">
+                  <Check size={14} /> {passwordSuccess}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={passwordBusy}
+                className="mt-1 flex items-center gap-1.5 rounded bg-indigo px-4 py-2 text-xs font-medium text-cream hover:bg-indigo-deep disabled:opacity-50 transition-colors"
+              >
+                <Lock size={12} />
+                {passwordBusy ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          </div>
 
           {/* Security (2FA) */}
           <div className="rounded border border-sand/30 bg-white/50 p-4">
