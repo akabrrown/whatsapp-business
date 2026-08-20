@@ -13,7 +13,7 @@
     "dev:web": "npm run dev -w @rose/web",
     "dev:admin": "npm run dev -w @rose/admin",
     "start:api": "npm run start -w @rose/api",
-    "build": "npm run build -w @rose/web && npm run build -w @rose/admin",
+    "build": "npm run build -w @rose/api && npm run build -w @rose/web && npm run build -w @rose/admin",
     "test": "npm run test -w @rose/api",
     "db:push": "npm run db:push -w @rose/api",
     "db:seed": "npm run db:seed -w @rose/api"
