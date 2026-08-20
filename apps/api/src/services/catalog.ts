@@ -70,8 +70,8 @@ export async function bySlug(slug: string): Promise<CatalogProduct | null> {
 }
 
 /** §3.6: empty search returns empty set; UI shows category shortcuts. */
-export async function search(term: string): Promise<CatalogProduct[]> {
-  const all = await listActive();
+export async function search(term: string, categorySlug?: string): Promise<CatalogProduct[]> {
+  const all = await listActive(categorySlug);
   const t = term.trim().toLowerCase();
   if (!t) return all;
   return all.filter(

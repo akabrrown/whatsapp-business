@@ -3,14 +3,15 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
 
-export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string, category?: string }> }) {
+  const { q, category } = await searchParams;
   const term = q?.trim() ?? '';
-  const [products, categories] = term ? await Promise.all([api.search(term), api.categories()]) : [await api.catalog(), []];
+  const cat = category?.trim() ?? undefined;
+  const [products, categories] = term ? await Promise.all([api.search(term, cat), api.categories()]) : [await api.catalog(cat), []];
 
   return (
     <div className="py-10">
-      <h1 className="headline text-3xl">{term ? `Search: “${term}”` : 'The Collection'}</h1>
+      <h1 className="headline text-3xl">{term ? `Search: “${term}” ${cat ? `in ${categories.find(c => c.slug === cat)?.name || cat}` : ''}` : 'The Collection'}</h1>
       {products.length === 0 ? (
         <div className="mt-12 max-w-md">
           <p className="text-charcoal/70">

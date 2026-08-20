@@ -14,8 +14,13 @@ interface SearchResult {
   category: { name: string; slug: string };
 }
 
-export function LiveSearchBar() {
+interface LiveSearchBarProps {
+  categories?: { name: string; slug: string }[];
+}
+
+export function LiveSearchBar({ categories = [] }: LiveSearchBarProps) {
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -52,7 +57,9 @@ export function LiveSearchBar() {
 
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        let url = `/api/search?q=${encodeURIComponent(query)}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setResults(data.products || []);
@@ -65,12 +72,14 @@ export function LiveSearchBar() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      let url = `/search?q=${encodeURIComponent(query.trim())}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+      router.push(url);
       setOpen(false);
     }
   };
@@ -85,23 +94,40 @@ export function LiveSearchBar() {
 
   return (
     <div ref={containerRef} className="relative z-50 mb-10 w-full max-w-lg">
-      <form onSubmit={handleSubmit} className="relative group">
-        <div className="absolute inset-y-0 left-0 flex items-center text-charcoal/30 group-focus-within:text-indigo transition-colors">
+      <form onSubmit={handleSubmit} className="relative group flex items-center border-b-2 border-charcoal/15 focus-within:border-indigo transition-colors">
+        <div className="flex items-center text-charcoal/30 group-focus-within:text-indigo transition-colors pl-2">
           <Search size={22} strokeWidth={1.5} />
         </div>
+        
+        {categories.length > 0 && (
+          <select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              if (query.trim()) setOpen(true);
+            }}
+            className="ml-3 bg-transparent text-sm text-charcoal/70 outline-none cursor-pointer focus:text-indigo"
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.slug} value={c.slug}>{c.name}</option>
+            ))}
+          </select>
+        )}
+
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => { if (query.trim()) setOpen(true); }}
-          placeholder="Search for tops, denim, accessories..."
-          className="w-full bg-transparent border-b-2 border-charcoal/15 py-3 pl-10 pr-10 text-lg md:text-xl text-charcoal placeholder:text-charcoal/30 placeholder:font-light focus:outline-none focus:border-indigo transition-colors rounded-none"
+          placeholder="Search..."
+          className="flex-1 bg-transparent py-3 pl-3 pr-10 text-lg md:text-xl text-charcoal placeholder:text-charcoal/30 placeholder:font-light focus:outline-none rounded-none"
         />
         {query && (
           <button
             type="button"
             onClick={clearSearch}
-            className="absolute inset-y-0 right-0 flex items-center text-charcoal/40 hover:text-charcoal/80 transition-colors"
+            className="absolute inset-y-0 right-0 flex items-center pr-2 text-charcoal/40 hover:text-charcoal/80 transition-colors"
           >
             {loading ? <Loader2 size={20} className="animate-spin text-indigo" /> : <X size={20} strokeWidth={1.5} />}
           </button>

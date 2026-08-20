@@ -5,7 +5,11 @@ import { Search, X } from "lucide-react";
 import { LiveSearchBar } from "./LiveSearchBar";
 import { usePathname } from "next/navigation";
 
-export function SearchOverlay() {
+interface SearchOverlayProps {
+  categories?: { name: string; slug: string }[];
+}
+
+export function SearchOverlay({ categories = [] }: SearchOverlayProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -64,7 +68,7 @@ export function SearchOverlay() {
           
           <div className="flex-1 px-6 md:px-8 mt-10">
             <div className="max-w-2xl mx-auto">
-              <LiveSearchBar />
+              <LiveSearchBar categories={categories} />
               
               <div className="mt-8 text-charcoal/50 text-sm flex gap-4">
                 <span>Press <kbd className="font-sans px-2 py-1 bg-charcoal/5 rounded border border-charcoal/10 text-charcoal">ESC</kbd> to close</span>

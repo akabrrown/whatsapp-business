@@ -21,7 +21,7 @@ export default async function HomePage() {
       <section className="relative -mx-4 md:-mx-6">
         <div className="grid md:grid-cols-[55%_45%]">
           <div className="relative z-10 flex flex-col justify-center px-6 py-16 md:py-24 lg:pr-0">
-            <LiveSearchBar />
+            <LiveSearchBar categories={categories} />
             <p className="mb-4 inline-block w-fit bg-sand/30 px-2 py-1 text-xs tracking-widest text-charcoal/70">
               ACCRA · BY TOBI
             </p>

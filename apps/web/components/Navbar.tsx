@@ -62,7 +62,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
           {/* Actions: Search + Cart */}
           <div className="flex items-center gap-4">
-            <SearchOverlay />
+            <SearchOverlay categories={categories} />
             <button
               aria-label="Shopping bag"
               onClick={() => setDrawerOpen(true)}

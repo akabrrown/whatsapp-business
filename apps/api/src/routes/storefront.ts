@@ -18,7 +18,8 @@ storefront.get('/catalog', async (req, res) => {
 });
 storefront.get('/catalog/search', async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q : '';
-  res.json({ ok: true, products: await catalog.search(q) }); // §3.6: may be empty
+  const c = typeof req.query.category === 'string' ? req.query.category : undefined;
+  res.json({ ok: true, products: await catalog.search(q, c) }); // §3.6: may be empty
 });
 storefront.get('/categories', async (_req, res) => {
   res.json({ ok: true, categories: await catalog.categories() });
