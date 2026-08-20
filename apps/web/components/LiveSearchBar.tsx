@@ -84,10 +84,10 @@ export function LiveSearchBar() {
   if (!mounted) return null;
 
   return (
-    <div ref={containerRef} className="relative z-50 mb-8 w-full max-w-2xl">
+    <div ref={containerRef} className="relative z-50 mb-10 w-full max-w-lg">
       <form onSubmit={handleSubmit} className="relative group">
-        <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-charcoal/50 group-focus-within:text-indigo transition-colors">
-          <Search size={20} strokeWidth={2} />
+        <div className="absolute inset-y-0 left-0 flex items-center text-charcoal/30 group-focus-within:text-indigo transition-colors">
+          <Search size={22} strokeWidth={1.5} />
         </div>
         <input
           type="text"
@@ -95,15 +95,15 @@ export function LiveSearchBar() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => { if (query.trim()) setOpen(true); }}
           placeholder="Search for tops, denim, accessories..."
-          className="w-full bg-white/90 backdrop-blur-md border border-white/40 rounded-full py-4 pl-12 pr-12 text-lg text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-indigo/50 shadow-sm transition-all"
+          className="w-full bg-transparent border-b-2 border-charcoal/15 py-3 pl-10 pr-10 text-lg md:text-xl text-charcoal placeholder:text-charcoal/30 placeholder:font-light focus:outline-none focus:border-indigo transition-colors rounded-none"
         />
         {query && (
           <button
             type="button"
             onClick={clearSearch}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-charcoal/40 hover:text-charcoal/80 transition-colors"
+            className="absolute inset-y-0 right-0 flex items-center text-charcoal/40 hover:text-charcoal/80 transition-colors"
           >
-            {loading ? <Loader2 size={20} className="animate-spin text-indigo" /> : <X size={20} />}
+            {loading ? <Loader2 size={20} className="animate-spin text-indigo" /> : <X size={20} strokeWidth={1.5} />}
           </button>
         )}
       </form>
