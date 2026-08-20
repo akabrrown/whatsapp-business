@@ -3,7 +3,7 @@
 import { db } from '../db.js';
 import { now, DAY } from '../clock.js';
 import { sendReliable } from './messaging.js';
-import { CHECKIN_DAYS, CROSSSELL_DAYS, WINBACK_DAYS } from '@rose/shared';
+import { CHECKIN_DAYS, CROSSSELL_DAYS, WINBACK_DAYS } from '../shared.js';
 
 export interface TickResult {
   checkins: number;

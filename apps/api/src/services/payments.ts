@@ -10,7 +10,7 @@ import { sendReliable } from './messaging.js';
 import { createOrder, cancelOrder } from './orders.js';
 import { findActiveToken } from './handoff.js';
 import { hub } from './realtime.js';
-import { OrderSource, PaymentStatus, TokenStatus, MAX_PAYMENT_RETRIES } from '@rose/shared';
+import { OrderSource, PaymentStatus, TokenStatus, MAX_PAYMENT_RETRIES } from '../shared.js';
 
 export interface WebhookOutcome {
   status: number;

@@ -11,7 +11,7 @@ import { takeOver, releaseToBot } from '../services/bot.js';
 import { sendReliable } from '../services/messaging.js';
 import { validateUpload, uploadToCloudinary } from '../adapters/images.js';
 import { now, DAY } from '../clock.js';
-import { STALE_PACKED_HOURS, OrderSource } from '@rose/shared';
+import { STALE_PACKED_HOURS, OrderSource } from '../shared.js';
 import { hub } from '../services/realtime.js';
 import { generateSecret, generateURI, generateSync, verifySync } from 'otplib';
 import QRCode from 'qrcode';

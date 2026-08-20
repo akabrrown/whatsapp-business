@@ -3,7 +3,7 @@
 import { kv } from '../sessionStore.js';
 import { now } from '../clock.js';
 import { db } from '../db.js';
-import { CART_TTL_MIN, type Cart, type CartItem } from '@rose/shared';
+import { CART_TTL_MIN, type Cart, type CartItem } from '../shared.js';
 import { InsufficientStock } from './inventory.js';
 
 const key = (sessionId: string) => `cart:${sessionId}`;

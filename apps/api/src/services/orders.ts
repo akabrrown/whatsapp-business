@@ -6,7 +6,7 @@ import { InsufficientStock } from './inventory.js';
 import { sendReliable } from './messaging.js';
 import { hub } from './realtime.js';
 import { config } from '../config.js';
-import { formatGHS, OrderStatus, VIP_THRESHOLD_PESWAS, type OrderSource, STALE_PACKED_HOURS } from '@rose/shared';
+import { formatGHS, OrderStatus, VIP_THRESHOLD_PESWAS, type OrderSource, STALE_PACKED_HOURS } from '../shared.js';
 
 export class InvalidTransition extends Error {
   constructor(public from: string, public to: string) {

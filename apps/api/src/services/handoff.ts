@@ -8,7 +8,7 @@ import { waDeepLink } from '../adapters/whatsapp.js';
 import { getWhatsAppNumber } from './settings.js';
 import { getOrCreateCustomer } from './orders.js';
 import { config } from '../config.js';
-import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, type CartItem } from '@rose/shared';
+import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, type CartItem } from '../shared.js';
 
 export class HandoffError extends Error {
   constructor(public code: 'RATE_LIMITED' | 'DUPLICATE_SUSPECT' | 'EMPTY_CART' | 'SOLD_OUT', message: string) {

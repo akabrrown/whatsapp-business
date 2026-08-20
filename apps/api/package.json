@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
-    "@rose/shared": "*",
     "@upstash/redis": "^1.38.2",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.10.1",

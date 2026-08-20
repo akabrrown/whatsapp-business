@@ -8,7 +8,7 @@ import { initPaymentForToken } from '../services/payments.js';
 import { matchZone } from '../services/address.js';
 import { InsufficientStock } from '../services/inventory.js';
 import { db } from '../db.js';
-import { OrderSource } from '@rose/shared';
+import { OrderSource } from '../shared.js';
 
 export const storefront = Router();
 

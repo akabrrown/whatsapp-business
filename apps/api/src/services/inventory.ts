@@ -2,7 +2,7 @@
 // Every mutation writes an inventory_logs row (§6.6) and pushes realtime updates (§6.5, §11.3).
 import { db } from '../db.js';
 import { hub } from './realtime.js';
-import { ChangeType } from '@rose/shared';
+import { ChangeType } from '../shared.js';
 
 export class InsufficientStock extends Error {
   constructor(public variantId: string) {

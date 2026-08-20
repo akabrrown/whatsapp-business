@@ -1,7 +1,7 @@
 // Delivery address & zone matching (§7.1–7.6).
 // Text matching via zone names/aliases; pin matching via nearest seeded coordinate.
 import { db } from '../db.js';
-import type { ZoneMatch } from '@rose/shared';
+import type { ZoneMatch } from '../shared.js';
 
 function norm(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
