@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { storefront } from './routes/storefront.js';
 import { webhooks } from './routes/webhooks.js';
 import { admin } from './routes/admin.js';
+import { cronRouter } from './routes/cron.js';
 import { logger } from './logger.js';
 
 const defaultOrigins = [
@@ -100,6 +101,7 @@ export function createApp() {
   app.get('/api/health', healthHandler);
   app.use('/api', storefront);
   app.use('/api/admin', admin);
+  app.use('/api/cron', cronRouter);
   app.use('/webhooks', webhooks);
 
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

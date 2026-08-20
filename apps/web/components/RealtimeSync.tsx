@@ -1,58 +1,33 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function RealtimeSync() {
   const router = useRouter();
-  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Reconnection loop state
-    let reconnectTimer: ReturnType<typeof setTimeout>;
+    // Replaced WebSocket with REST polling for Vercel Serverless compatibility
+    let pollTimer: ReturnType<typeof setTimeout>;
 
-    function connect() {
-      if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-      const wsUrl = process.env.NEXT_PUBLIC_API_URL 
-        ? process.env.NEXT_PUBLIC_API_URL.replace(/^http/, 'ws') 
-        : 'ws://localhost:4000';
-
-      const ws = new WebSocket(`${wsUrl}/ws?channel=web`);
-      wsRef.current = ws;
-
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message.type === 'catalog_updated') {
-            // Tell Next.js App Router to re-fetch Server Components quietly in the background
-            router.refresh();
-          }
-        } catch {
-          // ignore parse errors
-        }
-      };
-
-      ws.onerror = () => {
-        // Quietly failover on server cold-starts; onclose handles reconnection
-      };
-
-      ws.onclose = () => {
-        wsRef.current = null;
-        reconnectTimer = setTimeout(connect, 6000);
-      };
+    function poll() {
+      // In a real implementation, you'd fetch a lightweight endpoint to check if the cart changed.
+      // To minimize server cost, we can rely on Next.js client-side SWR/Revalidation or 
+      // just call a simple lightweight health/sync endpoint.
+      // For now, we'll just quietly trigger router.refresh() every 5 seconds. 
+      // Since Next.js caches, if nothing changed on the server, it's very cheap.
+      
+      // We don't need a full API request here because router.refresh() will automatically
+      // re-fetch Server Components and React will diff the UI.
+      router.refresh();
+      
+      pollTimer = setTimeout(poll, 5000); // 5 seconds polling interval
     }
 
-    connect();
+    poll();
 
     return () => {
-      clearTimeout(reconnectTimer);
-      if (wsRef.current) {
-        // Remove close listener so it doesn't try to reconnect on unmount
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
+      clearTimeout(pollTimer);
     };
   }, [router]);
 
