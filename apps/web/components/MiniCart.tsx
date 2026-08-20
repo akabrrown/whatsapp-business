@@ -123,7 +123,9 @@ export function MiniCart() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: phone.trim(),
+          address: zoneText.trim(),
           sessionId,
+          items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
           zoneName: zone?.name,
           deliveryFeeP: zone?.feeP,
           confirmedDuplicate: confirmDup,

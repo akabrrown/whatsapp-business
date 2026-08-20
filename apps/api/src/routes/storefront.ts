@@ -124,7 +124,8 @@ storefront.post('/checkout/online', async (req, res) => {
   };
 
   if (!phone) return res.status(400).json({ ok: false, error: 'phone required', message: 'Phone number is required.' });
-  const cartItems = sessionId ? ((await cart.get(sessionId))?.items ?? items ?? []) : items ?? [];
+  const serverCart = sessionId ? await cart.get(sessionId) : null;
+  const cartItems = serverCart && serverCart.items.length > 0 ? serverCart.items : (items ?? []);
 
   try {
     const token = await handoff.createToken({
