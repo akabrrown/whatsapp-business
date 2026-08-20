@@ -137,31 +137,31 @@ export function MiniCart() {
             </p>
           )}
           {lines.map((l) => (
-            <div key={l.variantId} className="mb-5 flex gap-4">
+            <div key={l.variantId} className="mb-5 flex gap-4 items-start">
               {l.image && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={l.image} alt={l.name} className="h-20 w-16 object-cover" />
+                <img src={l.image} alt={l.name} className="h-20 w-16 shrink-0 rounded object-cover bg-sand/20" />
               )}
-              <div className="flex-1">
-                <p className="text-sm text-charcoal">{l.name}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-charcoal truncate">{l.name}</p>
                 <p className="text-xs uppercase tracking-wide text-charcoal/50">
                   {[l.size, l.color].filter(Boolean).join(' · ') || 'One style'}
                 </p>
                 <div className="mt-2 flex items-center gap-3 text-sm">
-                  <button aria-label="Less" className="text-indigo" onClick={() => setQty(l.variantId, l.qty - 1)}>
+                  <button aria-label="Less" className="text-indigo touch-manipulation p-1" onClick={() => setQty(l.variantId, l.qty - 1)}>
                     <Minus size={16} aria-hidden />
                   </button>
-                  <span>{l.qty}</span>
+                  <span className="min-w-[1rem] text-center">{l.qty}</span>
                   <button
                     aria-label="More"
-                    className="text-indigo disabled:cursor-not-allowed disabled:text-charcoal/25"
+                    className="text-indigo touch-manipulation p-1 disabled:cursor-not-allowed disabled:text-charcoal/25"
                     disabled={l.maxQty !== undefined && l.qty >= l.maxQty}
                     onClick={() => setQty(l.variantId, l.qty + 1)}
                   >
                     <Plus size={16} aria-hidden />
                   </button>
                   {l.maxQty !== undefined && l.qty >= l.maxQty && (
-                    <span className="text-xs text-charcoal/50">Max stock reached</span>
+                    <span className="text-[11px] text-charcoal/50">Max stock reached</span>
                   )}
                   <span className="ml-auto font-medium text-indigo">{formatGHS(l.priceP * l.qty)}</span>
                 </div>
@@ -178,9 +178,9 @@ export function MiniCart() {
                     value={zoneText}
                     onChange={(e) => setZoneText(e.target.value)}
                     placeholder="e.g. East Legon, Accra"
-                    className="flex-1 border-b border-charcoal/30 bg-transparent py-1 text-sm outline-none focus:border-indigo"
+                    className="flex-1 border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation"
                   />
-                  <button onClick={checkZone} className="text-xs text-indigo underline">check</button>
+                  <button onClick={checkZone} className="text-xs text-indigo underline touch-manipulation">check</button>
                 </div>
               </label>
               {zone && <p className="text-xs text-charcoal/70">Delivery to {zone.name}: {formatGHS(zone.feeP)}</p>}
@@ -191,7 +191,7 @@ export function MiniCart() {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g. 024 123 4567"
                   inputMode="tel"
-                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-1 text-sm outline-none focus:border-indigo"
+                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation"
                 />
               </label>
             </div>

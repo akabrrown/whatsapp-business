@@ -103,7 +103,26 @@ export async function createToken(input: {
   const lines = token.items.map((ti) => {
     const lineP = ti.variant.priceP * ti.qty;
     totalP += lineP;
-    return { name: ti.variant.product.name, size: ti.variant.size, color: ti.variant.color, qty: ti.qty, lineP };
+    let imageUrl = '';
+    try {
+      const parsedImages = typeof ti.variant.product.images === 'string'
+        ? JSON.parse(ti.variant.product.images)
+        : ti.variant.product.images;
+      if (Array.isArray(parsedImages) && parsedImages.length > 0 && parsedImages[0].startsWith('http')) {
+        imageUrl = parsedImages[0];
+      }
+    } catch {
+      /* ignore invalid image json */
+    }
+    return {
+      name: ti.variant.product.name,
+      slug: ti.variant.product.slug,
+      imageUrl,
+      size: ti.variant.size,
+      color: ti.variant.color,
+      qty: ti.qty,
+      lineP,
+    };
   });
   const feeP = input.deliveryFeeP ?? 0;
   totalP += feeP;
@@ -115,12 +134,16 @@ export async function createToken(input: {
     `🔑 *Order Token:* \`${code}\`\n` +
     `⏳ *Stock Reserved:* 15 Minutes\n\n` +
     `📦 *ITEMS IN YOUR BAG:*\n` +
-    lines.map((l) => `• *${l.name}*${l.size ? ` (Size: ${l.size})` : ''}${l.color ? ` (${l.color})` : ''}\n   Qty: ${l.qty} × ${formatGHS(l.lineP / l.qty)} = *${formatGHS(l.lineP)}*`).join('\n') +
+    lines.map((l) =>
+      `• *${l.name}*${l.size ? ` (Size: ${l.size})` : ''}${l.color ? ` (${l.color})` : ''}\n` +
+      `   Qty: ${l.qty} × ${formatGHS(l.lineP / l.qty)} = *${formatGHS(l.lineP)}*` +
+      (l.imageUrl ? `\n   🖼️ Photo: ${l.imageUrl}` : '')
+    ).join('\n\n') +
     `\n\n📍 *DELIVERY LOCATION:*\n` +
     (input.zoneName ? `   ${input.zoneName} — *${formatGHS(feeP)}*` : `   Accra Delivery — *${formatGHS(feeP)}*`) +
     `\n\n💰 *ORDER TOTAL:* *${formatGHS(totalP)}*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `_Tap send to confirm your delivery address & get your instant payment link!_ ✨`;
+    `👉 *Press the green Send button (✈️) to receive your instant payment link!* ✨`;
 
   const whatsappNumber = await getWhatsAppNumber();
   return {

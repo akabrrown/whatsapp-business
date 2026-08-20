@@ -10,3 +10,19 @@ body {
 .headline {
   @apply font-serif text-indigo;
 }
+
+/* Prevent unwanted device zoom on mobile inputs & double-taps */
+input, select, textarea {
+  font-size: 16px;
+  touch-action: manipulation;
+}
+
+@media (min-width: 640px) {
+  input, select, textarea {
+    font-size: 0.875rem; /* 14px on desktop */
+  }
+}
+
+button, a {
+  touch-action: manipulation;
+}
