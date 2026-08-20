@@ -104,6 +104,8 @@ export function createApp() {
   app.use('/api/admin', admin);
   app.use('/api/cron', cronRouter);
   app.use('/webhooks', webhooks);
+  app.use('/api/webhooks', webhooks);
+  app.use('/api/paystack', webhooks);
 
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     logger.error('Unhandled error', { message: err?.message, stack: err?.stack });

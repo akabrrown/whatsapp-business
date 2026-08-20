@@ -9,7 +9,7 @@ import { logger } from '../logger.js';
 export const webhooks = Router();
 
 // Raw body is REQUIRED for Paystack HMAC verification (§14.3).
-webhooks.post('/paystack', raw({ type: '*/*' }), async (req, res) => {
+webhooks.post(['/paystack', '/paystack/webhook', '/webhook'], raw({ type: '*/*' }), async (req, res) => {
   const rawBody = req.body.toString('utf8');
   const signature = req.headers['x-paystack-signature'] as string | undefined;
   const outcome = await handlePaystackWebhook(rawBody, signature);
