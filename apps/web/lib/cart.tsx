@@ -75,8 +75,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const meta = JSON.parse(localStorage.getItem('rd-cart-meta') ?? '{}') as Record<string, Meta>;
     fetch(`${API}/api/cart/${sid}`)
-      .then((r) => r.json())
-      .then((r: { cart?: { items?: { variantId: string; qty: number }[] } }) => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((r: { cart?: { items?: { variantId: string; qty: number }[] } } | null) => {
+        if (!r) return;
         const items = r.cart?.items ?? [];
         if (items.length > 0) {
           setLines((prev) => {

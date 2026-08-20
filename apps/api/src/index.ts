@@ -34,8 +34,8 @@ if (process.env.NODE_ENV !== 'test') {
   sweep.unref();
   retention.unref();
 
-  server.listen(config.port, () => {
-    logger.info('ROSE & DENIM API listening', { port: config.port, paystack: config.paystack.mode, whatsapp: config.whatsapp.mode });
+  server.listen(config.port, '0.0.0.0', () => {
+    logger.info('ROSE & DENIM API listening', { port: config.port, host: '0.0.0.0', paystack: config.paystack.mode, whatsapp: config.whatsapp.mode });
   });
 
   // Graceful shutdown (§13 reliability)
