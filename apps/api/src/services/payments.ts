@@ -7,14 +7,14 @@ import { now } from '../clock.js';
 import { config } from '../config.js';
 import { paystack } from '../adapters/paystack.js';
 import { sendReliable } from './messaging.js';
-import { createOrder, cancelOrder } from './orders.js';
+import { createOrder, cancelOrder, getOrCreateCustomer } from './orders.js';
 import { findActiveToken } from './handoff.js';
 import { hub } from './realtime.js';
-import { OrderSource, PaymentStatus, TokenStatus, MAX_PAYMENT_RETRIES } from '../shared.js';
+import { OrderSource, PaymentStatus, TokenStatus, ConversationStatus, MAX_PAYMENT_RETRIES, formatGHS } from '../shared.js';
 
 export interface WebhookOutcome {
   status: number;
-  body: { ok: boolean; detail?: string };
+  body: { ok: boolean; detail?: string; orderId?: string; number?: string };
 }
 
 /** §14.3: constant-time HMAC-SHA512 verification. */
@@ -75,18 +75,24 @@ async function chargeSuccess(data: { reference: string; amount?: number; channel
     (data.metadata?.channel as OrderSource | undefined) ?? (token ? OrderSource.WEBSITE : OrderSource.WHATSAPP_DIRECT);
   const phone = token?.phone ?? (data.metadata?.phone as string | undefined) ?? 'unknown';
   const items = token?.items.map((ti: { variantId: string; qty: number }) => ({ variantId: ti.variantId, qty: ti.qty })) ?? [];
-  const feeP = (data.metadata?.deliveryFeeP as number | undefined) ?? 0;
-  const zoneName = (data.metadata?.zoneName as string | undefined) ?? undefined;
+  const feeP = (data.metadata?.deliveryFeeP as number | undefined) ?? (token?.deliveryFeeP ?? 0);
+  const zoneName = (data.metadata?.zoneName as string | undefined) ?? token?.zoneName ?? undefined;
   const address = (data.metadata?.address as string | undefined) ?? undefined;
+  const fulfillmentType = (data.metadata?.fulfillmentType as string | undefined) ?? token?.fulfillmentType ?? 'DELIVERY';
+  const latitude = (data.metadata?.latitude as number | undefined) ?? token?.latitude ?? undefined;
+  const longitude = (data.metadata?.longitude as number | undefined) ?? token?.longitude ?? undefined;
 
   const { order, stockShortfall } = await createOrder({
     phone,
     items,
     source,
     paid: true,
+    fulfillmentType,
     deliveryFeeP: feeP,
     zoneName,
     deliveryAddress: address,
+    latitude,
+    longitude,
     needsAdminReview: tokenExpired, // §5.6: manual review flag
   });
 
@@ -108,43 +114,38 @@ async function chargeSuccess(data: { reference: string; amount?: number; channel
   }
 
   // §5.1/§5.2: identical confirmation regardless of channel; §5.10 bank-transfer note.
-  let confirmation = `Payment Received! Your order ${order.number} is confirmed. Thank you!`;
-  if (data.channel === 'bank_transfer') {
-    confirmation += " Bank transfers can take a little longer to confirm: we'll notify you the moment it clears.";
+  const isBank = (data.channel ?? '').toLowerCase().includes('bank');
+  const receipt = `Your payment of ${formatGHS(order.totalP)} for order ${order.number} is confirmed! We are preparing your order.`;
+  await sendReliable(phone, receipt, { templateName: 'order_paid' });
+  if (isBank) {
+    await sendReliable(phone, 'Bank transfer payments may take a few hours to clear before dispatch.', { templateName: 'order_paid_bank' });
   }
-  await sendReliable(phone, confirmation, { templateName: 'order_paid' });
-  return { status: 200, body: { ok: true, detail: 'order_created' } };
+
+  hub.broadcastAdmin('order.paid', { id: order.id, number: order.number, totalP: order.totalP });
+  return { status: 200, body: { ok: true, orderId: order.id, number: order.number } };
 }
 
 async function chargeFailure(data: { reference: string; metadata?: Record<string, unknown> }): Promise<WebhookOutcome> {
   const tokenCode = (data.metadata?.tokenCode as string | undefined) ?? null;
-  if (!tokenCode) return { status: 200, body: { ok: true, detail: 'no_token' } };
+  const token = tokenCode ? await db.orderToken.findUnique({ where: { code: tokenCode } }) : null;
+  const phone = token?.phone ?? (data.metadata?.phone as string | undefined);
+  if (!phone) return { status: 200, body: { ok: true, detail: 'no_phone_to_notify' } };
 
-  await db.payment.upsert({
-    where: { paystackRef: data.reference },
-    update: { status: PaymentStatus.FAILED },
-    create: { paystackRef: data.reference, amountP: 0, status: PaymentStatus.FAILED, tokenCode },
-  });
+  const customer = await getOrCreateCustomer(phone);
+  const conv = await db.conversation.findFirst({ where: { customerId: customer.id }, orderBy: { lastMsgAt: 'desc' } });
+  const failures = (conv?.failCount ?? 0) + 1;
+  if (conv) await db.conversation.update({ where: { id: conv.id }, data: { failCount: failures } });
 
-  // §5.3/§5.4: reservation retained for exactly one retry.
-  const failKey = `payfail:${tokenCode}`;
-  const failures = ((await kv.get<number>(failKey)) ?? 0) + 1;
-  await kv.set(failKey, failures, 3_600_000);
-
-  const token = await db.orderToken.findUnique({ where: { code: tokenCode } });
-  const phone = token?.phone;
-  if (!phone) return { status: 200, body: { ok: true, detail: 'token_missing' } };
-
-  if (failures <= MAX_PAYMENT_RETRIES) {
-    // Fresh payment link, same reservation.
+  // §5.5: first failure → retry link; second consecutive → human handoff.
+  if (failures <= MAX_PAYMENT_RETRIES && tokenCode) {
     const retry = await initPaymentForToken(tokenCode);
-    await sendReliable(phone, `Your payment didn't go through. Try again here: ${retry ?? 'your payment link'}`, { templateName: 'payment_retry' });
-  } else {
-    // §5.5: stop auto-retrying; offer human assistance.
-    await sendReliable(phone, "Having trouble? I can connect you with our team.", { templateName: 'payment_help' });
-    const conv = await db.conversation.findFirst({ where: { customer: { phone } }, orderBy: { lastMsgAt: 'desc' } });
-    if (conv) await db.conversation.update({ where: { id: conv.id }, data: { status: 'NEEDS_HUMAN' } });
-    hub.broadcastAdmin('inbox.alert', { phone, reason: 'payment_failures' });
+    if (retry) {
+      await sendReliable(phone, `Payment did not go through. You can retry with this link: ${retry}`, { templateName: 'payment_failed_retry' });
+    }
+  } else if (conv) {
+    await db.conversation.update({ where: { id: conv.id }, data: { status: ConversationStatus.NEEDS_HUMAN } });
+    await sendReliable(phone, "Looks like you are having trouble with payment. Tobi will message you shortly to assist.", { templateName: 'payment_failed_human' });
+    hub.broadcastAdmin('inbox.alert', { phone, reason: 'repeated_payment_failures' });
   }
   return { status: 200, body: { ok: true, detail: failures <= MAX_PAYMENT_RETRIES ? 'retry_link_sent' : 'human_offered' } };
 }
@@ -152,7 +153,19 @@ async function chargeFailure(data: { reference: string; metadata?: Record<string
 export let lastPaystackError: string | null = null;
 
 /** Initialize a Paystack charge for an active token (used by bot & website). */
-export async function initPaymentForToken(tokenCode: string, extra?: { phone?: string; zoneName?: string; deliveryFeeP?: number; address?: string; channel?: OrderSource }): Promise<string | null> {
+export async function initPaymentForToken(
+  tokenCode: string,
+  extra?: {
+    phone?: string;
+    zoneName?: string;
+    deliveryFeeP?: number;
+    address?: string;
+    channel?: OrderSource;
+    fulfillmentType?: string;
+    latitude?: number;
+    longitude?: number;
+  },
+): Promise<string | null> {
   lastPaystackError = null;
   const token = await findActiveToken(tokenCode);
   if (!token) {
@@ -161,7 +174,8 @@ export async function initPaymentForToken(tokenCode: string, extra?: { phone?: s
   }
   let subtotalP = 0;
   for (const ti of token.items) subtotalP += ti.variant.priceP * ti.qty;
-  const totalP = subtotalP + (extra?.deliveryFeeP ?? 0);
+  const feeP = extra?.fulfillmentType === 'PICKUP' ? 0 : (extra?.deliveryFeeP ?? (token.deliveryFeeP ?? 0));
+  const totalP = subtotalP + feeP;
 
   const reference = `rd_${crypto.randomUUID()}`;
   const res = await paystack.initialize({
@@ -171,9 +185,12 @@ export async function initPaymentForToken(tokenCode: string, extra?: { phone?: s
     metadata: {
       tokenCode,
       phone: token.phone,
-      zoneName: extra?.zoneName,
-      deliveryFeeP: extra?.deliveryFeeP ?? 0,
+      fulfillmentType: extra?.fulfillmentType ?? token.fulfillmentType ?? 'DELIVERY',
+      zoneName: extra?.zoneName ?? token.zoneName,
+      deliveryFeeP: feeP,
       address: extra?.address,
+      latitude: extra?.latitude ?? token.latitude,
+      longitude: extra?.longitude ?? token.longitude,
       channel: extra?.channel, // §9.1/§9.2: tag the originating channel
     },
   });

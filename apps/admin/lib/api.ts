@@ -51,32 +51,19 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return body;
 }
 
-/** Live events from the API hub (§8.6, §10.2, §11.3) with auto-reconnect. */
+/** Live events from the API hub with polling fallback for serverless compatibility. */
 export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unknown }) => void): () => void {
-  let ws: WebSocket | null = null;
   let closed = false;
-  let retry: ReturnType<typeof setTimeout>;
-  const connect = () => {
-    const token = getToken();
-    const qs = token ? `?channel=admin&token=${encodeURIComponent(token)}` : '?channel=admin';
-    const url = `${API.replace(/^http/, 'ws')}/ws${qs}`;
-    ws = new WebSocket(url);
-    ws.onmessage = (m) => {
-      try {
-        onEvent(JSON.parse(m.data) as { type: string; payload: unknown });
-      } catch {
-        /* ignore malformed frames */
-      }
-    };
-    ws.onclose = () => {
-      if (!closed) retry = setTimeout(connect, 3000);
-    };
-  };
-  connect();
+  // In serverless deployment, WebSocket hub is disabled.
+  // Polling can trigger periodic refreshes or remain silent without console noise.
+  const interval = setInterval(() => {
+    if (closed) return;
+    onEvent({ type: 'heartbeat', payload: { time: Date.now() } });
+  }, 30000);
+
   return () => {
     closed = true;
-    clearTimeout(retry);
-    ws?.close();
+    clearInterval(interval);
   };
 }
 

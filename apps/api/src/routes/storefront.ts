@@ -5,7 +5,7 @@ import * as cart from '../services/cart.js';
 import * as handoff from '../services/handoff.js';
 import { findActiveToken } from '../services/handoff.js';
 import { initPaymentForToken, lastPaystackError } from '../services/payments.js';
-import { matchZone } from '../services/address.js';
+import { matchZone, matchPin } from '../services/address.js';
 import { InsufficientStock } from '../services/inventory.js';
 import { db } from '../db.js';
 import { OrderSource } from '../shared.js';
@@ -55,6 +55,14 @@ storefront.get('/zones/match', async (req, res) => {
   const text = typeof req.query.text === 'string' ? req.query.text : '';
   res.json({ ok: true, match: await matchZone(text) });
 });
+storefront.get('/zones/match-pin', async (req, res) => {
+  const lat = parseFloat(String(req.query.lat ?? ''));
+  const lng = parseFloat(String(req.query.lng ?? ''));
+  if (isNaN(lat) || isNaN(lng)) {
+    return res.status(400).json({ ok: false, error: 'valid lat and lng required' });
+  }
+  res.json({ ok: true, match: await matchPin(lat, lng) });
+});
 
 // ---- Cart sessions (§4) --------------------------------------------------
 storefront.get('/cart/:sessionId', async (req, res) => {
@@ -87,19 +95,31 @@ storefront.post('/cart/:sessionId/sync', async (req, res) => {
 
 // ---- Handoff (§4.6–4.8) ---------------------------------------------------
 storefront.post('/handoff', async (req, res) => {
-  const { phone, items, sessionId, zoneName, deliveryFeeP, confirmedDuplicate } = req.body as {
+  const { phone, items, sessionId, zoneName, deliveryFeeP, confirmedDuplicate, fulfillmentType, latitude, longitude } = req.body as {
     phone?: string;
     items?: { variantId: string; qty: number }[];
     sessionId?: string;
     zoneName?: string;
     deliveryFeeP?: number;
     confirmedDuplicate?: boolean;
+    fulfillmentType?: string;
+    latitude?: number;
+    longitude?: number;
   };
   if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
   // §4.5: reconcile: server cart wins when a session is provided.
   const cartItems = sessionId ? ((await cart.get(sessionId))?.items ?? items ?? []) : items ?? [];
   try {
-    const result = await handoff.createToken({ phone, items: cartItems, zoneName, deliveryFeeP, confirmedDuplicate });
+    const result = await handoff.createToken({
+      phone,
+      items: cartItems,
+      zoneName,
+      deliveryFeeP,
+      confirmedDuplicate,
+      fulfillmentType,
+      latitude,
+      longitude,
+    });
     if (sessionId) await cart.clear(sessionId);
     res.json({ ok: true, handoff: result });
   } catch (e) {
@@ -113,7 +133,7 @@ storefront.post('/handoff', async (req, res) => {
 
 // ---- Direct Web Checkout (Online Payment via MoMo / Card) -----------------
 storefront.post('/checkout/online', async (req, res) => {
-  const { phone, address, items, sessionId, zoneName, deliveryFeeP, confirmedDuplicate } = req.body as {
+  const { phone, address, items, sessionId, zoneName, deliveryFeeP, confirmedDuplicate, fulfillmentType, latitude, longitude } = req.body as {
     phone?: string;
     address?: string;
     items?: { variantId: string; qty: number }[];
@@ -121,6 +141,9 @@ storefront.post('/checkout/online', async (req, res) => {
     zoneName?: string;
     deliveryFeeP?: number;
     confirmedDuplicate?: boolean;
+    fulfillmentType?: string;
+    latitude?: number;
+    longitude?: number;
   };
 
   if (!phone) return res.status(400).json({ ok: false, error: 'phone required', message: 'Phone number is required.' });
@@ -134,6 +157,9 @@ storefront.post('/checkout/online', async (req, res) => {
       zoneName,
       deliveryFeeP,
       confirmedDuplicate,
+      fulfillmentType,
+      latitude,
+      longitude,
     });
 
     const paymentUrl = await initPaymentForToken(token.code, {
@@ -141,6 +167,9 @@ storefront.post('/checkout/online', async (req, res) => {
       zoneName,
       deliveryFeeP,
       address,
+      fulfillmentType,
+      latitude,
+      longitude,
       channel: OrderSource.WEBSITE,
     });
 
@@ -321,11 +350,16 @@ storefront.get('/orders/track/:query', async (req, res) => {
     order: {
       number: order.number,
       status: order.status,
+      fulfillmentType: order.fulfillmentType ?? 'DELIVERY',
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       packedAt: order.packedAt,
       deliveredAt: order.deliveredAt,
+      deliveryAddress: order.deliveryAddress,
       zoneName: order.zoneName,
+      latitude: order.latitude,
+      longitude: order.longitude,
+      googleMapsUrl: order.latitude != null && order.longitude != null ? `https://www.google.com/maps?q=${order.latitude},${order.longitude}` : null,
       deliveryFeeP: order.deliveryFeeP,
       subtotalP: order.subtotalP,
       totalP: order.totalP,

@@ -75,6 +75,12 @@ export const CHECKIN_DAYS = 3;
 export const CROSSSELL_DAYS = 14;
 export const WINBACK_DAYS = 60;
 
+export const FulfillmentType = {
+  DELIVERY: 'DELIVERY',
+  PICKUP: 'PICKUP',
+} as const;
+export type FulfillmentType = (typeof FulfillmentType)[keyof typeof FulfillmentType];
+
 // ---- shapes -----------------------------------------------------------
 export interface CartItem {
   variantId: string;
@@ -94,6 +100,9 @@ export interface TokenPayload {
   items: CartItem[];
   expiresAt: string;
   whatsappUrl: string;
+  fulfillmentType?: FulfillmentType;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface ZoneMatch {

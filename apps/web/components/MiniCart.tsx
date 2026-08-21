@@ -3,7 +3,7 @@
 // a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Minus, Plus, X, CreditCard, MessageSquare } from 'lucide-react';
+import { Minus, Plus, X, CreditCard, MessageSquare, MapPin, Navigation, Store, Truck, Check } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -12,10 +12,14 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export function MiniCart() {
   const { lines, subtotalP, drawerOpen, setDrawerOpen, setQty, sessionId } = useCart();
   const router = useRouter();
+  const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [phone, setPhone] = useState('');
   const [zoneText, setZoneText] = useState('');
   const [zone, setZone] = useState<{ name: string; feeP: number } | null>(null);
   const [zoneChecked, setZoneChecked] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [confirmDup, setConfirmDup] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -64,30 +68,75 @@ export function MiniCart() {
   if (!drawerOpen) return null;
 
   const checkZone = async () => {
+    if (fulfillmentType === 'PICKUP') return;
     setZoneChecked(false);
     setZone(null);
     if (!zoneText.trim()) {
       setZoneChecked(true); // delivery fee quoted in chat instead
       return;
     }
-    const r = await fetch(`${API}/api/zones/match?text=${encodeURIComponent(zoneText)}`).then((x) => x.json());
-    if (r.match?.ok && r.match.zone) setZone({ name: r.match.zone.name, feeP: r.match.zone.feeP });
+    try {
+      const r = await fetch(`${API}/api/zones/match?text=${encodeURIComponent(zoneText)}`).then((x) => x.json());
+      if (r.match?.ok && r.match.zone) setZone({ name: r.match.zone.name, feeP: r.match.zone.feeP });
+    } catch {
+      /* ignore */
+    }
     setZoneChecked(true);
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setGpsLoading(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        setGpsAccuracy(Math.round(pos.coords.accuracy));
+        try {
+          const r = await fetch(`${API}/api/zones/match-pin?lat=${lat}&lng=${lng}`).then((x) => x.json());
+          if (r.match?.ok && r.match.zone) {
+            setZone({ name: r.match.zone.name, feeP: r.match.zone.feeP });
+            if (!zoneText) setZoneText(`${r.match.zone.name} (Live GPS Pin)`);
+          } else {
+            if (!zoneText) setZoneText(`Accra Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+          }
+          setZoneChecked(true);
+        } catch {
+          /* ignore */
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      (err) => {
+        setGpsLoading(false);
+        setError(err.code === 1 ? 'Location permission was denied. Please type your neighborhood.' : 'Unable to acquire GPS signal. Please type your neighborhood.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   const complete = async () => {
     setError('');
     if (!phone.trim()) return setError('Please enter your phone number so Tobi can confirm delivery.');
-    if (!zoneChecked) await checkZone();
+    if (fulfillmentType === 'DELIVERY' && !zoneChecked) await checkZone();
     setBusy(true);
+    const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
     const res = await fetch(`${API}/api/handoff`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         phone: phone.trim(),
         sessionId,
-        zoneName: zone?.name,
-        deliveryFeeP: zone?.feeP,
+        fulfillmentType,
+        zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : zone?.name,
+        deliveryFeeP: feeP,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
         confirmedDuplicate: confirmDup,
       }),
     });
@@ -115,19 +164,23 @@ export function MiniCart() {
   const completeOnline = async () => {
     setError('');
     if (!phone.trim()) return setError('Please enter your phone number for your order receipt & delivery.');
-    if (!zoneChecked) await checkZone();
+    if (fulfillmentType === 'DELIVERY' && !zoneChecked) await checkZone();
     setOnlineBusy(true);
+    const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
     try {
       const res = await fetch(`${API}/api/checkout/online`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: phone.trim(),
-          address: zoneText.trim(),
+          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : zoneText.trim(),
           sessionId,
           items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
-          zoneName: zone?.name,
-          deliveryFeeP: zone?.feeP,
+          fulfillmentType,
+          zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : zone?.name,
+          deliveryFeeP: feeP,
+          latitude: coords?.lat,
+          longitude: coords?.lng,
           confirmedDuplicate: confirmDup,
         }),
       });
@@ -155,7 +208,8 @@ export function MiniCart() {
     }
   };
 
-  const total = subtotalP + (zone?.feeP ?? 0);
+  const deliveryFee = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
+  const total = subtotalP + deliveryFee;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -214,22 +268,101 @@ export function MiniCart() {
           ))}
 
           {lines.length > 0 && (
-            <div className="mt-6 space-y-3 border-t border-sand/40 pt-4">
-              <label className="block text-xs text-charcoal/60">
-                Delivery area (e.g. East Legon, Cantonments, Tema)
-                <div className="mt-1 flex gap-2">
-                  <input
-                    value={zoneText}
-                    onChange={(e) => setZoneText(e.target.value)}
-                    placeholder="e.g. East Legon, Accra"
-                    className="flex-1 border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation"
-                  />
-                  <button onClick={checkZone} className="text-xs text-indigo underline touch-manipulation">check</button>
+            <div className="mt-6 space-y-4 border-t border-sand/40 pt-4">
+              {/* Fulfillment Switcher */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-charcoal/60">How would you like your order?</p>
+                <div className="grid grid-cols-2 gap-2 rounded-xl bg-sand/20 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setFulfillmentType('DELIVERY')}
+                    className={`flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium transition ${
+                      fulfillmentType === 'DELIVERY'
+                        ? 'bg-white text-indigo shadow-sm font-semibold'
+                        : 'text-charcoal/70 hover:text-charcoal'
+                    }`}
+                  >
+                    <Truck size={14} />
+                    Doorstep Delivery
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFulfillmentType('PICKUP');
+                      setZone(null);
+                    }}
+                    className={`flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium transition ${
+                      fulfillmentType === 'PICKUP'
+                        ? 'bg-white text-indigo shadow-sm font-semibold'
+                        : 'text-charcoal/70 hover:text-charcoal'
+                    }`}
+                  >
+                    <Store size={14} />
+                    Store Pickup (Free)
+                  </button>
                 </div>
-              </label>
-              {zone && <p className="text-xs text-charcoal/70">Delivery to {zone.name}: {formatGHS(zone.feeP)}</p>}
+              </div>
+
+              {fulfillmentType === 'PICKUP' ? (
+                <div className="rounded-xl border border-amber-600/20 bg-amber-50/60 p-3.5 text-xs text-amber-900">
+                  <div className="flex items-center gap-1.5 font-semibold text-amber-800">
+                    <Store size={15} />
+                    Accra Flagship Store Pickup
+                  </div>
+                  <p className="mt-1 text-amber-900/80 leading-relaxed">
+                    Ring Road Central, Osu, Accra. Ready for pickup within 2 hours after payment (Mon–Sat, 9am–6pm).
+                  </p>
+                  <p className="mt-1.5 font-medium text-emerald-700">✓ Free of charge (GHS 0.00)</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-charcoal/70">
+                        Delivery Neighborhood / Street
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGetLocation}
+                        disabled={gpsLoading}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo hover:text-indigo/80 underline touch-manipulation disabled:opacity-50"
+                      >
+                        <Navigation size={12} className={gpsLoading ? 'animate-spin' : ''} />
+                        {gpsLoading ? 'Locating GPS…' : '📍 Pin Live Location'}
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={zoneText}
+                        onChange={(e) => setZoneText(e.target.value)}
+                        placeholder="e.g. East Legon, Cantonments, Spintex"
+                        className="flex-1 border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation"
+                      />
+                      <button onClick={checkZone} className="text-xs text-indigo underline touch-manipulation">Check</button>
+                    </div>
+                  </div>
+
+                  {coords && (
+                    <div className="flex items-center justify-between rounded-lg border border-emerald-600/20 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-900">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={14} className="text-emerald-600 shrink-0" />
+                        <span>Live GPS Pinned ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})</span>
+                      </div>
+                      {gpsAccuracy && <span className="text-[10px] text-emerald-700/70 font-mono">±{gpsAccuracy}m</span>}
+                    </div>
+                  )}
+
+                  {zone && (
+                    <div className="rounded-lg bg-sand/20 px-3 py-2 text-xs text-charcoal/80 flex items-center justify-between">
+                      <span>Delivery to <strong>{zone.name}</strong></span>
+                      <span className="font-semibold text-indigo">{formatGHS(zone.feeP)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <label className="block text-xs text-charcoal/60">
-                Phone Number (for order confirmation & delivery updates)
+                Phone Number (for order receipt & delivery updates)
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}

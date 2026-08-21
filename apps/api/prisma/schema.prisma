@@ -78,11 +78,14 @@ model Order {
   customer         Customer         @relation(fields: [customerId], references: [id])
   status           String           @default("RESERVED")
   source           String // website | whatsapp_direct (§9)
+  fulfillmentType  String           @default("DELIVERY") // DELIVERY | PICKUP
   subtotalP        Int
   deliveryFeeP     Int              @default(0)
   totalP           Int
   deliveryAddress  String           @default("")
   zoneName         String?
+  latitude         Float?
+  longitude        Float?
   riderName        String?
   riderPhone       String?
   vip              Boolean          @default(false) // > GHS 1000 (§10.4)
@@ -135,15 +138,18 @@ model Payment {
 }
 
 model OrderToken {
-  id        String      @id @default(cuid())
-  code      String      @unique
-  phone     String
-  status    String      @default("ACTIVE") // ACTIVE | USED | EXPIRED | CANCELLED
-  expiresAt DateTime
-  zoneName  String?
+  id           String      @id @default(cuid())
+  code         String      @unique
+  phone        String
+  status       String      @default("ACTIVE") // ACTIVE | USED | EXPIRED | CANCELLED
+  fulfillmentType String   @default("DELIVERY") // DELIVERY | PICKUP
+  expiresAt    DateTime
+  zoneName     String?
   deliveryFeeP Int?
-  createdAt DateTime    @default(now())
-  items     TokenItem[]
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime    @default(now())
+  items        TokenItem[]
 
   @@index([phone])
   @@index([status])

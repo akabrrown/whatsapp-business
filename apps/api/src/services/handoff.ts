@@ -26,6 +26,9 @@ export interface HandoffResult {
   items: { name: string; size: string | null; color: string | null; qty: number; lineP: number; imageUrl?: string }[];
   zoneName?: string;
   deliveryFeeP?: number;
+  fulfillmentType?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 /** §14.1: max 5 token requests per phone per rolling hour. */
@@ -65,6 +68,9 @@ export async function createToken(input: {
   zoneName?: string;
   deliveryFeeP?: number;
   confirmedDuplicate?: boolean;
+  fulfillmentType?: string;
+  latitude?: number;
+  longitude?: number;
 }): Promise<HandoffResult> {
   const phone = input.phone.trim();
   if (!input.items.length) throw new HandoffError('EMPTY_CART', 'Add items to your cart first');
@@ -87,11 +93,19 @@ export async function createToken(input: {
 
   const code = `RD-${crypto.randomInt(100000, 999999)}`;
   const expiresAt = new Date(now().getTime() + TOKEN_TTL_MIN * 60_000);
+  const isPickup = input.fulfillmentType === 'PICKUP';
+  const feeP = isPickup ? 0 : (input.deliveryFeeP ?? 0);
+
   const token = await db.orderToken.create({
     data: {
       code,
       phone,
       expiresAt,
+      fulfillmentType: isPickup ? 'PICKUP' : 'DELIVERY',
+      zoneName: isPickup ? 'Store Pickup (Osu)' : (input.zoneName ?? null),
+      deliveryFeeP: feeP,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
       items: { create: input.items.map((i) => ({ variantId: i.variantId, qty: i.qty })) },
     },
     include: { items: { include: { variant: { include: { product: true } } } } },
@@ -128,18 +142,23 @@ export async function createToken(input: {
     };
   });
 
-  const feeP = input.deliveryFeeP ?? 0;
   totalP += feeP;
   const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
 
   const hasFee = feeP > 0;
-  const deliveryText = input.zoneName
-    ? hasFee
-      ? `   ${input.zoneName} — *${formatGHS(feeP)}*`
-      : `   ${input.zoneName} — _(Delivery fee to be quoted on WhatsApp)_`
-    : `   Accra & Beyond — _(Delivery fee to be quoted on WhatsApp)_`;
+  const mapLink = (input.latitude != null && input.longitude != null)
+    ? `\n   🗺️ Map Pin: https://www.google.com/maps?q=${input.latitude},${input.longitude}`
+    : '';
 
-  const totalText = hasFee
+  const deliveryText = isPickup
+    ? `🏬 *STORE PICKUP — Accra Flagship Store (Osu)*\n   Free in-store pickup · Ready in 2 hours`
+    : input.zoneName
+      ? hasFee
+        ? `   ${input.zoneName} — *${formatGHS(feeP)}*${mapLink}`
+        : `   ${input.zoneName} — _(Delivery fee to be quoted on WhatsApp)_${mapLink}`
+      : `   Accra & Beyond — _(Delivery fee to be quoted on WhatsApp)_${mapLink}`;
+
+  const totalText = isPickup || hasFee
     ? `*ORDER TOTAL:* *${formatGHS(totalP)}*`
     : `*ITEMS SUBTOTAL:* *${formatGHS(totalP)}* _(+ Delivery fee to be quoted on WhatsApp)_`;
 

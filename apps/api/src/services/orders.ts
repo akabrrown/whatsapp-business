@@ -86,9 +86,12 @@ export interface CreateOrderInput {
   phone: string;
   items: { variantId: string; qty: number }[];
   source: OrderSource;
+  fulfillmentType?: string;
   deliveryAddress?: string;
   zoneName?: string;
   deliveryFeeP?: number;
+  latitude?: number;
+  longitude?: number;
   conversationId?: string;
   needsAdminReview?: boolean;
 }
@@ -107,7 +110,7 @@ export async function createOrder(input: CreateOrderInput & { paid: boolean }): 
     subtotalP += v.priceP * item.qty;
     lines.push({ variantId: v.id, productId: v.productId, qty: item.qty, unitPriceP: v.priceP });
   }
-  const feeP = input.deliveryFeeP ?? 0;
+  const feeP = input.fulfillmentType === 'PICKUP' ? 0 : (input.deliveryFeeP ?? 0);
   const totalP = subtotalP + feeP;
   const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
 
@@ -118,11 +121,14 @@ export async function createOrder(input: CreateOrderInput & { paid: boolean }): 
       customerId: customer.id,
       status: input.paid ? OrderStatus.PAID : OrderStatus.RESERVED,
       source: input.source,
+      fulfillmentType: input.fulfillmentType ?? 'DELIVERY',
       subtotalP,
       deliveryFeeP: feeP,
       totalP,
       deliveryAddress: input.deliveryAddress ?? '',
-      zoneName: input.zoneName ?? null,
+      zoneName: input.fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (input.zoneName ?? null),
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
       vip,
       needsAdminReview: input.needsAdminReview ?? false,
       conversationId: input.conversationId ?? null,

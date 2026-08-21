@@ -20,9 +20,14 @@ interface TimelineStep {
 interface TrackedOrder {
   number: string;
   status: string;
+  fulfillmentType?: string;
   createdAt: string;
   updatedAt: string;
+  deliveryAddress?: string;
   zoneName?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  googleMapsUrl?: string | null;
   deliveryFeeP: number;
   subtotalP: number;
   totalP: number;
@@ -154,7 +159,18 @@ function TrackContent() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand/40 pb-4">
                 <div>
                   <span className="text-xs text-charcoal/50">Order Number</span>
-                  <p className="font-mono text-xl font-bold text-indigo">{order.number}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="font-mono text-xl font-bold text-indigo">{order.number}</p>
+                    {order.fulfillmentType === 'PICKUP' ? (
+                      <span className="rounded-full border border-amber-600/30 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        🏬 Store Pickup
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-blue-600/30 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+                        🚚 Doorstep Delivery
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-charcoal/50">Current Status</span>
@@ -199,16 +215,35 @@ function TrackContent() {
                 </div>
               </div>
 
-              {/* Delivery Info */}
-              <div className="border-t border-sand/40 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="rounded-lg bg-cream/40 p-3">
-                  <span className="text-charcoal/50 block">Destination Area</span>
-                  <span className="font-semibold text-charcoal">{order.zoneName || 'Accra Delivery'}</span>
-                </div>
-                <div className="rounded-lg bg-cream/40 p-3">
-                  <span className="text-charcoal/50 block">Contact Phone</span>
-                  <span className="font-mono font-medium text-charcoal">{order.maskedPhone}</span>
-                </div>
+              {/* Delivery / Pickup Info */}
+              <div className="border-t border-sand/40 pt-4 space-y-3 text-xs">
+                {order.fulfillmentType === 'PICKUP' ? (
+                  <div className="rounded-lg border border-amber-600/20 bg-amber-50/70 p-3 text-amber-900">
+                    <span className="font-semibold block mb-0.5 text-amber-800">🏬 Collection Location</span>
+                    <p className="text-amber-900/80">Accra Flagship Store — Ring Road Central, Osu. Show this screen or your phone number at the counter.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-cream/40 p-3">
+                      <span className="text-charcoal/50 block">Destination Area</span>
+                      <span className="font-semibold text-charcoal">{order.zoneName || order.deliveryAddress || 'Accra Delivery'}</span>
+                      {order.googleMapsUrl && (
+                        <a
+                          href={order.googleMapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1.5 inline-flex items-center gap-1 font-medium text-indigo underline"
+                        >
+                          📍 View Pinned Location on Map
+                        </a>
+                      )}
+                    </div>
+                    <div className="rounded-lg bg-cream/40 p-3">
+                      <span className="text-charcoal/50 block">Contact Phone</span>
+                      <span className="font-mono font-medium text-charcoal">{order.maskedPhone}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
