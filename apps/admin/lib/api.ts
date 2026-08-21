@@ -51,19 +51,106 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return body;
 }
 
-/** Live events from the API hub with polling fallback for serverless compatibility. */
+/** Live events from the API hub with hybrid WebSocket + REST fallback. */
 export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unknown }) => void): () => void {
+  let ws: WebSocket | null = null;
   let closed = false;
-  // In serverless deployment, WebSocket hub is disabled.
-  // Polling can trigger periodic refreshes or remain silent without console noise.
-  const interval = setInterval(() => {
-    if (closed) return;
-    onEvent({ type: 'heartbeat', payload: { time: Date.now() } });
-  }, 30000);
+  let pollInterval: ReturnType<typeof setInterval> | null = null;
+  let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  let lastTimestamp = Date.now();
+  let isWsConnected = false;
+
+  const startPolling = () => {
+    if (pollInterval || closed) return;
+    pollInterval = setInterval(async () => {
+      if (closed || isWsConnected) return;
+      try {
+        const token = getToken();
+        const res = await fetch(`${API}/api/events/poll?channel=admin&since=${lastTimestamp}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { ok: boolean; events?: { type: string; payload: unknown; timestamp: number }[]; timestamp?: number };
+        if (data.events && Array.isArray(data.events)) {
+          for (const ev of data.events) {
+            onEvent({ type: ev.type, payload: ev.payload });
+            if (ev.timestamp > lastTimestamp) lastTimestamp = ev.timestamp;
+          }
+        }
+        if (data.timestamp && data.timestamp > lastTimestamp) lastTimestamp = data.timestamp;
+      } catch {
+        /* silent catch during poll */
+      }
+    }, 5000);
+  };
+
+  const stopPolling = () => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+  };
+
+  const connectWs = () => {
+    if (closed || typeof window === 'undefined') return;
+    try {
+      const token = getToken();
+      const qs = token ? `?channel=admin&token=${encodeURIComponent(token)}` : '?channel=admin';
+      const wsUrl = `${API.replace(/^http/, 'ws')}/ws${qs}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        isWsConnected = true;
+        stopPolling();
+      };
+
+      ws.onmessage = (m) => {
+        try {
+          const parsed = JSON.parse(m.data) as { type: string; payload: unknown; timestamp?: number };
+          if (parsed.timestamp) lastTimestamp = parsed.timestamp;
+          onEvent(parsed);
+        } catch {
+          /* ignore malformed frame */
+        }
+      };
+
+      ws.onclose = () => {
+        isWsConnected = false;
+        ws = null;
+        if (!closed) {
+          startPolling();
+          reconnectTimeout = setTimeout(connectWs, 15000); // retry WS every 15s
+        }
+      };
+
+      ws.onerror = () => {
+        isWsConnected = false;
+        ws?.close();
+      };
+    } catch {
+      isWsConnected = false;
+      startPolling();
+      reconnectTimeout = setTimeout(connectWs, 15000);
+    }
+  };
+
+  // Start with WebSocket, fallback to REST
+  connectWs();
+  // Fallback safety in case initial connection hangs
+  setTimeout(() => {
+    if (!isWsConnected && !closed) startPolling();
+  }, 2000);
 
   return () => {
     closed = true;
-    clearInterval(interval);
+    isWsConnected = false;
+    stopPolling();
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    try {
+      ws?.close();
+    } catch {
+      /* ignore */
+    }
   };
 }
 

@@ -3,33 +3,85 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
 export function RealtimeSync() {
   const router = useRouter();
 
   useEffect(() => {
-    // Replaced WebSocket with REST polling for Vercel Serverless compatibility
-    let pollTimer: ReturnType<typeof setTimeout>;
+    let ws: WebSocket | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let isConnected = false;
+    let destroyed = false;
 
-    function poll() {
-      // In a real implementation, you'd fetch a lightweight endpoint to check if the cart changed.
-      // To minimize server cost, we can rely on Next.js client-side SWR/Revalidation or 
-      // just call a simple lightweight health/sync endpoint.
-      // For now, we'll just quietly trigger router.refresh() every 5 seconds. 
-      // Since Next.js caches, if nothing changed on the server, it's very cheap.
-      
-      // We don't need a full API request here because router.refresh() will automatically
-      // re-fetch Server Components and React will diff the UI.
-      router.refresh();
-      
-      pollTimer = setTimeout(poll, 5000); // 5 seconds polling interval
-    }
+    const startPolling = () => {
+      if (pollTimer || destroyed) return;
+      pollTimer = setInterval(() => {
+        if (!isConnected && !destroyed) {
+          router.refresh();
+        }
+      }, 10000); // 10s poll
+    };
 
-    poll();
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    };
+
+    const connectWs = () => {
+      if (destroyed || typeof window === 'undefined') return;
+      try {
+        const wsUrl = `${API.replace(/^http/, 'ws')}/ws?channel=web`;
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          isConnected = true;
+          stopPolling();
+        };
+
+        ws.onmessage = () => {
+          // When inventory changes, instantly refresh server components
+          router.refresh();
+        };
+
+        ws.onclose = () => {
+          isConnected = false;
+          ws = null;
+          if (!destroyed) {
+            startPolling();
+            setTimeout(connectWs, 20000); // retry WS
+          }
+        };
+
+        ws.onerror = () => {
+          isConnected = false;
+          ws?.close();
+        };
+      } catch {
+        isConnected = false;
+        startPolling();
+      }
+    };
+
+    connectWs();
+    // Fallback if WS initial connection takes too long
+    setTimeout(() => {
+      if (!isConnected && !destroyed) startPolling();
+    }, 3000);
 
     return () => {
-      clearTimeout(pollTimer);
+      destroyed = true;
+      isConnected = false;
+      stopPolling();
+      try {
+        ws?.close();
+      } catch {
+        /* ignore */
+      }
     };
   }, [router]);
 
-  return null; // Invisible component
+  return null;
 }

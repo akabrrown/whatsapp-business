@@ -385,8 +385,17 @@ storefront.get('/orders/by-token/:code', async (req, res) => {
 
 // ---- Public settings (for storefront) --------------------------------------
 import { getWhatsAppNumber } from '../services/settings.js';
+import { hub } from '../services/realtime.js';
 
 storefront.get('/settings/whatsapp', async (_req, res) => {
   const whatsappNumber = await getWhatsAppNumber();
   res.json({ ok: true, whatsappNumber });
+});
+
+// ---- Hybrid Realtime Event Polling Endpoint (Fallback for WebSockets) -----
+storefront.get('/events/poll', (req, res) => {
+  const since = parseInt(String(req.query.since ?? '0'), 10) || 0;
+  const channel = typeof req.query.channel === 'string' ? req.query.channel : undefined;
+  const events = hub.getEventsSince(since, channel);
+  res.json({ ok: true, events, timestamp: Date.now() });
 });

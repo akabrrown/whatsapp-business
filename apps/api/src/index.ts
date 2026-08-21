@@ -3,10 +3,14 @@ import http from 'node:http';
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { wireSimulator } from './services/payments.js';
+import { hub } from './services/realtime.js';
 import { logger } from './logger.js';
 
 const app = createApp();
 const server = http.createServer(app);
+
+// Attach Hybrid WebSocket Hub to the HTTP server
+hub.attach(server);
 
 // Wire the Paystack simulator's webhook emitter to the verified handler.
 wireSimulator();
