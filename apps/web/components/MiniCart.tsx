@@ -120,9 +120,20 @@ export function MiniCart() {
     );
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow numbers 0-9 and optional leading +
+    const val = e.target.value;
+    const digitsOnly = val.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
+    setPhone(digitsOnly);
+  };
+
   const complete = async () => {
     setError('');
-    if (!phone.trim()) return setError('Please enter your phone number so Tobi can confirm delivery.');
+    const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
+    const digits = cleanPhone.replace(/\D/g, '');
+    if (!cleanPhone || digits.length < 9) {
+      return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
+    }
     if (fulfillmentType === 'DELIVERY' && !zoneChecked) await checkZone();
     setBusy(true);
     const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
@@ -130,7 +141,7 @@ export function MiniCart() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        phone: phone.trim(),
+        phone: cleanPhone,
         sessionId,
         fulfillmentType,
         zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : zone?.name,
@@ -163,7 +174,11 @@ export function MiniCart() {
 
   const completeOnline = async () => {
     setError('');
-    if (!phone.trim()) return setError('Please enter your phone number for your order receipt & delivery.');
+    const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
+    const digits = cleanPhone.replace(/\D/g, '');
+    if (!cleanPhone || digits.length < 9) {
+      return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
+    }
     if (fulfillmentType === 'DELIVERY' && !zoneChecked) await checkZone();
     setOnlineBusy(true);
     const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
@@ -172,7 +187,7 @@ export function MiniCart() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: phone.trim(),
+          phone: cleanPhone,
           address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : zoneText.trim(),
           sessionId,
           items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
@@ -362,13 +377,27 @@ export function MiniCart() {
               )}
 
               <label className="block text-xs text-charcoal/60">
-                Phone Number (for order receipt & delivery updates)
+                Phone Number (numbers only, e.g. 0241234567)
                 <input
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 024 123 4567"
-                  inputMode="tel"
-                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation"
+                  onChange={handlePhoneChange}
+                  onKeyDown={(e) => {
+                    // Block alphabetic and special characters, allowing only numbers, backspace, tab, delete, arrows, and leading +
+                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
+                    if (
+                      !/[0-9]/.test(e.key) &&
+                      !allowedKeys.includes(e.key) &&
+                      !(e.key === '+' && (e.currentTarget.selectionStart === 0 && !e.currentTarget.value.includes('+'))) &&
+                      !e.ctrlKey &&
+                      !e.metaKey
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="e.g. 0241234567"
+                  inputMode="numeric"
+                  pattern="[0-9+]*"
+                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation font-mono"
                 />
               </label>
             </div>

@@ -11,7 +11,7 @@ import { config } from '../config.js';
 import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, type CartItem } from '../shared.js';
 
 export class HandoffError extends Error {
-  constructor(public code: 'RATE_LIMITED' | 'DUPLICATE_SUSPECT' | 'EMPTY_CART' | 'SOLD_OUT', message: string) {
+  constructor(public code: 'RATE_LIMITED' | 'DUPLICATE_SUSPECT' | 'EMPTY_CART' | 'SOLD_OUT' | 'INVALID_PHONE', message: string) {
     super(message);
   }
 }
@@ -72,7 +72,12 @@ export async function createToken(input: {
   latitude?: number;
   longitude?: number;
 }): Promise<HandoffResult> {
-  const phone = input.phone.trim();
+  // Strip non-digit characters (allowing optional leading +)
+  const phone = input.phone.replace(/[^\d+]/g, '').trim();
+  const digits = phone.replace(/\D/g, '');
+  if (!digits || digits.length < 8) {
+    throw new HandoffError('INVALID_PHONE', 'Please provide a valid phone number with numbers only (at least 8–10 digits).');
+  }
   if (!input.items.length) throw new HandoffError('EMPTY_CART', 'Add items to your cart first');
   await checkRateLimit(phone);
   await checkDuplicate(phone, input.items, !!input.confirmedDuplicate);
