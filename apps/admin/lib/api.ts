@@ -147,7 +147,19 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
     stopPolling();
     if (reconnectTimeout) clearTimeout(reconnectTimeout);
     try {
-      ws?.close();
+      if (ws) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          ws.onopen = () => {
+            try {
+              ws?.close();
+            } catch {
+              /* ignore */
+            }
+          };
+        }
+      }
     } catch {
       /* ignore */
     }

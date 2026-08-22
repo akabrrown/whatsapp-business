@@ -105,12 +105,13 @@ admin.get('/tokens', async (_req, res) => {
     tokens: list.map((t) => {
       let totalP = 0;
       const items = t.items.map((ti) => {
-        const lineP = ti.variant.priceP * ti.qty;
+        const priceP = ti.variant?.priceP ?? 0;
+        const lineP = priceP * ti.qty;
         totalP += lineP;
         return {
-          name: ti.variant.product.name,
-          size: ti.variant.size,
-          color: ti.variant.color,
+          name: ti.variant?.product?.name ?? 'Item',
+          size: ti.variant?.size ?? null,
+          color: ti.variant?.color ?? null,
           qty: ti.qty,
           lineP,
         };
