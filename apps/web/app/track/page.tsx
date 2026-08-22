@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Package, CheckCircle2, Clock, Truck, Home, MessageSquare, ShoppingBag, AlertCircle } from 'lucide-react';
+import { Search, Package, CheckCircle2, Clock, Truck, Home, MessageSquare, ShoppingBag, AlertCircle, Store, MapPin } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -91,6 +91,7 @@ function TrackContent() {
   };
 
   const getStepIcon = (step: string, completed: boolean, current: boolean) => {
+    const colorClass = completed ? 'text-emerald-600' : current ? 'text-indigo' : 'text-charcoal/30';
     if (completed) return <CheckCircle2 size={18} className="text-emerald-600" />;
     if (current) return <Clock size={18} className="text-indigo animate-pulse" />;
     return <div className="h-4 w-4 rounded-full border-2 border-sand/80 bg-white" />;
@@ -162,12 +163,14 @@ function TrackContent() {
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="font-mono text-xl font-bold text-indigo">{order.number}</p>
                     {order.fulfillmentType === 'PICKUP' ? (
-                      <span className="rounded-full border border-amber-600/30 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                        🏬 Store Pickup
+                      <span className="rounded-full border border-amber-600/30 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 inline-flex items-center gap-1">
+                        <Store size={12} />
+                        <span>Store Pickup</span>
                       </span>
                     ) : (
-                      <span className="rounded-full border border-blue-600/30 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
-                        🚚 Doorstep Delivery
+                      <span className="rounded-full border border-blue-600/30 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-800 inline-flex items-center gap-1">
+                        <Truck size={12} />
+                        <span>Doorstep Delivery</span>
                       </span>
                     )}
                   </div>
@@ -219,7 +222,10 @@ function TrackContent() {
               <div className="border-t border-sand/40 pt-4 space-y-3 text-xs">
                 {order.fulfillmentType === 'PICKUP' ? (
                   <div className="rounded-lg border border-amber-600/20 bg-amber-50/70 p-3 text-amber-900">
-                    <span className="font-semibold block mb-0.5 text-amber-800">🏬 Collection Location</span>
+                    <span className="font-semibold block mb-0.5 text-amber-800 inline-flex items-center gap-1">
+                      <Store size={13} />
+                      <span>Collection Location</span>
+                    </span>
                     <p className="text-amber-900/80">Accra Flagship Store — Ring Road Central, Osu. Show this screen or your phone number at the counter.</p>
                   </div>
                 ) : (
@@ -234,7 +240,8 @@ function TrackContent() {
                           rel="noopener noreferrer"
                           className="mt-1.5 inline-flex items-center gap-1 font-medium text-indigo underline"
                         >
-                          📍 View Pinned Location on Map
+                          <MapPin size={12} />
+                          <span>View Pinned Location on Map</span>
                         </a>
                       )}
                     </div>

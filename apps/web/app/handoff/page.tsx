@@ -4,7 +4,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { MessageSquare, ArrowRight, ShoppingBag, CreditCard } from 'lucide-react';
+import { MessageSquare, ArrowRight, ShoppingBag, CreditCard, RotateCcw } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 
 function HandoffContent() {
@@ -20,31 +20,13 @@ function HandoffContent() {
 
     if (paramCode && paramUrl) {
       setState({ code: paramCode, url: paramUrl, paymentUrl: paramPayUrl });
-      const t = setTimeout(() => {
-        try {
-          window.location.href = paramUrl;
-        } catch {
-          /* browser blocked auto redirect */
-        }
-      }, 800);
-      return () => clearTimeout(t);
+      return;
     }
 
-    // 2. Try sessionStorage fallback
+    // 2. Fallback to sessionStorage
     try {
       const raw = sessionStorage.getItem('rd-handoff');
-      if (raw) {
-        const parsed = JSON.parse(raw) as { url: string; code: string; paymentUrl?: string };
-        setState(parsed);
-        const t = setTimeout(() => {
-          try {
-            window.location.href = parsed.url;
-          } catch {
-            /* ignore */
-          }
-        }, 800);
-        return () => clearTimeout(t);
-      }
+      if (raw) setState(JSON.parse(raw));
     } catch {
       /* ignore */
     }
@@ -54,8 +36,9 @@ function HandoffContent() {
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 py-16 text-center">
       <div className="w-full max-w-md space-y-4">
         {/* Chat bubble animation */}
-        <div className="w-fit max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-5 py-3.5 text-sm text-left shadow-sm border border-sand/40">
-          Hi Tobi! I&apos;d like to complete my order 🛍️
+        <div className="w-fit max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-5 py-3.5 text-sm text-left shadow-sm border border-sand/40 flex items-center gap-2">
+          <span>Hi Tobi! I&apos;d like to complete my order</span>
+          <ShoppingBag size={14} className="text-indigo shrink-0" />
         </div>
         <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-sm bg-indigo px-5 py-3.5 text-sm text-right text-cream shadow-sm flex items-center gap-2">
           <span>Connecting to WhatsApp…</span>
@@ -101,9 +84,10 @@ function HandoffContent() {
               onClick={() => {
                 restoreBackup();
               }}
-              className="w-full text-center text-xs text-charcoal/60 hover:text-indigo underline pt-1"
+              className="w-full text-center text-xs text-charcoal/60 hover:text-indigo underline pt-1 inline-flex items-center justify-center gap-1.5"
             >
-              ↩️ Want to change items or address? Reopen Bag
+              <RotateCcw size={12} />
+              <span>Want to change items or address? Reopen Bag</span>
             </button>
           </div>
         )}

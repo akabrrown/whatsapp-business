@@ -3,7 +3,7 @@
 // a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Minus, Plus, X, CreditCard, MessageSquare, MapPin, Navigation, Store, Truck, Check } from 'lucide-react';
+import { Minus, Plus, X, CreditCard, MessageSquare, MapPin, Navigation, Store, Truck, Check, RotateCcw } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -386,7 +386,10 @@ export function MiniCart() {
                   <p className="mt-1 text-amber-900/80 leading-relaxed">
                     Ring Road Central, Osu, Accra. Ready for pickup within 2 hours after payment (Mon–Sat, 9am–6pm).
                   </p>
-                  <p className="mt-1.5 font-medium text-emerald-700">✓ Free of charge (GHS 0.00)</p>
+                  <p className="mt-1.5 font-medium text-emerald-700 inline-flex items-center gap-1">
+                    <Check size={13} className="text-emerald-700" />
+                    <span>Free of charge (GH₵0.00)</span>
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -399,20 +402,22 @@ export function MiniCart() {
                         <button
                           type="button"
                           onClick={() => setDeliveryMode('GPS')}
-                          className={`rounded px-2.5 py-1 transition ${
+                          className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
                             deliveryMode === 'GPS' ? 'bg-white text-indigo shadow-xs font-semibold' : 'text-charcoal/60 hover:text-charcoal'
                           }`}
                         >
-                          📍 Pin GPS
+                          <Navigation size={11} />
+                          <span>Pin GPS</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeliveryMode('CHOOSE')}
-                          className={`rounded px-2.5 py-1 transition ${
+                          className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
                             deliveryMode === 'CHOOSE' ? 'bg-white text-indigo shadow-xs font-semibold' : 'text-charcoal/60 hover:text-charcoal'
                           }`}
                         >
-                          🏙️ Choose Area
+                          <MapPin size={11} />
+                          <span>Choose Area</span>
                         </button>
                       </div>
                     </div>
@@ -439,7 +444,7 @@ export function MiniCart() {
                               className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo px-4 py-2.5 text-xs font-semibold text-white hover:opacity-90 transition active:scale-[0.98] shadow-sm disabled:opacity-50"
                             >
                               <Navigation size={14} className={gpsLoading ? 'animate-spin' : ''} />
-                              <span>{gpsLoading ? 'Detecting Area…' : '📍 Tap to Pin Live Location'}</span>
+                              <span>{gpsLoading ? 'Detecting Area…' : 'Tap to Pin Live Location'}</span>
                             </button>
                             <button
                               type="button"
@@ -458,7 +463,7 @@ export function MiniCart() {
                                 </div>
                                 <div>
                                   <p className="text-xs font-bold text-emerald-950">
-                                    📍 {zone?.name ? zone.name : 'Accra Delivery Area'}
+                                    {zone?.name ? zone.name : 'Accra Delivery Area'}
                                   </p>
                                   <p className="text-[11px] text-emerald-800/80 font-medium">
                                     Live location saved for rider
@@ -469,9 +474,10 @@ export function MiniCart() {
                                 type="button"
                                 onClick={handleGetLocation}
                                 disabled={gpsLoading}
-                                className="text-[11px] font-medium text-emerald-800 hover:text-emerald-950 underline shrink-0"
+                                className="text-[11px] font-medium text-emerald-800 hover:text-emerald-950 underline shrink-0 inline-flex items-center gap-1"
                               >
-                                {gpsLoading ? 'Re-pinning…' : '🔄 Re-pin'}
+                                <RotateCcw size={11} className={gpsLoading ? 'animate-spin' : ''} />
+                                <span>{gpsLoading ? 'Re-pinning…' : 'Re-pin'}</span>
                               </button>
                             </div>
 

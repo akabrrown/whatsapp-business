@@ -3,7 +3,7 @@
 // embedded WhatsApp thread (§3.9), fulfillment actions incl. failed delivery.
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, MessageSquare, Copy, Check } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Copy, Check, Store, Truck, MapPin, Send } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { Timeline } from '@/components/Timeline';
@@ -25,13 +25,17 @@ interface OrderDetail {
   longitude?: number | null;
   riderName: string | null;
   riderPhone: string | null;
+  vip: boolean;
   refundDue: boolean;
   needsAdminReview: boolean;
-  vip?: boolean;
   createdAt: string;
-  customer: { name: string | null; phone: string };
-  items: { qty: number; unitPriceP: number; variant: { size: string | null; color: string | null; product: { name: string; slug: string } } }[];
-  payments: { paystackRef: string; amountP: number; channel: string; status: string }[];
+  paidAt: string | null;
+  packedAt: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  customer: { id: string; phone: string; name: string | null; totalOrders: number; totalSpendP: number; tags: string };
+  items: { id: string; qty: number; unitPriceP: number; variant: { size: string | null; color: string | null; product: { name: string; slug: string } } }[];
+  payments: { id?: string; paystackRef?: string; reference?: string; amountP: number; channel: string; status: string; createdAt?: string }[];
 }
 
 export default function OrderDetailPage() {
@@ -40,51 +44,60 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [zones, setZones] = useState<{ id: string; name: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [copiedPayLink, setCopiedPayLink] = useState(false);
   const [error, setError] = useState('');
   const [rider, setRider] = useState({ name: '', phone: '' });
   const [address, setAddress] = useState('');
   const [zoneName, setZoneName] = useState('');
-  const [copiedPayLink, setCopiedPayLink] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await apiFetch<{ order: OrderDetail; messages: ChatMessage[] }>(`/api/admin/orders/${id}`);
-    setOrder(r.order);
-    setMessages(r.messages);
-    setAddress(r.order.deliveryAddress ?? '');
-    setZoneName(r.order.zoneName ?? '');
+    try {
+      const r = await apiFetch<{ order: OrderDetail; messages: ChatMessage[] }>(`/api/admin/orders/${id}`);
+      setOrder(r.order);
+      setMessages(r.messages || []);
+      setAddress(r.order.deliveryAddress ?? '');
+      setZoneName(r.order.zoneName ?? '');
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }, [id]);
 
   useEffect(() => {
-    load().catch((e: Error) => setError(e.message));
+    load();
     apiFetch<{ zones: { id: string; name: string }[] }>('/api/admin/zones')
-      .then((r) => setZones(r.zones))
+      .then((r) => setZones(r.zones || []))
       .catch(() => {});
   }, [load]);
 
   const act = async (path: string, body?: unknown) => {
+    setBusy(true);
     setError('');
     try {
       await apiFetch(`/api/admin/orders/${id}/${path}`, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
       await load();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setBusy(false);
     }
   };
 
-  if (!order) return <p className="text-charcoal/50">{error || 'Loading order…'}</p>;
+  if (!order) return <p className="text-sm text-charcoal/50">{error || 'Loading order…'}</p>;
 
   const next: Record<string, string> = { PAID: 'PACKED', PACKED: 'SHIPPED', SHIPPED: 'DELIVERED' };
   const isPickup = order.fulfillmentType === 'PICKUP';
   const hasGps = order.latitude != null && order.longitude != null;
   const gMapsUrl = hasGps ? `https://www.google.com/maps?q=${order.latitude},${order.longitude}` : '';
   const riderMsg = encodeURIComponent(
-    `🛵 *DISPATCH DETAILS — ${order.number}*\n` +
-    `👤 Customer: ${order.customer.name || order.customer.phone}\n` +
-    `📞 Phone: ${order.customer.phone}\n` +
-    `📍 Area: ${order.zoneName || 'Accra'}\n` +
-    `🏠 Address: ${order.deliveryAddress || 'See map pin'}\n` +
-    (hasGps ? `🗺️ Map Pin: https://www.google.com/maps?q=${order.latitude},${order.longitude}\n` : '') +
-    `💰 Total: ${formatGHS(order.totalP)}`
+    `*DISPATCH DETAILS — ${order.number}*\n` +
+    `Customer: ${order.customer.name || order.customer.phone}\n` +
+    `Phone: ${order.customer.phone}\n` +
+    `Area: ${order.zoneName || 'Accra'}\n` +
+    `Address: ${order.deliveryAddress || 'See map pin'}\n` +
+    (hasGps ? `Map Pin: https://www.google.com/maps?q=${order.latitude},${order.longitude}\n` : '') +
+    `Total: ${formatGHS(order.totalP)}`
   );
 
   return (
@@ -96,12 +109,14 @@ export default function OrderDetailPage() {
         <h1 className="font-serif text-2xl text-indigo">{order.number}</h1>
         <StatusPill status={order.status} />
         {isPickup ? (
-          <span className="rounded-full border border-amber-600/30 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-            🏬 STORE PICKUP
+          <span className="rounded-full border border-amber-600/30 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 inline-flex items-center gap-1">
+            <Store size={12} />
+            <span>STORE PICKUP</span>
           </span>
         ) : (
-          <span className="rounded-full border border-blue-600/30 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-            🚚 DOORSTEP DELIVERY
+          <span className="rounded-full border border-blue-600/30 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 inline-flex items-center gap-1">
+            <Truck size={12} />
+            <span>DOORSTEP DELIVERY</span>
           </span>
         )}
         {order.vip && <span className="rounded bg-sand/30 px-2 py-0.5 text-xs font-medium text-charcoal">VIP</span>}
@@ -242,18 +257,28 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             ) : (
-              order.payments.map((p) => (
-                <div key={p.paystackRef} className="rounded bg-emerald-50 border border-emerald-200/60 p-2.5 text-xs text-emerald-900 space-y-0.5">
+              order.payments.map((p, idx) => (
+                <div key={p.reference || p.paystackRef || p.id || idx} className="rounded bg-emerald-50 border border-emerald-200/60 p-2.5 text-xs text-emerald-900 space-y-0.5">
                   <p className="font-semibold">{formatGHS(p.amountP)} via {p.channel.toUpperCase()}</p>
-                  <p className="font-mono text-[11px] text-emerald-700">Ref: {p.paystackRef} · {p.status}</p>
+                  <p className="font-mono text-[11px] text-emerald-700">Ref: {p.reference || p.paystackRef || p.id} · {p.status}</p>
                 </div>
               ))
             )}
           </section>
 
           <section className="rounded-lg border border-sand/40 bg-white/60 p-3">
-            <p className="mb-2 text-xs uppercase tracking-wide font-semibold text-charcoal/70">
-              {isPickup ? '🏬 Store Pickup Info' : '📍 Delivery Location & Dispatch'}
+            <p className="mb-2 text-xs uppercase tracking-wide font-semibold text-charcoal/70 inline-flex items-center gap-1.5">
+              {isPickup ? (
+                <>
+                  <Store size={13} />
+                  <span>Store Pickup Info</span>
+                </>
+              ) : (
+                <>
+                  <MapPin size={13} />
+                  <span>Delivery Location & Dispatch</span>
+                </>
+              )}
             </p>
 
             {isPickup ? (
@@ -282,7 +307,8 @@ export default function OrderDetailPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 rounded-md bg-indigo px-2.5 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-90 transition"
                         >
-                          🗺️ Open in Google Maps
+                          <MapPin size={12} />
+                          <span>Open in Google Maps</span>
                         </a>
                         <a
                           href={`https://wa.me/?text=${riderMsg}`}
@@ -290,7 +316,8 @@ export default function OrderDetailPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 rounded-md bg-emerald-700 px-2.5 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-800 transition"
                         >
-                          🛵 Share with Rider
+                          <Send size={12} />
+                          <span>Share with Rider</span>
                         </a>
                       </div>
                     </div>

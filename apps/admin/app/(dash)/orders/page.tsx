@@ -3,7 +3,7 @@
 // actions, "new orders" indicator (§3.8), stale-PACKED flag (§8.6), and In-Flight WhatsApp Bags (§4.7).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Download, RefreshCw, ShoppingBag, CheckCircle, MessageSquare, Copy, Check } from 'lucide-react';
+import { Download, RefreshCw, ShoppingBag, CheckCircle, MessageSquare, Copy, Check, MapPin } from 'lucide-react';
 import { apiFetch, subscribeAdminEvents } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { formatGHS } from '@rose/shared';
@@ -224,7 +224,12 @@ export default function OrdersPage() {
                     <a href={`https://wa.me/${t.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-xs text-wagreen font-medium hover:underline">
                       {t.phone}
                     </a>
-                    {t.zoneName && <p className="text-[11px] text-charcoal/50">📍 {t.zoneName}</p>}
+                    {t.zoneName && (
+                      <p className="text-[11px] text-charcoal/50 inline-flex items-center gap-1">
+                        <MapPin size={10} />
+                        <span>{t.zoneName}</span>
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="space-y-0.5">
