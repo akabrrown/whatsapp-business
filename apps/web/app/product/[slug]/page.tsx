@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { api } from '@/lib/api';
+import Link from 'next/link';
+import { ArrowRight, Sparkles } from 'lucide-react';
+import { api, type CatalogProduct } from '@/lib/api';
 import { ProductDetailView } from '@/components/ProductDetailView';
+import { ProductCard } from '@/components/ProductCard';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -44,6 +47,24 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   ]);
   if (!product) notFound(); // §3.5: unknown slug resolves to a clean 404
 
+  // Fetch recommended products in the same category / sub-category
+  let recommended: CatalogProduct[] = [];
+  try {
+    const categoryProducts = await api.catalog(product.category.slug);
+    recommended = categoryProducts.filter((p) => p.id !== product.id).slice(0, 4);
+
+    // If fewer than 4 items in same category, supplement with general catalog pieces
+    if (recommended.length < 4) {
+      const allProducts = await api.catalog();
+      const additional = allProducts.filter(
+        (p) => p.id !== product.id && !recommended.some((r) => r.id === p.id)
+      ).slice(0, 4 - recommended.length);
+      recommended = [...recommended, ...additional];
+    }
+  } catch {
+    /* fallback to empty */
+  }
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -59,9 +80,41 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   };
 
   return (
-    <>
+    <div className="space-y-16 pb-16">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      
+      {/* Main Product Details View */}
       <ProductDetailView product={product} whatsappNumber={settings.whatsappNumber} />
-    </>
+
+      {/* Recommended Products in Same Category */}
+      {recommended.length > 0 && (
+        <section className="border-t border-sand/40 pt-12">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-indigo/70 mb-1">
+                <Sparkles size={14} className="text-amber-500" />
+                <span>You Might Also Like</span>
+              </div>
+              <h2 className="headline text-2xl sm:text-3xl text-indigo">
+                More in {product.category.name}
+              </h2>
+            </div>
+            <Link
+              href={`/shop?category=${encodeURIComponent(product.category.slug)}`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-indigo hover:text-indigo/80 underline decoration-sand transition group"
+            >
+              <span>View All in {product.category.name}</span>
+              <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
+            {recommended.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
