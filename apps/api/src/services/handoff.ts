@@ -7,8 +7,9 @@ import { reserve, release } from './inventory.js';
 import { waDeepLink } from '../adapters/whatsapp.js';
 import { getWhatsAppNumber } from './settings.js';
 import { getOrCreateCustomer } from './orders.js';
+import { initPaymentForToken } from './payments.js';
 import { config } from '../config.js';
-import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, type CartItem } from '../shared.js';
+import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, OrderSource, type CartItem } from '../shared.js';
 
 export class HandoffError extends Error {
   constructor(public code: 'RATE_LIMITED' | 'DUPLICATE_SUSPECT' | 'EMPTY_CART' | 'SOLD_OUT' | 'INVALID_PHONE', message: string) {
@@ -21,6 +22,7 @@ export interface HandoffResult {
   phone: string;
   expiresAt: string;
   whatsappUrl: string;
+  paymentUrl?: string | null;
   totalP: number;
   vip: boolean;
   items: { name: string; size: string | null; color: string | null; qty: number; lineP: number; imageUrl?: string }[];
@@ -167,6 +169,26 @@ export async function createToken(input: {
     ? `*ORDER TOTAL:* *${formatGHS(totalP)}*`
     : `*ITEMS SUBTOTAL:* *${formatGHS(totalP)}* _(+ Delivery fee to be quoted on WhatsApp)_`;
 
+  // Method 1: Automatically generate direct Paystack link and embed in message
+  let paymentUrl: string | null = null;
+  try {
+    paymentUrl = await initPaymentForToken(code, {
+      phone,
+      zoneName: input.zoneName,
+      deliveryFeeP: feeP,
+      fulfillmentType: isPickup ? 'PICKUP' : 'DELIVERY',
+      latitude: input.latitude,
+      longitude: input.longitude,
+      channel: OrderSource.WHATSAPP_DIRECT,
+    });
+  } catch {
+    /* fallback gracefully if Paystack call fails */
+  }
+
+  const paySection = paymentUrl
+    ? `\n\n💳 *PAY ONLINE (Mobile Money / Card):*\n👉 ${paymentUrl}\n_(Or reply here to pay directly via MoMo to merchant)_`
+    : '';
+
   const text =
     `*🛍️ ORDER CHECKOUT — TOBI CLOTHINGS*\n` +
     `----------------------------------------\n` +
@@ -182,8 +204,9 @@ export async function createToken(input: {
     deliveryText +
     `\n\n💰 ` +
     totalText +
+    paySection +
     `\n----------------------------------------\n` +
-    `👉 *Press the green Send button to receive your instant payment link!* ✨`;
+    `👉 *Press Send to complete your order!* ✨`;
 
   const whatsappNumber = await getWhatsAppNumber();
   return {
@@ -191,6 +214,7 @@ export async function createToken(input: {
     phone,
     expiresAt: expiresAt.toISOString(),
     whatsappUrl: waDeepLink(text, whatsappNumber),
+    paymentUrl,
     totalP,
     vip,
     items: lines,

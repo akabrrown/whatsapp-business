@@ -4,21 +4,22 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { MessageSquare, ArrowRight, ShoppingBag } from 'lucide-react';
+import { MessageSquare, ArrowRight, ShoppingBag, CreditCard } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 
 function HandoffContent() {
   const searchParams = useSearchParams();
   const { restoreBackup } = useCart();
-  const [state, setState] = useState<{ url: string; code: string } | null>(null);
+  const [state, setState] = useState<{ url: string; code: string; paymentUrl?: string | null } | null>(null);
 
   useEffect(() => {
     // 1. Try URL search params first
     const paramCode = searchParams.get('code');
     const paramUrl = searchParams.get('url');
+    const paramPayUrl = searchParams.get('payUrl');
 
     if (paramCode && paramUrl) {
-      setState({ code: paramCode, url: paramUrl });
+      setState({ code: paramCode, url: paramUrl, paymentUrl: paramPayUrl });
       const t = setTimeout(() => {
         try {
           window.location.href = paramUrl;
@@ -33,7 +34,7 @@ function HandoffContent() {
     try {
       const raw = sessionStorage.getItem('rd-handoff');
       if (raw) {
-        const parsed = JSON.parse(raw) as { url: string; code: string };
+        const parsed = JSON.parse(raw) as { url: string; code: string; paymentUrl?: string };
         setState(parsed);
         const t = setTimeout(() => {
           try {
@@ -74,7 +75,7 @@ function HandoffContent() {
             </div>
 
             <p className="text-xs text-charcoal/70">
-              Tap the button below to send your pre-filled order details directly to our WhatsApp representative.
+              Tap the button below to send your pre-filled order details directly to our WhatsApp representative with your secured payment link.
             </p>
 
             <a
@@ -85,6 +86,16 @@ function HandoffContent() {
               <span>Continue in WhatsApp</span>
               <ArrowRight size={16} />
             </a>
+
+            {state.paymentUrl && (
+              <a
+                href={state.paymentUrl}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo/40 bg-white px-5 py-3 text-sm font-semibold text-indigo shadow-sm hover:bg-indigo/5 transition active:scale-[0.98]"
+              >
+                <CreditCard size={16} />
+                <span>Pay Online with MoMo / Card</span>
+              </a>
+            )}
 
             <button
               onClick={() => {

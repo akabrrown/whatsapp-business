@@ -154,7 +154,7 @@ export function MiniCart() {
     });
     const body = (await res.json()) as {
       ok: boolean;
-      handoff?: { code: string; whatsappUrl: string; totalP: number };
+      handoff?: { code: string; whatsappUrl: string; totalP: number; paymentUrl?: string | null };
       error?: string;
       message?: string;
     };
@@ -168,17 +168,17 @@ export function MiniCart() {
       if (body?.error === 'RATE_LIMITED') return setError(body.message ?? 'Too many attempts: please wait a few minutes.');
       return setError(body?.message ?? 'Something went wrong: try again.');
     }
-    const { whatsappUrl, code } = body.handoff;
+    const { whatsappUrl, code, paymentUrl } = body.handoff;
     try {
-      sessionStorage.setItem('rd-handoff', JSON.stringify({ url: whatsappUrl, code }));
+      sessionStorage.setItem('rd-handoff', JSON.stringify({ url: whatsappUrl, code, paymentUrl }));
       localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
     } catch {
       /* ignore storage quota/private mode */
     }
     await clear();
     setDrawerOpen(false);
-    // Directly push to handoff page with token and URL encoded in query params as rock-solid fallback
-    const targetUrl = `/handoff?code=${encodeURIComponent(code)}&url=${encodeURIComponent(whatsappUrl)}`;
+    // Directly push to handoff page with token, URL, and paymentUrl encoded in query params
+    const targetUrl = `/handoff?code=${encodeURIComponent(code)}&url=${encodeURIComponent(whatsappUrl)}${paymentUrl ? `&payUrl=${encodeURIComponent(paymentUrl)}` : ''}`;
     router.push(targetUrl);
   };
 
