@@ -30,3 +30,76 @@ export async function getWhatsAppNumber(): Promise<string> {
   const stored = await getSetting('whatsapp_number');
   return stored ?? config.whatsappNumber;
 }
+
+export interface PromoBanner {
+  enabled: boolean;
+  text: string;
+  link?: string;
+  badge?: string;
+}
+
+export interface CouponItem {
+  id: string;
+  code: string;
+  discountType: 'PERCENTAGE' | 'FIXED' | 'FREE_DELIVERY';
+  value: number; // e.g. 15 for 15% or 2000 for GH₵20
+  minOrderP: number;
+  active: boolean;
+  usageLimit?: number;
+  usedCount: number;
+  expiresAt?: string;
+}
+
+export interface ProductPromotion {
+  compareAtPriceP?: number;
+  badge?: string;
+  featured?: boolean;
+}
+
+export async function getPromoBanner(): Promise<PromoBanner> {
+  const raw = await getSetting('promo_banner');
+  if (!raw) return { enabled: false, text: '' };
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { enabled: false, text: '' };
+  }
+}
+
+export async function setPromoBanner(banner: PromoBanner): Promise<void> {
+  await setSetting('promo_banner', JSON.stringify(banner));
+}
+
+export async function getCoupons(): Promise<CouponItem[]> {
+  const raw = await getSetting('promo_coupons');
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCoupons(coupons: CouponItem[]): Promise<void> {
+  await setSetting('promo_coupons', JSON.stringify(coupons));
+}
+
+export async function getProductPromotions(): Promise<Record<string, ProductPromotion>> {
+  const raw = await getSetting('product_promotions');
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+export async function setProductPromotion(productId: string, promo: ProductPromotion | null): Promise<void> {
+  const current = await getProductPromotions();
+  if (promo === null) {
+    delete current[productId];
+  } else {
+    current[productId] = promo;
+  }
+  await setSetting('product_promotions', JSON.stringify(current));
+}

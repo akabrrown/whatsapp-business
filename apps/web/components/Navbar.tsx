@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Menu, ShoppingBag, X, Truck } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { SearchOverlay } from './SearchOverlay';
+import { PromoBanner } from './PromoBanner';
 import type { Category } from '@/lib/api';
 
 export function Navbar({ categories }: { categories: Category[] }) {
@@ -43,6 +44,9 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
   return (
     <>
+      {/* ─── Storewide Announcement / Promo Banner ─── */}
+      <PromoBanner />
+
       {/* ─── Top Bar: Brand + Actions ─── */}
       <header className="sticky top-0 z-40 bg-cream">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">

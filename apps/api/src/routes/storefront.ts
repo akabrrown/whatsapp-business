@@ -400,12 +400,66 @@ storefront.get('/orders/by-token/:code', async (req, res) => {
 });
 
 // ---- Public settings (for storefront) --------------------------------------
-import { getWhatsAppNumber } from '../services/settings.js';
+import { getWhatsAppNumber, getPromoBanner, getCoupons } from '../services/settings.js';
 import { hub } from '../services/realtime.js';
 
 storefront.get('/settings/whatsapp', async (_req, res) => {
   const whatsappNumber = await getWhatsAppNumber();
   res.json({ ok: true, whatsappNumber });
+});
+
+// ---- Public Promo Banner ----------------------------------------------------
+storefront.get('/promotions/banner', async (_req, res) => {
+  const banner = await getPromoBanner();
+  res.json({ ok: true, banner });
+});
+
+// ---- Public Coupon Validation (for MiniCart / Checkout) ---------------------
+storefront.post('/promotions/validate-coupon', async (req, res) => {
+  const { code, subtotalP = 0 } = req.body as { code?: string; subtotalP?: number };
+  if (!code || !code.trim()) return res.status(400).json({ ok: false, message: 'Please enter a coupon code.' });
+
+  const clean = code.trim().toUpperCase();
+  const coupons = await getCoupons();
+  const found = coupons.find((c) => c.code === clean && c.active);
+
+  if (!found) {
+    return res.status(404).json({ ok: false, message: 'Invalid or expired coupon code.' });
+  }
+
+  if (found.expiresAt && new Date(found.expiresAt).getTime() < Date.now()) {
+    return res.status(400).json({ ok: false, message: 'This coupon code has expired.' });
+  }
+
+  if (found.usageLimit && found.usedCount >= found.usageLimit) {
+    return res.status(400).json({ ok: false, message: 'This coupon has reached its maximum usage limit.' });
+  }
+
+  if (found.minOrderP > 0 && subtotalP < found.minOrderP) {
+    return res.status(400).json({
+      ok: false,
+      message: `Minimum order amount of GH₵${(found.minOrderP / 100).toFixed(2)} required to use this code.`,
+    });
+  }
+
+  let discountP = 0;
+  if (found.discountType === 'PERCENTAGE') {
+    discountP = Math.round((subtotalP * found.value) / 100);
+  } else if (found.discountType === 'FIXED') {
+    discountP = Math.min(subtotalP, found.value);
+  } else if (found.discountType === 'FREE_DELIVERY') {
+    discountP = 0; // Handled as free shipping
+  }
+
+  res.json({
+    ok: true,
+    coupon: {
+      code: found.code,
+      discountType: found.discountType,
+      value: found.value,
+      discountP,
+    },
+  });
 });
 
 // ---- Hybrid Realtime Event Polling Endpoint (Fallback for WebSockets) -----

@@ -184,7 +184,19 @@ export function ProductDetailView({
               />
             </div>
             <h1 className="headline mt-2 text-3xl sm:text-4xl text-indigo">{product.name}</h1>
-            <p className="mt-3 headline text-2xl text-charcoal">{formatGHS(price)}</p>
+            <div className="mt-3 flex items-center gap-3">
+              <p className="headline text-2xl text-indigo">{formatGHS(price)}</p>
+              {product.compareAtPriceP && product.compareAtPriceP > price && (
+                <p className="headline text-lg text-charcoal/40 line-through">
+                  {formatGHS(product.compareAtPriceP)}
+                </p>
+              )}
+              {product.badge && (
+                <span className="rounded-full bg-rose/10 text-rose font-bold px-2.5 py-0.5 text-xs uppercase tracking-wider">
+                  {product.badge}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Description */}

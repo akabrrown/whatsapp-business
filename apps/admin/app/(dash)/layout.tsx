@@ -14,6 +14,7 @@ import {
   Shield,
   Sparkles,
   Users,
+  Tag,
   type LucideIcon,
 } from 'lucide-react';
 import { clearAuth, getToken, getUser, subscribeAdminEvents } from '@/lib/api';
@@ -21,6 +22,7 @@ import { clearAuth, getToken, getUser, subscribeAdminEvents } from '@/lib/api';
 const NAV: { href: string; label: string; icon: LucideIcon; ownerOnly?: boolean }[] = [
   { href: '/orders', label: 'Orders', icon: ClipboardList },
   { href: '/inventory', label: 'Inventory', icon: Boxes },
+  { href: '/promotions', label: 'Promotions', icon: Tag },
   { href: '/inbox', label: 'Inbox', icon: MessageCircle },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/customers', label: 'Customers', icon: Users },

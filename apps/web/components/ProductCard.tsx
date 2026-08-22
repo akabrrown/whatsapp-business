@@ -22,18 +22,29 @@ export function ProductCard({ product, large = false }: { product: CatalogProduc
             Image coming soon
           </div>
         )}
-        {product.soldOut && (
+        {product.soldOut ? (
           <span className="absolute left-3 top-3 bg-charcoal/80 px-2 py-1 text-xs tracking-wide text-cream">
             Sold out: chat to pre-order
           </span>
-        )}
+        ) : product.badge ? (
+          <span className="absolute right-2.5 top-2.5 rounded bg-rose px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+            {product.badge}
+          </span>
+        ) : null}
       </Link>
       <div className="mt-3 flex items-start justify-between gap-2">
         <div>
           <Link href={`/product/${product.slug}`} className="text-sm text-charcoal hover:text-indigo">
             {product.name}
           </Link>
-          <p className="mt-0.5 text-sm font-medium text-indigo">{formatGHS(product.minPriceP)}</p>
+          <div className="mt-0.5 flex items-center gap-2">
+            <p className="text-sm font-bold text-indigo">{formatGHS(product.minPriceP)}</p>
+            {product.compareAtPriceP && product.compareAtPriceP > product.minPriceP && (
+              <p className="text-xs text-charcoal/40 line-through">
+                {formatGHS(product.compareAtPriceP)}
+              </p>
+            )}
+          </div>
           {product.lowStock && !product.soldOut && (
             <p className="mt-1 inline-block bg-sand/30 px-1.5 py-0.5 text-xs text-charcoal/80">
               Only {product.totalAvailable} left

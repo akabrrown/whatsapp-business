@@ -26,6 +26,9 @@ export interface CatalogProduct {
   images: string[];
   imageDetails?: ProductImageDetail[];
   minPriceP: number;
+  compareAtPriceP?: number;
+  badge?: string;
+  featured?: boolean;
   soldOut: boolean;
   totalAvailable: number;
   lowStock: boolean;

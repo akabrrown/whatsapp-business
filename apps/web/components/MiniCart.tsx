@@ -3,7 +3,7 @@
 // a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Minus, Plus, X, CreditCard, MessageSquare, MapPin, Navigation, Store, Truck, Check, RotateCcw } from 'lucide-react';
+import { Minus, Plus, X, CreditCard, MessageSquare, MapPin, Navigation, Store, Truck, Check, RotateCcw, Tag } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -25,6 +25,14 @@ export function MiniCart() {
   const [confirmDup, setConfirmDup] = useState(false);
   const [busy, setBusy] = useState(false);
   const [onlineBusy, setOnlineBusy] = useState(false);
+
+  // Coupon / Promo Code State
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountP: number; discountType: string; value: number } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -282,8 +290,38 @@ export function MiniCart() {
     }
   };
 
+  const applyCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    setCouponSuccess('');
+    try {
+      const res = await fetch(`${API}/api/promotions/validate-coupon`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponInput.trim(), subtotalP }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok || !data.coupon) {
+        setCouponError(data.message || 'Invalid or expired coupon code.');
+      } else {
+        setAppliedCoupon(data.coupon);
+        setCouponSuccess(`Coupon ${data.coupon.code} applied successfully!`);
+      }
+    } catch {
+      setCouponError('Unable to apply coupon.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
   const deliveryFee = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
-  const total = subtotalP + deliveryFee;
+  let couponDiscountP = appliedCoupon?.discountP ?? 0;
+  if (appliedCoupon?.discountType === 'FREE_DELIVERY') {
+    couponDiscountP = deliveryFee;
+  }
+  const total = Math.max(0, subtotalP + deliveryFee - couponDiscountP);
 
   return (
     <div className="fixed inset-0 z-50">
@@ -557,9 +595,71 @@ export function MiniCart() {
 
         {lines.length > 0 && (
           <div className="border-t border-sand/40 px-6 py-5">
+            {/* Promo / Discount Coupon Input */}
+            <div className="mb-3.5 rounded-xl border border-sand/60 bg-sand/15 p-2.5">
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-emerald-800 font-medium truncate mr-2">
+                    <Tag size={13} className="text-emerald-700 shrink-0" />
+                    <span className="truncate">Promo Applied: <strong>{appliedCoupon.code}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppliedCoupon(null);
+                      setCouponInput('');
+                      setCouponSuccess('');
+                    }}
+                    className="text-[11px] text-rose font-medium hover:underline shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={applyCoupon} className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Enter Coupon / Promo Code"
+                    className="w-full uppercase font-mono text-xs rounded-lg border border-sand/70 bg-white px-2.5 py-1.5 text-charcoal outline-none focus:border-indigo"
+                  />
+                  <button
+                    type="submit"
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="rounded-lg bg-indigo px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo/90 transition shrink-0 disabled:opacity-50"
+                  >
+                    {couponLoading ? '…' : 'Apply'}
+                  </button>
+                </form>
+              )}
+              {couponError && <p className="text-[11px] text-rose mt-1">{couponError}</p>}
+              {couponSuccess && <p className="text-[11px] text-emerald-800 font-medium mt-1">{couponSuccess}</p>}
+            </div>
+
+            {/* Price Breakdown */}
+            <div className="space-y-1.5 text-xs text-charcoal/70 mb-3 border-b border-sand/30 pb-3">
+              <div className="flex justify-between">
+                <span>Items Subtotal</span>
+                <span className="font-semibold text-charcoal">{formatGHS(subtotalP)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery Fee ({fulfillmentType === 'PICKUP' ? 'Store Pickup' : zone?.name || 'Accra Area'})</span>
+                <span className="font-semibold text-charcoal">
+                  {fulfillmentType === 'PICKUP' ? 'Free' : zone?.feeP ? formatGHS(zone.feeP) : 'Quote on WhatsApp'}
+                </span>
+              </div>
+              {couponDiscountP > 0 && (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>Discount ({appliedCoupon?.code})</span>
+                  <span>-{formatGHS(couponDiscountP)}</span>
+                </div>
+              )}
+            </div>
+
             <div className="mb-3 flex items-baseline justify-between" aria-live="polite">
-              <span className="text-sm text-charcoal/70">Total</span>
-              <span className="headline text-2xl">{formatGHS(total)}</span>
+              <span className="text-sm font-semibold text-charcoal">Final Total</span>
+              <span className="headline text-2xl text-indigo">{formatGHS(total)}</span>
             </div>
             {error && <p className="mb-3 text-xs text-rose">{error}</p>}
 

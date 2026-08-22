@@ -17,6 +17,8 @@ export interface ProductImageDetail {
   color?: string;
 }
 
+import { getProductPromotions, type ProductPromotion } from './settings.js';
+
 export interface CatalogProduct {
   id: string;
   slug: string;
@@ -26,19 +28,42 @@ export interface CatalogProduct {
   images: string[];
   imageDetails?: ProductImageDetail[];
   minPriceP: number;
+  compareAtPriceP?: number;
+  badge?: string;
+  featured?: boolean;
   soldOut: boolean;
   totalAvailable: number;
   lowStock: boolean;
   variants: CatalogVariant[];
 }
 
-function toCatalog(p: {
-  id: string; slug: string; name: string; description: string; images: string;
-  category: { slug: string; name: string };
-  variants: { id: string; sku: string; size: string | null; color: string | null; priceP: number; stockQuantity: number; reservedStock: number; lowStockThreshold: number }[];
-}): CatalogProduct {
+function toCatalog(
+  p: {
+    id: string;
+    slug: string;
+    name: string;
+    description: string;
+    images: string;
+    category: { slug: string; name: string };
+    variants: {
+      id: string;
+      sku: string;
+      size: string | null;
+      color: string | null;
+      priceP: number;
+      stockQuantity: number;
+      reservedStock: number;
+      lowStockThreshold: number;
+    }[];
+  },
+  promo?: ProductPromotion,
+): CatalogProduct {
   const variants: CatalogVariant[] = p.variants.map((v) => ({
-    id: v.id, sku: v.sku, size: v.size, color: v.color, priceP: v.priceP,
+    id: v.id,
+    sku: v.sku,
+    size: v.size,
+    color: v.color,
+    priceP: v.priceP,
     stockQuantity: v.stockQuantity,
     available: Math.max(0, v.stockQuantity - v.reservedStock),
   }));
@@ -54,11 +79,17 @@ function toCatalog(p: {
     return { url, color: s.color || undefined };
   });
   return {
-    id: p.id, slug: p.slug, name: p.name, description: p.description,
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    description: p.description,
     category: p.category,
     images: imageDetails.map((i) => i.url),
     imageDetails,
     minPriceP: Math.min(...variants.map((v) => v.priceP)),
+    compareAtPriceP: promo?.compareAtPriceP,
+    badge: promo?.badge,
+    featured: promo?.featured,
     soldOut: totalAvailable === 0, // §3.2: flag, never hide
     totalAvailable,
     lowStock: variants.some((v) => v.available > 0 && v.available <= 3),
@@ -132,17 +163,23 @@ export async function listActive(categorySlug?: string): Promise<CatalogProduct[
     }
   }
 
-  const products = await db.product.findMany({
-    where: { status: 'active', ...categoryFilter },
-    include,
-    orderBy: { createdAt: 'desc' },
-  });
-  return products.map(toCatalog);
+  const [products, promos] = await Promise.all([
+    db.product.findMany({
+      where: { status: 'active', ...categoryFilter },
+      include,
+      orderBy: { createdAt: 'desc' },
+    }),
+    getProductPromotions(),
+  ]);
+  return products.map((p) => toCatalog(p, promos[p.id]));
 }
 
 export async function bySlug(slug: string): Promise<CatalogProduct | null> {
-  const p = await db.product.findFirst({ where: { slug, status: 'active' }, include });
-  return p ? toCatalog(p) : null;
+  const [p, promos] = await Promise.all([
+    db.product.findFirst({ where: { slug, status: 'active' }, include }),
+    getProductPromotions(),
+  ]);
+  return p ? toCatalog(p, promos[p.id]) : null;
 }
 
 /** §3.6: empty search returns empty set; UI shows category shortcuts. */
@@ -177,7 +214,7 @@ export async function relatedProducts(slug: string, limit: number = 4): Promise<
     orderBy: { createdAt: 'desc' },
   });
 
-  const results: CatalogProduct[] = sameCategoryProducts.map(toCatalog);
+  const results: CatalogProduct[] = sameCategoryProducts.map((p) => toCatalog(p));
   if (results.length >= limit) return results;
 
   // 2. If product has a parent category (e.g. Men's Fashion), query sibling subcategories under SAME parent only

@@ -927,3 +927,80 @@ admin.post('/settings/2fa/disable', requireAuth, async (req, res) => {
   await db.adminUser.update({ where: { id: req.admin!.sub }, data: { twoFactorSecret: null } });
   res.json({ ok: true });
 });
+
+// ---- Promotions, Banner & Discounts ----------------------------------------
+import {
+  getPromoBanner,
+  setPromoBanner,
+  getCoupons,
+  saveCoupons,
+  getProductPromotions,
+  setProductPromotion,
+  type PromoBanner,
+  type CouponItem,
+  type ProductPromotion,
+} from '../services/settings.js';
+
+admin.get('/promotions', requireAuth, async (_req, res) => {
+  const [banner, coupons, productPromotions] = await Promise.all([
+    getPromoBanner(),
+    getCoupons(),
+    getProductPromotions(),
+  ]);
+  res.json({ ok: true, banner, coupons, productPromotions });
+});
+
+admin.post('/promotions/banner', requireOwner, async (req, res) => {
+  const { enabled, text, link, badge } = req.body as PromoBanner;
+  await setPromoBanner({ enabled: !!enabled, text: text || '', link: link || '', badge: badge || '' });
+  hub.broadcast('web', 'promo_banner_updated', { time: Date.now() });
+  res.json({ ok: true, banner: await getPromoBanner() });
+});
+
+admin.post('/promotions/coupons', requireOwner, async (req, res) => {
+  const { coupon } = req.body as { coupon: CouponItem };
+  if (!coupon || !coupon.code) return res.status(400).json({ ok: false, error: 'coupon code required' });
+
+  const coupons = await getCoupons();
+  const cleanCode = coupon.code.trim().toUpperCase();
+  const existingIdx = coupons.findIndex((c) => c.code === cleanCode || c.id === coupon.id);
+
+  const newCoupon: CouponItem = {
+    id: coupon.id || `cpn_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    code: cleanCode,
+    discountType: coupon.discountType || 'PERCENTAGE',
+    value: Number(coupon.value) || 0,
+    minOrderP: Number(coupon.minOrderP) || 0,
+    active: coupon.active !== false,
+    usageLimit: coupon.usageLimit ? Number(coupon.usageLimit) : undefined,
+    usedCount: coupon.usedCount || 0,
+    expiresAt: coupon.expiresAt || undefined,
+  };
+
+  if (existingIdx >= 0) {
+    coupons[existingIdx] = { ...coupons[existingIdx], ...newCoupon };
+  } else {
+    coupons.unshift(newCoupon);
+  }
+
+  await saveCoupons(coupons);
+  res.json({ ok: true, coupons: await getCoupons() });
+});
+
+admin.delete('/promotions/coupons/:id', requireOwner, async (req, res) => {
+  const coupons = await getCoupons();
+  const filtered = coupons.filter((c) => c.id !== req.params.id && c.code !== req.params.id);
+  await saveCoupons(filtered);
+  res.json({ ok: true, coupons: await getCoupons() });
+});
+
+admin.post('/promotions/products/:id', requireOwner, async (req, res) => {
+  const { compareAtPriceP, badge, featured } = req.body as ProductPromotion;
+  await setProductPromotion(req.params.id, {
+    compareAtPriceP: compareAtPriceP ? Number(compareAtPriceP) : undefined,
+    badge: badge ? String(badge).trim() : undefined,
+    featured: !!featured,
+  });
+  hub.broadcast('web', 'catalog_updated', { time: Date.now() });
+  res.json({ ok: true, productPromotions: await getProductPromotions() });
+});
