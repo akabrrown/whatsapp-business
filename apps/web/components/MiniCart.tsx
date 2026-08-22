@@ -1,17 +1,37 @@
 'use client';
-// Slide-out mini-cart (ux.md §3.4): the one place WhatsApp green appears as
-// a CTA. Handoff posts to /api/handoff (§4.6–4.8) then transitions to /handoff.
+
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Minus, Plus, X, CreditCard, MessageSquare, MapPin, Navigation, Store, Truck, Check, RotateCcw, Tag } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Minus,
+  Plus,
+  X,
+  CreditCard,
+  MessageSquare,
+  MapPin,
+  Navigation,
+  Store,
+  Truck,
+  Check,
+  RotateCcw,
+  Tag,
+  Trash2,
+  ShieldCheck,
+  ArrowRight,
+  ShoppingBag,
+  Sparkles,
+} from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const FREE_DELIVERY_THRESHOLD_P = 40000; // GH₵400.00 for free delivery
 
 export function MiniCart() {
   const { lines, subtotalP, drawerOpen, setDrawerOpen, setQty, clear, sessionId } = useCart();
   const router = useRouter();
+
   const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [deliveryMode, setDeliveryMode] = useState<'GPS' | 'CHOOSE'>('GPS');
   const [phone, setPhone] = useState('');
@@ -27,8 +47,14 @@ export function MiniCart() {
   const [onlineBusy, setOnlineBusy] = useState(false);
 
   // Coupon / Promo Code State
+  const [showCouponInput, setShowCouponInput] = useState(false);
   const [couponInput, setCouponInput] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountP: number; discountType: string; value: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountP: number;
+    discountType: string;
+    value: number;
+  } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
@@ -44,7 +70,6 @@ export function MiniCart() {
         if (data.ok && Array.isArray(data.zones) && data.zones.length > 0) {
           setZonesList(data.zones);
         } else {
-          // Fallback defaults for Accra
           setZonesList([
             { id: '1', name: 'Osu / Ring Road', feeP: 2000 },
             { id: '2', name: 'Cantonments / Labone', feeP: 2000 },
@@ -62,7 +87,7 @@ export function MiniCart() {
       .catch(() => {});
   }, []);
 
-  // Focus trap + Escape to close (§7 a11y)
+  // Focus trap + Escape to close
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -91,7 +116,6 @@ export function MiniCart() {
     if (drawerOpen) {
       document.addEventListener('keydown', handleKeyDown);
       closeRef.current?.focus();
-      // Prevent body scroll while drawer is open
       document.body.style.overflow = 'hidden';
     }
     return () => {
@@ -128,7 +152,7 @@ export function MiniCart() {
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser. Please select your neighborhood below.');
+      setError('Geolocation is not supported. Please select your neighborhood from the list.');
       setDeliveryMode('CHOOSE');
       return;
     }
@@ -155,139 +179,19 @@ export function MiniCart() {
           setGpsLoading(false);
         }
       },
-      (err) => {
+      () => {
         setGpsLoading(false);
-        setError('Could not get GPS signal. Please select your neighborhood from the list below.');
+        setError('Could not get GPS signal. Please select your neighborhood from the dropdown.');
         setDeliveryMode('CHOOSE');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers 0-9 and optional leading +
     const val = e.target.value;
     const digitsOnly = val.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
     setPhone(digitsOnly);
-  };
-
-  const complete = async () => {
-    setError('');
-    const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
-    const digits = cleanPhone.replace(/\D/g, '');
-    if (!cleanPhone || digits.length < 9) {
-      return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
-    }
-    if (fulfillmentType === 'DELIVERY' && !coords && !zone) {
-      return setError('Please pin your live GPS location or select your delivery neighborhood.');
-    }
-    setBusy(true);
-    const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
-    const res = await fetch(`${API}/api/handoff`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone: cleanPhone,
-        sessionId,
-        items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
-        fulfillmentType,
-        zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (zone?.name || 'Accra Delivery Zone'),
-        deliveryFeeP: feeP,
-        latitude: coords?.lat,
-        longitude: coords?.lng,
-        confirmedDuplicate: confirmDup,
-      }),
-    });
-    const body = (await res.json()) as {
-      ok: boolean;
-      handoff?: { code: string; whatsappUrl: string; totalP: number; paymentUrl?: string | null };
-      error?: string;
-      message?: string;
-    };
-    setBusy(false);
-    if (!res.ok || !body.ok || !body.handoff) {
-      if (body?.error === 'DUPLICATE_SUSPECT') {
-        setConfirmDup(true);
-        setError(`${body.message ?? 'Looks like a duplicate order.'} Tap the button again to confirm you mean it.`);
-        return;
-      }
-      if (body?.error === 'RATE_LIMITED') return setError(body.message ?? 'Too many attempts: please wait a few minutes.');
-      return setError(body?.message ?? 'Something went wrong: try again.');
-    }
-    const { whatsappUrl, code, paymentUrl } = body.handoff;
-    try {
-      sessionStorage.setItem('rd-handoff', JSON.stringify({ url: whatsappUrl, code, paymentUrl }));
-      localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
-    } catch {
-      /* ignore storage quota/private mode */
-    }
-    await clear();
-    setDrawerOpen(false);
-    // Directly push to handoff page with token, URL, and paymentUrl encoded in query params
-    const targetUrl = `/handoff?code=${encodeURIComponent(code)}&url=${encodeURIComponent(whatsappUrl)}${paymentUrl ? `&payUrl=${encodeURIComponent(paymentUrl)}` : ''}`;
-    router.push(targetUrl);
-  };
-
-  const completeOnline = async () => {
-    setError('');
-    const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
-    const digits = cleanPhone.replace(/\D/g, '');
-    if (!cleanPhone || digits.length < 9) {
-      return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
-    }
-    if (fulfillmentType === 'DELIVERY' && !coords && !zone) {
-      return setError('Please pin your live GPS location or select your delivery neighborhood.');
-    }
-    setOnlineBusy(true);
-    const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
-    try {
-      const res = await fetch(`${API}/api/checkout/online`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: cleanPhone,
-          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name ? zone.name : 'Accra Delivery Location'),
-          sessionId,
-          items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
-          fulfillmentType,
-          zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (zone?.name || 'Accra Delivery Zone'),
-          deliveryFeeP: feeP,
-          latitude: coords?.lat,
-          longitude: coords?.lng,
-          confirmedDuplicate: confirmDup,
-        }),
-      });
-      const body = (await res.json()) as {
-        ok: boolean;
-        paymentUrl?: string;
-        tokenCode?: string;
-        error?: string;
-        message?: string;
-      };
-      setOnlineBusy(false);
-      if (!res.ok || !body.ok || !body.paymentUrl) {
-        if (body.error === 'DUPLICATE_SUSPECT') {
-          setConfirmDup(true);
-          setError(`${body.message ?? 'Looks like a duplicate order.'} Tap again to confirm.`);
-          return;
-        }
-        return setError(body.message ?? 'Unable to start online payment. Please order via WhatsApp.');
-      }
-
-      // Preserve cart items in backup storage so if payment is cancelled or network drops, nothing is lost
-      try {
-        localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
-        if (body.tokenCode) localStorage.setItem('rd-in-flight-token', body.tokenCode);
-      } catch {
-        /* ignore */
-      }
-
-      setDrawerOpen(false);
-      window.location.href = body.paymentUrl;
-    } catch {
-      setOnlineBusy(false);
-      setError('Network error starting payment. Please try again or order on WhatsApp.');
-    }
   };
 
   const applyCoupon = async (e: React.FormEvent) => {
@@ -316,86 +220,322 @@ export function MiniCart() {
     }
   };
 
-  const deliveryFee = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
+  // Pricing calculations
+  const rawDeliveryFee = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? (deliveryMode === 'GPS' && coords ? 2500 : 0));
+  const isFreeDeliveryQualified = subtotalP >= FREE_DELIVERY_THRESHOLD_P;
+  const effectiveDeliveryFee = isFreeDeliveryQualified || fulfillmentType === 'PICKUP' ? 0 : rawDeliveryFee;
+
   let couponDiscountP = appliedCoupon?.discountP ?? 0;
   if (appliedCoupon?.discountType === 'FREE_DELIVERY') {
-    couponDiscountP = deliveryFee;
+    couponDiscountP = effectiveDeliveryFee;
   }
-  const total = Math.max(0, subtotalP + deliveryFee - couponDiscountP);
+  const finalTotal = Math.max(0, subtotalP + effectiveDeliveryFee - couponDiscountP);
+
+  // Free delivery progress
+  const progressPercent = Math.min(100, Math.round((subtotalP / FREE_DELIVERY_THRESHOLD_P) * 100));
+  const remainingForFreeDeliveryP = Math.max(0, FREE_DELIVERY_THRESHOLD_P - subtotalP);
+
+  const complete = async () => {
+    setError('');
+    const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
+    const digits = cleanPhone.replace(/\D/g, '');
+    if (!cleanPhone || digits.length < 9) {
+      return setError('Please enter a valid phone number (at least 9–10 digits).');
+    }
+    if (fulfillmentType === 'DELIVERY' && !coords && !zone) {
+      return setError('Please pin your live GPS location or select your delivery neighborhood.');
+    }
+    setBusy(true);
+    const res = await fetch(`${API}/api/handoff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: cleanPhone,
+        sessionId,
+        items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
+        fulfillmentType,
+        zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name || 'Accra Delivery Zone'),
+        deliveryFeeP: effectiveDeliveryFee,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
+        confirmedDuplicate: confirmDup,
+      }),
+    });
+    const body = (await res.json()) as {
+      ok: boolean;
+      handoff?: { code: string; whatsappUrl: string; totalP: number; paymentUrl?: string | null };
+      error?: string;
+      message?: string;
+    };
+    setBusy(false);
+    if (!res.ok || !body.ok || !body.handoff) {
+      if (body?.error === 'DUPLICATE_SUSPECT') {
+        setConfirmDup(true);
+        setError(`${body.message ?? 'Looks like a duplicate order.'} Tap again to confirm.`);
+        return;
+      }
+      if (body?.error === 'RATE_LIMITED') return setError(body.message ?? 'Too many attempts: please wait a few minutes.');
+      return setError(body?.message ?? 'Something went wrong: try again.');
+    }
+    const { whatsappUrl, code, paymentUrl } = body.handoff;
+    try {
+      sessionStorage.setItem('rd-handoff', JSON.stringify({ url: whatsappUrl, code, paymentUrl }));
+      localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
+    } catch {}
+    await clear();
+    setDrawerOpen(false);
+    const targetUrl = `/handoff?code=${encodeURIComponent(code)}&url=${encodeURIComponent(whatsappUrl)}${paymentUrl ? `&payUrl=${encodeURIComponent(paymentUrl)}` : ''}`;
+    router.push(targetUrl);
+  };
+
+  const completeOnline = async () => {
+    setError('');
+    const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
+    const digits = cleanPhone.replace(/\D/g, '');
+    if (!cleanPhone || digits.length < 9) {
+      return setError('Please enter a valid phone number (at least 9–10 digits).');
+    }
+    if (fulfillmentType === 'DELIVERY' && !coords && !zone) {
+      return setError('Please pin your live GPS location or select your delivery neighborhood.');
+    }
+    setOnlineBusy(true);
+    try {
+      const res = await fetch(`${API}/api/checkout/online`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name ? zone.name : 'Accra Delivery Location'),
+          sessionId,
+          items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
+          fulfillmentType,
+          zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name || 'Accra Delivery Zone'),
+          deliveryFeeP: effectiveDeliveryFee,
+          latitude: coords?.lat,
+          longitude: coords?.lng,
+          confirmedDuplicate: confirmDup,
+        }),
+      });
+      const body = (await res.json()) as {
+        ok: boolean;
+        paymentUrl?: string;
+        tokenCode?: string;
+        error?: string;
+        message?: string;
+      };
+      setOnlineBusy(false);
+      if (!res.ok || !body.ok || !body.paymentUrl) {
+        if (body.error === 'DUPLICATE_SUSPECT') {
+          setConfirmDup(true);
+          setError(`${body.message ?? 'Looks like a duplicate order.'} Tap again to confirm.`);
+          return;
+        }
+        return setError(body.message ?? 'Unable to start online payment. Please order via WhatsApp.');
+      }
+
+      try {
+        localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
+        if (body.tokenCode) localStorage.setItem('rd-in-flight-token', body.tokenCode);
+      } catch {}
+
+      setDrawerOpen(false);
+      window.location.href = body.paymentUrl;
+    } catch {
+      setOnlineBusy(false);
+      setError('Network error starting payment. Please try again or order on WhatsApp.');
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button aria-label="Close cart" className="absolute inset-0 bg-charcoal/30" onClick={() => setDrawerOpen(false)} tabIndex={-1} />
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <button
+        aria-label="Close cart"
+        className="fixed inset-0 bg-charcoal/40 backdrop-blur-xs transition-opacity"
+        onClick={() => setDrawerOpen(false)}
+        tabIndex={-1}
+      />
+
+      {/* Drawer Panel */}
       <aside
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Shopping cart"
-        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l-4 border-sand bg-cream shadow-xl"
+        aria-label="Shopping bag"
+        className="relative z-10 flex h-full w-full max-w-lg flex-col bg-[#FAF8F5] shadow-2xl border-l border-sand/60 animate-in slide-in-from-right duration-300"
       >
-        <div className="flex items-center justify-between border-b border-sand/40 px-6 py-4">
-          <h2 className="headline text-xl">Your Selection</h2>
-          <button ref={closeRef} aria-label="Close" className="text-indigo" onClick={() => setDrawerOpen(false)}>
-            <X size={24} aria-hidden />
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between border-b border-sand/40 bg-white px-6 py-4">
+          <div className="flex items-center gap-2">
+            <ShoppingBag size={18} className="text-indigo" />
+            <h2 className="headline text-xl text-indigo">Your Shopping Bag</h2>
+            {lines.length > 0 && (
+              <span className="rounded-full bg-indigo/10 px-2 py-0.5 text-xs font-bold text-indigo">
+                {lines.reduce((s, i) => s + i.qty, 0)}
+              </span>
+            )}
+          </div>
+          <button
+            ref={closeRef}
+            aria-label="Close shopping bag"
+            className="rounded-full p-1 text-charcoal/60 hover:bg-sand/20 hover:text-charcoal transition"
+            onClick={() => setDrawerOpen(false)}
+          >
+            <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {lines.length === 0 && (
-            <p className="mt-10 text-center text-sm text-charcoal/60">
-              Your bag is empty: <a href="/shop" className="text-indigo underline">browse the collection</a>.
-            </p>
-          )}
-          {lines.map((l) => (
-            <div key={l.variantId} className="mb-5 flex gap-4 items-start">
-              {l.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={l.image} alt={l.name} className="h-20 w-16 shrink-0 rounded object-cover bg-sand/20" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-charcoal truncate">{l.name}</p>
-                <p className="text-xs uppercase tracking-wide text-charcoal/50">
-                  {[l.size, l.color].filter(Boolean).join(' · ') || 'One style'}
-                </p>
-                <div className="mt-2 flex items-center gap-3 text-sm">
-                  <button aria-label="Less" className="text-indigo touch-manipulation p-1" onClick={() => setQty(l.variantId, l.qty - 1)}>
-                    <Minus size={16} aria-hidden />
-                  </button>
-                  <span className="min-w-[1rem] text-center">{l.qty}</span>
-                  <button
-                    aria-label="More"
-                    className="text-indigo touch-manipulation p-1 disabled:cursor-not-allowed disabled:text-charcoal/25"
-                    disabled={l.maxQty !== undefined && l.qty >= l.maxQty}
-                    onClick={() => setQty(l.variantId, l.qty + 1)}
-                  >
-                    <Plus size={16} aria-hidden />
-                  </button>
-                  {l.maxQty !== undefined && l.qty >= l.maxQty && (
-                    <span className="text-[11px] text-charcoal/50">Max stock reached</span>
-                  )}
-                  <span className="ml-auto font-medium text-indigo">{formatGHS(l.priceP * l.qty)}</span>
-                </div>
-              </div>
+        {/* Free Delivery Threshold Progress Bar */}
+        {lines.length > 0 && (
+          <div className="border-b border-sand/30 bg-indigo/[0.03] px-6 py-3">
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-charcoal">
+                <Truck size={14} className="text-indigo" />
+                {isFreeDeliveryQualified ? (
+                  <strong className="text-emerald-700">🎉 Free Delivery Unlocked across Accra!</strong>
+                ) : (
+                  <span>
+                    Add <strong className="text-indigo">{formatGHS(remainingForFreeDeliveryP)}</strong> more for <strong>FREE Delivery</strong>
+                  </span>
+                )}
+              </span>
+              <span className="text-[11px] text-charcoal/50 font-mono">{progressPercent}%</span>
             </div>
-          ))}
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-sand/40">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  isFreeDeliveryQualified ? 'bg-emerald-500' : 'bg-indigo'
+                }`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        )}
 
+        {/* Cart Item List / Empty State */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 scrollbar-thin">
+          {lines.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center py-16">
+              <div className="h-16 w-16 rounded-full bg-sand/30 flex items-center justify-center text-charcoal/30 mb-4">
+                <ShoppingBag size={32} />
+              </div>
+              <h3 className="headline text-lg text-charcoal font-semibold">Your bag is empty</h3>
+              <p className="mt-1 text-xs text-charcoal/60 max-w-xs">
+                Explore our curated drops of tops, buttoms, footwear, bags and eyewear.
+              </p>
+              <Link
+                href="/shop"
+                onClick={() => setDrawerOpen(false)}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo px-6 py-3 text-xs font-semibold text-white shadow-sm hover:bg-indigo-deep transition"
+              >
+                <span>Browse Collection</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-sand/30">
+              {lines.map((l) => (
+                <div key={l.variantId} className="flex gap-4 py-4 first:pt-0 last:pb-0 group">
+                  {l.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={l.image}
+                      alt={l.name}
+                      className="h-24 w-20 shrink-0 rounded-xl object-cover border border-sand/60 bg-sand/10 shadow-2xs"
+                    />
+                  ) : (
+                    <div className="h-24 w-20 shrink-0 rounded-xl bg-sand/20 flex items-center justify-center text-charcoal/30 border border-sand/60">
+                      <ShoppingBag size={20} />
+                    </div>
+                  )}
+
+                  <div className="flex flex-1 flex-col justify-between min-w-0">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <Link
+                          href={`/product/${l.slug}`}
+                          onClick={() => setDrawerOpen(false)}
+                          className="text-xs font-bold text-charcoal hover:text-indigo transition line-clamp-1"
+                        >
+                          {l.name}
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setQty(l.variantId, 0)}
+                          className="text-charcoal/40 hover:text-rose p-0.5 transition"
+                          title="Remove item"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-charcoal/50">
+                        {[l.size, l.color].filter(Boolean).join(' · ') || 'Standard Size'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-3">
+                      {/* Quantity Stepper */}
+                      <div className="flex items-center rounded-lg border border-sand/80 bg-white p-0.5 shadow-2xs">
+                        <button
+                          type="button"
+                          aria-label="Decrease quantity"
+                          className="h-6 w-6 flex items-center justify-center rounded text-charcoal/70 hover:bg-sand/20 hover:text-charcoal transition"
+                          onClick={() => setQty(l.variantId, l.qty - 1)}
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="min-w-[1.5rem] text-center text-xs font-bold font-mono">
+                          {l.qty}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Increase quantity"
+                          className="h-6 w-6 flex items-center justify-center rounded text-charcoal/70 hover:bg-sand/20 hover:text-charcoal transition disabled:opacity-30"
+                          disabled={l.maxQty !== undefined && l.qty >= l.maxQty}
+                          onClick={() => setQty(l.variantId, l.qty + 1)}
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="headline text-sm font-bold text-indigo">
+                          {formatGHS(l.priceP * l.qty)}
+                        </span>
+                        {l.qty > 1 && (
+                          <span className="block text-[10px] text-charcoal/40 font-mono">
+                            {formatGHS(l.priceP)} each
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Delivery & Checkout Preferences Form */}
           {lines.length > 0 && (
-            <div className="mt-6 space-y-4 border-t border-sand/40 pt-4">
-              {/* Fulfillment Switcher */}
+            <div className="mt-6 space-y-4 border-t border-sand/40 pt-5">
+              {/* Fulfillment Type Switcher */}
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-charcoal/60">How would you like your order?</p>
-                <div className="grid grid-cols-2 gap-2 rounded-xl bg-sand/20 p-1">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-charcoal/70">
+                  Fulfillment Method
+                </p>
+                <div className="grid grid-cols-2 gap-2 rounded-xl bg-sand/30 p-1">
                   <button
                     type="button"
                     onClick={() => setFulfillmentType('DELIVERY')}
-                    className={`flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium transition ${
+                    className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
                       fulfillmentType === 'DELIVERY'
-                        ? 'bg-white text-indigo shadow-sm font-semibold'
-                        : 'text-charcoal/70 hover:text-charcoal'
+                        ? 'bg-white text-indigo shadow-xs'
+                        : 'text-charcoal/60 hover:text-charcoal'
                     }`}
                   >
                     <Truck size={14} />
-                    Doorstep Delivery
+                    <span>Doorstep Delivery</span>
                   </button>
                   <button
                     type="button"
@@ -403,205 +543,166 @@ export function MiniCart() {
                       setFulfillmentType('PICKUP');
                       setZone(null);
                     }}
-                    className={`flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium transition ${
+                    className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
                       fulfillmentType === 'PICKUP'
-                        ? 'bg-white text-indigo shadow-sm font-semibold'
-                        : 'text-charcoal/70 hover:text-charcoal'
+                        ? 'bg-white text-indigo shadow-xs'
+                        : 'text-charcoal/60 hover:text-charcoal'
                     }`}
                   >
                     <Store size={14} />
-                    Store Pickup (Free)
+                    <span>Store Pickup (Free)</span>
                   </button>
                 </div>
               </div>
 
+              {/* Delivery Details */}
               {fulfillmentType === 'PICKUP' ? (
-                <div className="rounded-xl border border-amber-600/20 bg-amber-50/60 p-3.5 text-xs text-amber-900">
-                  <div className="flex items-center gap-1.5 font-semibold text-amber-800">
+                <div className="rounded-xl border border-amber-600/20 bg-amber-50/70 p-3.5 text-xs text-amber-900">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-800">
                     <Store size={15} />
-                    Accra Flagship Store Pickup
+                    <span>Accra Flagship Store Pickup</span>
                   </div>
-                  <p className="mt-1 text-amber-900/80 leading-relaxed">
+                  <p className="mt-1 text-amber-900/80 leading-relaxed text-[11px]">
                     Ring Road Central, Osu, Accra. Ready for pickup within 2 hours after payment (Mon–Sat, 9am–6pm).
                   </p>
-                  <p className="mt-1.5 font-medium text-emerald-700 inline-flex items-center gap-1">
-                    <Check size={13} className="text-emerald-700" />
+                  <p className="mt-1.5 font-bold text-emerald-700 inline-flex items-center gap-1 text-[11px]">
+                    <Check size={13} />
                     <span>Free of charge (GH₵0.00)</span>
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-charcoal/70">
-                        Delivery Destination
-                      </label>
-                      <div className="flex rounded-lg bg-sand/30 p-0.5 text-[11px] font-medium">
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryMode('GPS')}
-                          className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
-                            deliveryMode === 'GPS' ? 'bg-white text-indigo shadow-xs font-semibold' : 'text-charcoal/60 hover:text-charcoal'
-                          }`}
-                        >
-                          <Navigation size={11} />
-                          <span>Pin GPS</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryMode('CHOOSE')}
-                          className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
-                            deliveryMode === 'CHOOSE' ? 'bg-white text-indigo shadow-xs font-semibold' : 'text-charcoal/60 hover:text-charcoal'
-                          }`}
-                        >
-                          <MapPin size={11} />
-                          <span>Choose Area</span>
-                        </button>
-                      </div>
+                <div className="space-y-3 rounded-2xl border border-sand/60 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-charcoal">
+                      Delivery Destination
+                    </label>
+                    <div className="flex rounded-lg bg-sand/30 p-0.5 text-[11px] font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryMode('GPS')}
+                        className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
+                          deliveryMode === 'GPS'
+                            ? 'bg-white text-indigo shadow-2xs font-bold'
+                            : 'text-charcoal/60 hover:text-charcoal'
+                        }`}
+                      >
+                        <Navigation size={11} />
+                        <span>Live GPS</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryMode('CHOOSE')}
+                        className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
+                          deliveryMode === 'CHOOSE'
+                            ? 'bg-white text-indigo shadow-2xs font-bold'
+                            : 'text-charcoal/60 hover:text-charcoal'
+                        }`}
+                      >
+                        <MapPin size={11} />
+                        <span>Area List</span>
+                      </button>
                     </div>
+                  </div>
 
-                    {deliveryMode === 'GPS' ? (
-                      <div>
-                        {!coords ? (
-                          <div className="rounded-xl border border-indigo/20 bg-indigo/[0.03] p-4 text-center space-y-2.5">
-                            <div className="flex justify-center">
-                              <div className="h-10 w-10 rounded-full bg-indigo/10 flex items-center justify-center text-indigo">
-                                <Navigation size={20} className={gpsLoading ? 'animate-spin' : ''} />
+                  {deliveryMode === 'GPS' ? (
+                    <div>
+                      {!coords ? (
+                        <div className="rounded-xl border border-dashed border-indigo/30 bg-indigo/[0.02] p-4 text-center space-y-2.5">
+                          <p className="text-xs font-bold text-charcoal">Pin Live Delivery Location</p>
+                          <p className="text-[11px] text-charcoal/60">
+                            Enables accurate dispatch rider routing across Accra.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleGetLocation}
+                            disabled={gpsLoading}
+                            className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-deep transition shadow-xs disabled:opacity-50"
+                          >
+                            <Navigation size={13} className={gpsLoading ? 'animate-spin' : ''} />
+                            <span>{gpsLoading ? 'Detecting Area…' : 'Tap to Pin Location via GPS'}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-emerald-600/30 bg-emerald-50/60 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-700 shrink-0">
+                                <MapPin size={14} />
                               </div>
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-charcoal">Pin Your Current Location</p>
-                              <p className="text-[11px] text-charcoal/60 mt-0.5">
-                                Automatically detects your area and calculates the delivery fee.
-                              </p>
+                              <div>
+                                <p className="text-xs font-bold text-emerald-950">
+                                  {zone?.name || 'Accra Delivery Area'}
+                                </p>
+                                <p className="text-[10px] text-emerald-800 font-medium">
+                                  Live GPS pinned for dispatch rider
+                                </p>
+                              </div>
                             </div>
                             <button
                               type="button"
                               onClick={handleGetLocation}
                               disabled={gpsLoading}
-                              className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo px-4 py-2.5 text-xs font-semibold text-white hover:opacity-90 transition active:scale-[0.98] shadow-sm disabled:opacity-50"
+                              className="text-[11px] font-bold text-emerald-800 hover:underline inline-flex items-center gap-1"
                             >
-                              <Navigation size={14} className={gpsLoading ? 'animate-spin' : ''} />
-                              <span>{gpsLoading ? 'Detecting Area…' : 'Tap to Pin Live Location'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeliveryMode('CHOOSE')}
-                              className="text-[11px] text-indigo hover:underline block w-full pt-1"
-                            >
-                              Sending to another address? Select area from list →
+                              <RotateCcw size={10} className={gpsLoading ? 'animate-spin' : ''} />
+                              <span>Re-pin</span>
                             </button>
                           </div>
-                        ) : (
-                          <div className="rounded-xl border border-emerald-600/30 bg-emerald-50/60 p-3.5 space-y-2">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-700 shrink-0">
-                                  <MapPin size={16} />
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold text-emerald-950">
-                                    {zone?.name ? zone.name : 'Accra Delivery Area'}
-                                  </p>
-                                  <p className="text-[11px] text-emerald-800/80 font-medium">
-                                    Live location saved for rider
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={handleGetLocation}
-                                disabled={gpsLoading}
-                                className="text-[11px] font-medium text-emerald-800 hover:text-emerald-950 underline shrink-0 inline-flex items-center gap-1"
-                              >
-                                <RotateCcw size={11} className={gpsLoading ? 'animate-spin' : ''} />
-                                <span>{gpsLoading ? 'Re-pinning…' : 'Re-pin'}</span>
-                              </button>
-                            </div>
-
-                            {zone && (
-                              <div className="rounded-lg bg-white/80 px-2.5 py-1.5 text-xs text-charcoal/80 flex items-center justify-between border border-emerald-600/10">
-                                <span className="text-charcoal/70">Calculated Delivery Fee</span>
-                                <span className="font-bold text-indigo">{formatGHS(zone.feeP)}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2 rounded-xl border border-sand/60 bg-white p-3.5 shadow-xs">
-                        <label className="text-xs font-medium text-charcoal/70 block">
-                          Select your delivery neighborhood
-                        </label>
-                        <select
-                          value={zone?.name ?? ''}
-                          onChange={handleSelectNeighborhood}
-                          className="w-full rounded-lg border border-sand/80 bg-sand/10 px-3 py-2 text-xs font-medium text-charcoal outline-none focus:border-indigo"
-                        >
-                          <option value="">-- Choose neighborhood / area --</option>
-                          {zonesList.map((z) => (
-                            <option key={z.id} value={z.name}>
-                              {z.name} — {formatGHS(z.feeP)}
-                            </option>
-                          ))}
-                          <option value="Other Accra / Outside Accra">
-                            Other Accra / Outside Accra (Quote on WhatsApp)
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <select
+                        value={zone?.name ?? ''}
+                        onChange={handleSelectNeighborhood}
+                        className="w-full rounded-xl border border-sand/80 bg-sand/10 px-3.5 py-2 text-xs font-medium text-charcoal outline-none focus:border-indigo"
+                      >
+                        <option value="">-- Select Accra Neighborhood --</option>
+                        {zonesList.map((z) => (
+                          <option key={z.id} value={z.name}>
+                            {z.name} — {isFreeDeliveryQualified ? 'Free' : formatGHS(z.feeP)}
                           </option>
-                        </select>
-
-                        {zone && (
-                          <div className="rounded-lg bg-sand/20 px-2.5 py-1.5 text-xs text-charcoal/80 flex items-center justify-between">
-                            <span>Delivery to <strong>{zone.name}</strong></span>
-                            {zone.feeP > 0 ? (
-                              <span className="font-bold text-indigo">{formatGHS(zone.feeP)}</span>
-                            ) : (
-                              <span className="text-[11px] font-medium text-charcoal/60 italic">To be quoted on WhatsApp</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                        ))}
+                        <option value="Other Accra / Outside Accra">
+                          Other Accra / Outside Accra (WhatsApp Quote)
+                        </option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <label className="block text-xs text-charcoal/60">
-                Phone Number (numbers only, e.g. 0241234567)
+              {/* Phone Number Input */}
+              <div className="rounded-2xl border border-sand/60 bg-white p-4 shadow-xs">
+                <label className="text-xs font-bold text-charcoal block mb-1">
+                  Recipient Phone Number <span className="text-rose">*</span>
+                </label>
                 <input
                   value={phone}
                   onChange={handlePhoneChange}
-                  onKeyDown={(e) => {
-                    // Block alphabetic and special characters, allowing only numbers, backspace, tab, delete, arrows, and leading +
-                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
-                    if (
-                      !/[0-9]/.test(e.key) &&
-                      !allowedKeys.includes(e.key) &&
-                      !(e.key === '+' && (e.currentTarget.selectionStart === 0 && !e.currentTarget.value.includes('+'))) &&
-                      !e.ctrlKey &&
-                      !e.metaKey
-                    ) {
-                      e.preventDefault();
-                    }
-                  }}
-                  placeholder="e.g. 0241234567"
+                  placeholder="e.g. 0592722997 or 0241234567"
                   inputMode="numeric"
-                  pattern="[0-9+]*"
-                  className="mt-1 w-full border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation font-mono"
+                  className="w-full rounded-xl border border-sand/80 bg-sand/10 px-3.5 py-2 text-xs font-mono text-charcoal outline-none focus:border-indigo"
                 />
-              </label>
+                <p className="mt-1 text-[10px] text-charcoal/50">
+                  Used for order tracking updates and delivery rider phone coordination.
+                </p>
+              </div>
             </div>
           )}
         </div>
 
+        {/* Drawer Footer & Checkout Panel */}
         {lines.length > 0 && (
-          <div className="border-t border-sand/40 px-6 py-5">
-            {/* Promo / Discount Coupon Input */}
-            <div className="mb-3.5 rounded-xl border border-sand/60 bg-sand/15 p-2.5">
+          <div className="border-t border-sand/40 bg-white px-6 py-4 shadow-lg space-y-3">
+            {/* Promo / Discount Accordion */}
+            <div>
               {appliedCoupon ? (
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 text-emerald-800 font-medium truncate mr-2">
+                <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-900">
+                  <div className="flex items-center gap-1.5 font-bold truncate">
                     <Tag size={13} className="text-emerald-700 shrink-0" />
-                    <span className="truncate">Promo Applied: <strong>{appliedCoupon.code}</strong></span>
+                    <span>Promo Applied: {appliedCoupon.code}</span>
                   </div>
                   <button
                     type="button"
@@ -610,87 +711,108 @@ export function MiniCart() {
                       setCouponInput('');
                       setCouponSuccess('');
                     }}
-                    className="text-[11px] text-rose font-medium hover:underline shrink-0"
+                    className="text-[11px] font-bold text-rose hover:underline shrink-0"
                   >
                     Remove
                   </button>
                 </div>
               ) : (
-                <form onSubmit={applyCoupon} className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    placeholder="Enter Coupon / Promo Code"
-                    className="w-full uppercase font-mono text-xs rounded-lg border border-sand/70 bg-white px-2.5 py-1.5 text-charcoal outline-none focus:border-indigo"
-                  />
-                  <button
-                    type="submit"
-                    disabled={couponLoading || !couponInput.trim()}
-                    className="rounded-lg bg-indigo px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo/90 transition shrink-0 disabled:opacity-50"
-                  >
-                    {couponLoading ? '…' : 'Apply'}
-                  </button>
-                </form>
-              )}
-              {couponError && <p className="text-[11px] text-rose mt-1">{couponError}</p>}
-              {couponSuccess && <p className="text-[11px] text-emerald-800 font-medium mt-1">{couponSuccess}</p>}
-            </div>
-
-            {/* Price Breakdown */}
-            <div className="space-y-1.5 text-xs text-charcoal/70 mb-3 border-b border-sand/30 pb-3">
-              <div className="flex justify-between">
-                <span>Items Subtotal</span>
-                <span className="font-semibold text-charcoal">{formatGHS(subtotalP)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Delivery Fee ({fulfillmentType === 'PICKUP' ? 'Store Pickup' : zone?.name || 'Accra Area'})</span>
-                <span className="font-semibold text-charcoal">
-                  {fulfillmentType === 'PICKUP' ? 'Free' : zone?.feeP ? formatGHS(zone.feeP) : 'Quote on WhatsApp'}
-                </span>
-              </div>
-              {couponDiscountP > 0 && (
-                <div className="flex justify-between text-emerald-700 font-semibold">
-                  <span>Discount ({appliedCoupon?.code})</span>
-                  <span>-{formatGHS(couponDiscountP)}</span>
+                <div>
+                  {!showCouponInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCouponInput(true)}
+                      className="text-xs font-bold text-indigo hover:underline inline-flex items-center gap-1"
+                    >
+                      <Tag size={12} />
+                      <span>Have a discount or promo code?</span>
+                    </button>
+                  ) : (
+                    <form onSubmit={applyCoupon} className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        placeholder="Enter Promo Code"
+                        className="flex-1 uppercase font-mono text-xs rounded-xl border border-sand/80 bg-sand/10 px-3 py-1.5 text-charcoal outline-none focus:border-indigo"
+                      />
+                      <button
+                        type="submit"
+                        disabled={couponLoading || !couponInput.trim()}
+                        className="rounded-xl bg-indigo px-4 py-1.5 text-xs font-bold text-white hover:bg-indigo-deep disabled:opacity-50 transition shadow-2xs"
+                      >
+                        {couponLoading ? '…' : 'Apply'}
+                      </button>
+                    </form>
+                  )}
+                  {couponError && <p className="text-[11px] text-rose font-medium mt-1">{couponError}</p>}
                 </div>
               )}
             </div>
 
-            <div className="mb-3 flex items-baseline justify-between" aria-live="polite">
-              <span className="text-sm font-semibold text-charcoal">Final Total</span>
-              <span className="headline text-2xl text-indigo">{formatGHS(total)}</span>
+            {/* Price Breakdown */}
+            <div className="space-y-1.5 text-xs text-charcoal/70 border-t border-sand/30 pt-3">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span className="font-bold text-charcoal">{formatGHS(subtotalP)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery ({fulfillmentType === 'PICKUP' ? 'Store Pickup' : zone?.name || 'Accra'})</span>
+                <span className="font-bold text-charcoal">
+                  {effectiveDeliveryFee === 0 ? (
+                    <span className="text-emerald-700 font-bold">FREE</span>
+                  ) : (
+                    formatGHS(effectiveDeliveryFee)
+                  )}
+                </span>
+              </div>
+              {couponDiscountP > 0 && (
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>Coupon Savings</span>
+                  <span>-{formatGHS(couponDiscountP)}</span>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between border-t border-sand/40 pt-2">
+                <span className="text-sm font-bold text-charcoal">Total Amount</span>
+                <span className="headline text-2xl font-bold text-indigo">{formatGHS(finalTotal)}</span>
+              </div>
             </div>
-            {error && <p className="mb-3 text-xs text-rose">{error}</p>}
 
-            <div className="flex flex-col gap-2.5">
+            {error && <p className="rounded-xl bg-rose/10 px-3.5 py-2 text-xs text-rose font-medium">{error}</p>}
+
+            {/* Dual Checkout Action Buttons */}
+            <div className="space-y-2 pt-1">
               <button
+                type="button"
                 onClick={completeOnline}
                 disabled={busy || onlineBusy}
-                className="w-full rounded bg-indigo px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo/90 flex items-center justify-center gap-2 touch-manipulation disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
               >
-                <CreditCard size={18} />
-                {onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MoMo / Card)'}
+                <CreditCard size={15} />
+                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MoMo / Cards)'}</span>
               </button>
 
-              <div className="relative my-0.5 flex items-center justify-center">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-sand/60"></div></div>
-                <span className="relative bg-cream px-3 text-[11px] uppercase tracking-wider text-charcoal/40 font-medium">or</span>
-              </div>
-
               <button
+                type="button"
                 onClick={complete}
                 disabled={busy || onlineBusy}
-                className="w-full rounded bg-wagreen px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 flex items-center justify-center gap-2 touch-manipulation disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-[#1EBE5D] transition active:scale-[0.99] disabled:opacity-50"
               >
-                <MessageSquare size={18} />
-                {busy ? 'Reserving your pieces…' : confirmDup ? 'Yes, place it again' : 'Complete Order on WhatsApp'}
+                <MessageSquare size={15} />
+                <span>
+                  {busy
+                    ? 'Reserving Items…'
+                    : confirmDup
+                    ? 'Confirm Duplicate Order'
+                    : 'Checkout on WhatsApp'}
+                </span>
               </button>
             </div>
 
-            <p className="mt-2.5 text-center text-xs text-charcoal/50">
-              Stock reserved for 15 minutes upon checkout initiation.
-            </p>
+            <div className="flex items-center justify-center gap-2 text-[10px] text-charcoal/40 pt-1">
+              <ShieldCheck size={12} className="text-emerald-600" />
+              <span>256-bit SSL Encrypted · Instant Order Confirmation</span>
+            </div>
           </div>
         )}
       </aside>
