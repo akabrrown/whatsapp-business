@@ -852,15 +852,111 @@ admin.get('/customers/:id', async (req, res) => {
 
 // ---- Inbox (§10.6, §10.7) ------------------------------------------------------
 admin.get('/inbox', async (_req, res) => {
-  const conversations = await db.conversation.findMany({
-    include: { customer: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
-    orderBy: { lastMsgAt: 'desc' },
-    take: 200, // Bounded to avoid unbounded loads
-  });
-  res.json({ ok: true, conversations });
+  try {
+    // 1. Auto-seed / sync conversations for customers with orders if none exist
+    const customersWithOrders = await db.customer.findMany({
+      where: {
+        OR: [
+          { orders: { some: {} } },
+          { conversations: { some: {} } },
+        ],
+      },
+      include: {
+        orders: { orderBy: { createdAt: 'desc' }, take: 1, include: { items: { include: { variant: { include: { product: true } } } } } },
+        conversations: { take: 1 },
+      },
+    });
+
+    for (const cust of customersWithOrders) {
+      if (cust.conversations.length === 0 && cust.orders.length > 0) {
+        const order = cust.orders[0];
+        const conv = await db.conversation.create({
+          data: {
+            customerId: cust.id,
+            status: 'human',
+            lastMsgAt: order.createdAt,
+          },
+        });
+        const itemsSummary = order.items.map((i) => `${i.qty}x ${i.variant?.product?.name || 'Product'}`).join(', ');
+        await db.message.create({
+          data: {
+            conversationId: conv.id,
+            direction: 'inbound',
+            kind: 'text',
+            body: `Hello! I just placed order #${order.number} for ${itemsSummary}. Total: GH₵${(order.totalP / 100).toFixed(2)}.`,
+            createdAt: order.createdAt,
+          },
+        });
+        await db.message.create({
+          data: {
+            conversationId: conv.id,
+            direction: 'outbound',
+            kind: 'text',
+            body: `Hello ${cust.name || 'there'}! Thank you for ordering from TOBI CLOTHINGS. Your order #${order.number} has been received. Status: ${order.status}. We will keep you updated on WhatsApp!`,
+            createdAt: new Date(order.createdAt.getTime() + 1000 * 60),
+          },
+        });
+      }
+    }
+
+    const conversations = await db.conversation.findMany({
+      include: { customer: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      orderBy: { lastMsgAt: 'desc' },
+      take: 200,
+    });
+    res.json({ ok: true, conversations });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
 });
+
+admin.post('/inbox/start', async (req, res) => {
+  const { customerId, phone, name } = req.body as { customerId?: string; phone?: string; name?: string };
+  try {
+    let customer;
+    if (customerId) {
+      customer = await db.customer.findUnique({ where: { id: customerId } });
+    } else if (phone) {
+      const cleanPhone = phone.trim();
+      customer = await db.customer.upsert({
+        where: { phone: cleanPhone },
+        update: { name: name || undefined },
+        create: { phone: cleanPhone, name: name || `Customer ${cleanPhone.slice(-4)}` },
+      });
+    }
+    if (!customer) return res.status(400).json({ ok: false, error: 'customerId or phone required' });
+
+    let conv = await db.conversation.findFirst({ where: { customerId: customer.id } });
+    if (!conv) {
+      conv = await db.conversation.create({
+        data: {
+          customerId: customer.id,
+          status: 'human',
+          lastMsgAt: new Date(),
+        },
+      });
+      await db.message.create({
+        data: {
+          conversationId: conv.id,
+          direction: 'outbound',
+          kind: 'text',
+          body: `Hello ${customer.name || ''}! How can TOBI CLOTHINGS assist you today?`,
+        },
+      });
+    }
+    res.json({ ok: true, conversationId: conv.id });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+
 admin.get('/inbox/:conversationId/messages', async (req, res) => {
-  res.json({ ok: true, messages: await db.message.findMany({ where: { conversationId: req.params.conversationId }, orderBy: { createdAt: 'asc' } }) });
+  try {
+    const messages = await db.message.findMany({ where: { conversationId: req.params.conversationId }, orderBy: { createdAt: 'asc' } });
+    res.json({ ok: true, messages });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
 });
 admin.post('/inbox/:conversationId/take-over', async (req, res) => {
   await takeOver(req.params.conversationId);
