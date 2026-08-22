@@ -101,12 +101,18 @@ export function MiniCart() {
       setZoneText('');
       return;
     }
+    if (name === 'Other Accra / Outside Accra') {
+      setZone({ name, feeP: 0 });
+      setZoneText(name);
+      setError('');
+      return;
+    }
     const match = zonesList.find((z) => z.name === name);
     if (match) {
       setZone({ name: match.name, feeP: match.feeP });
       setZoneText(match.name);
     } else {
-      setZone({ name, feeP: 3000 });
+      setZone({ name, feeP: 0 });
       setZoneText(name);
     }
     setError('');
@@ -502,7 +508,11 @@ export function MiniCart() {
                         {zone && (
                           <div className="rounded-lg bg-sand/20 px-2.5 py-1.5 text-xs text-charcoal/80 flex items-center justify-between">
                             <span>Delivery to <strong>{zone.name}</strong></span>
-                            <span className="font-bold text-indigo">{formatGHS(zone.feeP)}</span>
+                            {zone.feeP > 0 ? (
+                              <span className="font-bold text-indigo">{formatGHS(zone.feeP)}</span>
+                            ) : (
+                              <span className="text-[11px] font-medium text-charcoal/60 italic">To be quoted on WhatsApp</span>
+                            )}
                           </div>
                         )}
                       </div>
