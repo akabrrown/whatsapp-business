@@ -97,7 +97,12 @@ function toCatalog(
   };
 }
 
-const include = {
+const productSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  images: true,
   category: { select: { slug: true, name: true } },
   variants: {
     select: {
@@ -177,7 +182,7 @@ export async function listActive(categorySlug?: string): Promise<CatalogProduct[
   const [products, promos] = await Promise.all([
     db.product.findMany({
       where: { status: 'active', ...categoryFilter },
-      include,
+      select: productSelect,
       orderBy: { createdAt: 'desc' },
     }),
     getProductPromotions(),
@@ -187,7 +192,7 @@ export async function listActive(categorySlug?: string): Promise<CatalogProduct[
 
 export async function bySlug(slug: string): Promise<CatalogProduct | null> {
   const [p, promos] = await Promise.all([
-    db.product.findFirst({ where: { slug, status: 'active' }, include }),
+    db.product.findFirst({ where: { slug, status: 'active' }, select: productSelect }),
     getProductPromotions(),
   ]);
   return p ? toCatalog(p, promos[p.id]) : null;
@@ -220,7 +225,7 @@ export async function relatedProducts(slug: string, limit: number = 4): Promise<
       categoryId: current.categoryId,
       id: { not: current.id },
     },
-    include,
+    select: productSelect,
     take: limit,
     orderBy: { createdAt: 'desc' },
   });
@@ -251,7 +256,7 @@ export async function relatedProducts(slug: string, limit: number = 4): Promise<
           categoryId: { in: siblingIds },
           id: { not: current.id },
         },
-        include,
+        select: productSelect,
         take: needed,
         orderBy: { createdAt: 'desc' },
       });
@@ -275,7 +280,7 @@ export async function relatedProducts(slug: string, limit: number = 4): Promise<
           categoryId: { in: childCategories.map((c) => c.id) },
           id: { not: current.id },
         },
-        include,
+        select: productSelect,
         take: needed,
         orderBy: { createdAt: 'desc' },
       });

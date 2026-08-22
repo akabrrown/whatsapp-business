@@ -670,7 +670,23 @@ admin.delete('/zones/:id', requireOwner, async (req, res) => {
 
 // ---- Categories ----
 admin.get('/categories', requireAuth, async (_req, res) => {
-  res.json({ ok: true, categories: await db.category.findMany({ orderBy: { name: 'asc' }, include: { _count: { select: { products: true } } } }) });
+  try {
+    const categories = await db.category.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        flagship: true,
+        image: true,
+        parentId: true,
+        _count: { select: { products: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ ok: true, categories });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
 });
 admin.post('/categories', requireOwner, async (req, res) => {
   const { name, slug, flagship, image, parentId } = req.body as { name?: string; slug?: string; flagship?: boolean; image?: string; parentId?: string };
