@@ -323,19 +323,61 @@ admin.patch('/orders/:id/address', async (req, res) => {
 
 // ---- Inventory (§6, §11.3) ----------------------------------------------------
 admin.get('/inventory', async (_req, res) => {
-  const variants = await db.productVariant.findMany({
-    include: { product: { select: { id: true, name: true, slug: true, status: true, category: { select: { name: true } } } } },
-    orderBy: { sku: 'asc' },
-  });
-  res.json({
-    ok: true,
-    variants: variants.map((v) => ({
-      ...v,
-      available: Math.max(0, v.stockQuantity - v.reservedStock),
-      lowStock: v.stockQuantity > 0 && v.stockQuantity <= v.lowStockThreshold,
-      productStatus: v.product.status,
-    })),
-  });
+  try {
+    const variants = await db.productVariant.findMany({
+      include: { product: { select: { id: true, name: true, slug: true, status: true, category: { select: { name: true } } } } },
+      orderBy: { sku: 'asc' },
+    });
+    res.json({
+      ok: true,
+      variants: variants.map((v) => ({
+        ...v,
+        available: Math.max(0, v.stockQuantity - v.reservedStock),
+        lowStock: v.stockQuantity > 0 && v.stockQuantity <= v.lowStockThreshold,
+        productStatus: v.product?.status ?? 'active',
+      })),
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+});
+
+admin.get('/products', async (_req, res) => {
+  try {
+    const products = await db.product.findMany({
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        variants: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const formatted = products.map((p) => {
+      let images: string[] = [];
+      try {
+        const parsed = JSON.parse(p.images || '[]');
+        images = parsed.map((item: any) => (typeof item === 'string' ? item : item?.url || item?.src || ''));
+      } catch {
+        images = [];
+      }
+      const minPriceP = p.variants.length > 0 ? Math.min(...p.variants.map((v) => v.priceP)) : 0;
+      return {
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        description: p.description,
+        status: p.status,
+        category: p.category,
+        minPriceP,
+        images,
+        variants: p.variants,
+      };
+    });
+
+    res.json({ ok: true, products: formatted });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
 });
 
 admin.post('/inventory/:variantId/restock', async (req, res) => {
