@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, ShoppingBag } from 'lucide-react';
 import { api, type CatalogProduct } from '@/lib/api';
 import { ProductDetailView } from '@/components/ProductDetailView';
 import { ProductCard } from '@/components/ProductCard';
@@ -75,7 +75,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-indigo/70 mb-1">
-                <Sparkles size={14} className="text-amber-500" />
+                <ShoppingBag size={14} className="text-indigo" />
                 <span>You Might Also Like</span>
               </div>
               <h2 className="headline text-2xl sm:text-3xl text-indigo">

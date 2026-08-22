@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { X, Sparkles } from 'lucide-react';
+import { X, Megaphone } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -49,7 +49,7 @@ export function PromoBanner() {
           {banner.badge}
         </span>
       ) : (
-        <Sparkles size={13} className="text-amber-300 shrink-0" />
+        <Megaphone size={13} className="text-amber-300 shrink-0" />
       )}
       <span className="font-medium truncate">{banner.text}</span>
       {banner.link && (

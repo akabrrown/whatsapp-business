@@ -9,7 +9,7 @@ import {
   Trash2,
   Check,
   Search,
-  Sparkles,
+  BadgePercent,
   AlertCircle,
   TrendingDown,
   ShoppingBag,
@@ -484,7 +484,7 @@ export default function PromotionsPage() {
       <div className="rounded-2xl border border-sand/60 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand/40 pb-4 mb-5">
           <div className="flex items-center gap-2">
-            <Sparkles className="text-indigo" size={20} />
+            <BadgePercent className="text-indigo" size={20} />
             <div>
               <h2 className="font-semibold text-charcoal text-sm">Product Discounts, Promo Badges & Featured</h2>
               <p className="text-xs text-charcoal/50">Apply slashed original prices (e.g. ~GH₵250~ ➔ GH₵180), discount tags, and homepage promo flags.</p>

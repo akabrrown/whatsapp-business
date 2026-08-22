@@ -12,7 +12,7 @@ import {
   Package,
   Settings,
   Shield,
-  Sparkles,
+  Crown,
   Users,
   Tag,
   type LucideIcon,
@@ -48,7 +48,7 @@ export default function DashLayout({ children }: { children: ReactNode }) {
       else if (e.type === 'alert.low_stock')
         setToast({ icon: <Package size={15} aria-hidden />, text: `Low stock: ${p?.sku ?? 'variant'}` });
       else if (e.type === 'alert.vip')
-        setToast({ icon: <Sparkles size={15} aria-hidden />, text: 'VIP order in progress (GHS 1,000+)' });
+        setToast({ icon: <Crown size={15} aria-hidden />, text: 'VIP order in progress (GHS 1,000+)' });
       else if (e.type === 'alert.security')
         setToast({ icon: <Shield size={15} aria-hidden />, text: 'Suspicious webhook rejected' });
     });
