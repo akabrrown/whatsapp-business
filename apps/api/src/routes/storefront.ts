@@ -106,9 +106,9 @@ storefront.post('/handoff', async (req, res) => {
     latitude?: number;
     longitude?: number;
   };
-  if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
-  // §4.5: reconcile: server cart wins when a session is provided.
-  const cartItems = sessionId ? ((await cart.get(sessionId))?.items ?? items ?? []) : items ?? [];
+  if (!phone) return res.status(400).json({ ok: false, error: 'phone required', message: 'Phone number is required.' });
+  const serverCart = sessionId ? await cart.get(sessionId) : null;
+  const cartItems = items && items.length > 0 ? items : (serverCart && serverCart.items.length > 0 ? serverCart.items : []);
   try {
     const result = await handoff.createToken({
       phone,

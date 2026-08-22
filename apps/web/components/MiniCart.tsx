@@ -143,6 +143,7 @@ export function MiniCart() {
       body: JSON.stringify({
         phone: cleanPhone,
         sessionId,
+        items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
         fulfillmentType,
         zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : zone?.name,
         deliveryFeeP: feeP,
@@ -158,18 +159,25 @@ export function MiniCart() {
       message?: string;
     };
     setBusy(false);
-    if (!res.ok || !body.ok) {
-      if (body.error === 'DUPLICATE_SUSPECT') {
+    if (!res.ok || !body.ok || !body.handoff) {
+      if (body?.error === 'DUPLICATE_SUSPECT') {
         setConfirmDup(true);
         setError(`${body.message ?? 'Looks like a duplicate order.'} Tap the button again to confirm you mean it.`);
         return;
       }
-      if (body.error === 'RATE_LIMITED') return setError(body.message ?? 'Too many attempts: please wait a few minutes.');
-      return setError(body.message ?? 'Something went wrong: try again.');
+      if (body?.error === 'RATE_LIMITED') return setError(body.message ?? 'Too many attempts: please wait a few minutes.');
+      return setError(body?.message ?? 'Something went wrong: try again.');
     }
-    sessionStorage.setItem('rd-handoff', JSON.stringify({ url: body.handoff!.whatsappUrl, code: body.handoff!.code }));
+    const { whatsappUrl, code } = body.handoff;
+    try {
+      sessionStorage.setItem('rd-handoff', JSON.stringify({ url: whatsappUrl, code }));
+    } catch {
+      /* ignore storage quota/private mode */
+    }
     setDrawerOpen(false);
-    router.push('/handoff');
+    // Directly push to handoff page with token and URL encoded in query params as rock-solid fallback
+    const targetUrl = `/handoff?code=${encodeURIComponent(code)}&url=${encodeURIComponent(whatsappUrl)}`;
+    router.push(targetUrl);
   };
 
   const completeOnline = async () => {
