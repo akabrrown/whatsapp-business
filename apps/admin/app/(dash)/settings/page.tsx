@@ -60,35 +60,45 @@ export default function SettingsPage() {
   const isOwner = getUser()?.role === 'owner';
 
   const loadZones = useCallback(async () => {
-    const r = await apiFetch<{ zones: Zone[] }>('/api/admin/zones');
-    setZones(r.zones);
+    try {
+      const r = await apiFetch<{ zones: Zone[] }>('/api/admin/zones');
+      if (r?.zones) setZones(r.zones);
+    } catch {}
   }, []);
 
   const loadCategories = useCallback(async () => {
     if (!isOwner) return;
-    const r = await apiFetch<{ categories: Category[] }>('/api/admin/categories');
-    setCategories(r.categories);
+    try {
+      const r = await apiFetch<{ categories: Category[] }>('/api/admin/categories');
+      if (r?.categories) setCategories(r.categories);
+    } catch {}
   }, [isOwner]);
 
   const loadStaff = useCallback(async () => {
     if (!isOwner) return;
-    const r = await apiFetch<{ staff: StaffUser[] }>('/api/admin/staff');
-    setStaff(r.staff);
+    try {
+      const r = await apiFetch<{ staff: StaffUser[] }>('/api/admin/staff');
+      if (r?.staff) setStaff(r.staff);
+    } catch {}
   }, [isOwner]);
 
   const loadSettings = useCallback(async () => {
     if (!isOwner) return;
-    const r = await apiFetch<{ settings: { whatsappNumber: string }, twoFactorEnabled: boolean }>('/api/admin/settings');
-    setWhatsappNumber(r.settings.whatsappNumber);
-    setWhatsappInput(r.settings.whatsappNumber);
-    setTwoFactorEnabled(r.twoFactorEnabled);
+    try {
+      const r = await apiFetch<{ settings: { whatsappNumber: string }, twoFactorEnabled: boolean }>('/api/admin/settings');
+      if (r?.settings) {
+        setWhatsappNumber(r.settings.whatsappNumber);
+        setWhatsappInput(r.settings.whatsappNumber);
+        setTwoFactorEnabled(r.twoFactorEnabled);
+      }
+    } catch {}
   }, [isOwner]);
 
   useEffect(() => {
-    loadZones().catch((e: Error) => setError(e.message));
-    loadCategories().catch((e: Error) => setError(e.message));
-    loadStaff().catch((e: Error) => setError(e.message));
-    loadSettings().catch((e: Error) => setError(e.message));
+    loadZones();
+    loadCategories();
+    loadStaff();
+    loadSettings();
   }, [loadZones, loadCategories, loadStaff, loadSettings]);
 
   // Zone actions
