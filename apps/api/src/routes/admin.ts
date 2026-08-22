@@ -128,25 +128,44 @@ admin.get('/tokens', async (_req, res) => {
 });
 
 admin.post('/tokens/:code/convert', async (req, res) => {
-  const token = await db.orderToken.findUnique({
-    where: { code: req.params.code },
-    include: { items: true },
-  });
-  if (!token) return res.status(404).json({ ok: false, error: 'Token not found' });
-  if (token.status === 'USED') return res.status(400).json({ ok: false, error: 'Token already used' });
+  try {
+    const token = await db.orderToken.findUnique({
+      where: { code: req.params.code },
+      include: { items: true },
+    });
+    if (!token) return res.status(404).json({ ok: false, error: 'Token not found' });
+    if (token.status === 'USED') return res.status(400).json({ ok: false, error: 'Token already used' });
 
-  const { order } = await orders.createOrder({
-    phone: token.phone,
-    items: token.items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
-    source: OrderSource.WEBSITE,
-    paid: true,
-    zoneName: token.zoneName ?? undefined,
-    deliveryFeeP: token.deliveryFeeP ?? 0,
-  });
+    // Validate active items
+    const validItems: { variantId: string; qty: number }[] = [];
+    for (const ti of token.items) {
+      const v = await db.productVariant.findUnique({ where: { id: ti.variantId } });
+      if (v) validItems.push({ variantId: ti.variantId, qty: ti.qty });
+    }
 
-  await db.orderToken.update({ where: { id: token.id }, data: { status: 'USED' } });
-  hub.broadcastAdmin('order.created', { id: order.id, number: order.number });
-  res.json({ ok: true, order });
+    if (validItems.length === 0) {
+      return res.status(400).json({ ok: false, error: 'Items in this token are no longer available in catalog' });
+    }
+
+    const { order } = await orders.createOrder({
+      phone: token.phone,
+      items: validItems,
+      source: OrderSource.WHATSAPP_DIRECT,
+      paid: true,
+      zoneName: token.zoneName ?? undefined,
+      deliveryFeeP: token.deliveryFeeP ?? 0,
+      fulfillmentType: token.fulfillmentType ?? 'DELIVERY',
+      latitude: token.latitude ?? undefined,
+      longitude: token.longitude ?? undefined,
+    });
+
+    await db.orderToken.update({ where: { id: token.id }, data: { status: 'USED' } });
+    hub.broadcastAdmin('order.created', { id: order.id, number: order.number });
+    res.json({ ok: true, order });
+  } catch (err) {
+    console.error('Failed to convert token:', err);
+    res.status(500).json({ ok: false, error: (err as Error).message || 'Failed to convert token' });
+  }
 });
 
 admin.post('/tokens/:code/payment-link', async (req, res) => {

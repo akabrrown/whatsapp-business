@@ -13,19 +13,46 @@ export function MiniCart() {
   const { lines, subtotalP, drawerOpen, setDrawerOpen, setQty, clear, sessionId } = useCart();
   const router = useRouter();
   const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
+  const [deliveryMode, setDeliveryMode] = useState<'GPS' | 'CHOOSE'>('GPS');
   const [phone, setPhone] = useState('');
   const [zoneText, setZoneText] = useState('');
   const [zone, setZone] = useState<{ name: string; feeP: number } | null>(null);
+  const [zonesList, setZonesList] = useState<{ id: string; name: string; feeP: number }[]>([]);
   const [zoneChecked, setZoneChecked] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [confirmDup, setConfirmDup] = useState(false);
   const [busy, setBusy] = useState(false);
   const [onlineBusy, setOnlineBusy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+
+  // Load delivery zones list for manual neighborhood choice
+  useEffect(() => {
+    fetch(`${API}/api/zones`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok && Array.isArray(data.zones) && data.zones.length > 0) {
+          setZonesList(data.zones);
+        } else {
+          // Fallback defaults for Accra
+          setZonesList([
+            { id: '1', name: 'Osu / Ring Road', feeP: 2000 },
+            { id: '2', name: 'Cantonments / Labone', feeP: 2000 },
+            { id: '3', name: 'East Legon / Shiashie', feeP: 2500 },
+            { id: '4', name: 'Airport Residential / Dzorwulu', feeP: 2500 },
+            { id: '5', name: 'Spintex / Sakumono', feeP: 3000 },
+            { id: '6', name: 'Madina / Legon / Adenta', feeP: 3000 },
+            { id: '7', name: 'Dansoman / Korle Bu', feeP: 3000 },
+            { id: '8', name: 'Achimota / Dome', feeP: 3500 },
+            { id: '9', name: 'Tema (Comm 1–25)', feeP: 4000 },
+            { id: '10', name: 'Kasoa / Weija', feeP: 4500 },
+          ]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Focus trap + Escape to close (§7 a11y)
   const handleKeyDown = useCallback(
@@ -67,26 +94,28 @@ export function MiniCart() {
 
   if (!drawerOpen) return null;
 
-  const checkZone = async () => {
-    if (fulfillmentType === 'PICKUP') return;
-    setZoneChecked(false);
-    setZone(null);
-    if (!zoneText.trim()) {
-      setZoneChecked(true); // delivery fee quoted in chat instead
+  const handleSelectNeighborhood = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const name = e.target.value;
+    if (!name) {
+      setZone(null);
+      setZoneText('');
       return;
     }
-    try {
-      const r = await fetch(`${API}/api/zones/match?text=${encodeURIComponent(zoneText)}`).then((x) => x.json());
-      if (r.match?.ok && r.match.zone) setZone({ name: r.match.zone.name, feeP: r.match.zone.feeP });
-    } catch {
-      /* ignore */
+    const match = zonesList.find((z) => z.name === name);
+    if (match) {
+      setZone({ name: match.name, feeP: match.feeP });
+      setZoneText(match.name);
+    } else {
+      setZone({ name, feeP: 3000 });
+      setZoneText(name);
     }
-    setZoneChecked(true);
+    setError('');
   };
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
+      setError('Geolocation is not supported by your browser. Please select your neighborhood below.');
+      setDeliveryMode('CHOOSE');
       return;
     }
     setGpsLoading(true);
@@ -96,25 +125,26 @@ export function MiniCart() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCoords({ lat, lng });
-        setGpsAccuracy(Math.round(pos.coords.accuracy));
         try {
           const r = await fetch(`${API}/api/zones/match-pin?lat=${lat}&lng=${lng}`).then((x) => x.json());
           if (r.match?.ok && r.match.zone) {
             setZone({ name: r.match.zone.name, feeP: r.match.zone.feeP });
-            if (!zoneText) setZoneText(`${r.match.zone.name} (Live GPS Pin)`);
+            setZoneText(`${r.match.zone.name} (Live GPS)`);
           } else {
-            if (!zoneText) setZoneText(`Accra Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+            setZone({ name: 'Accra Area', feeP: 2500 });
+            setZoneText(`Accra Delivery Area`);
           }
           setZoneChecked(true);
         } catch {
-          /* ignore */
+          setZone({ name: 'Accra Area', feeP: 2500 });
         } finally {
           setGpsLoading(false);
         }
       },
       (err) => {
         setGpsLoading(false);
-        setError(err.code === 1 ? 'Location permission was denied. Please type your neighborhood.' : 'Unable to acquire GPS signal. Please type your neighborhood.');
+        setError('Could not get GPS signal. Please select your neighborhood from the list below.');
+        setDeliveryMode('CHOOSE');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
@@ -134,8 +164,8 @@ export function MiniCart() {
     if (!cleanPhone || digits.length < 9) {
       return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
     }
-    if (fulfillmentType === 'DELIVERY' && !coords) {
-      return setError('Please tap "Pin Live Delivery Location" to detect your delivery address via GPS.');
+    if (fulfillmentType === 'DELIVERY' && !coords && !zone) {
+      return setError('Please pin your live GPS location or select your delivery neighborhood.');
     }
     setBusy(true);
     const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
@@ -191,8 +221,8 @@ export function MiniCart() {
     if (!cleanPhone || digits.length < 9) {
       return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
     }
-    if (fulfillmentType === 'DELIVERY' && !coords) {
-      return setError('Please tap "Pin Live Delivery Location" to detect your delivery address via GPS.');
+    if (fulfillmentType === 'DELIVERY' && !coords && !zone) {
+      return setError('Please pin your live GPS location or select your delivery neighborhood.');
     }
     setOnlineBusy(true);
     const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
@@ -202,7 +232,7 @@ export function MiniCart() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: cleanPhone,
-          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name ? `${zone.name} (Live GPS Pin)` : 'Accra Location (GPS Pinned)'),
+          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name ? zone.name : 'Accra Delivery Location'),
           sessionId,
           items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
           fulfillmentType,
@@ -355,62 +385,123 @@ export function MiniCart() {
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-charcoal/70 block mb-1.5">
-                      Delivery Location (Live GPS Only)
-                    </label>
-
-                    {!coords ? (
-                      <div className="rounded-xl border border-indigo/20 bg-indigo/[0.03] p-4 text-center space-y-2.5">
-                        <div className="flex justify-center">
-                          <div className="h-10 w-10 rounded-full bg-indigo/10 flex items-center justify-center text-indigo">
-                            <Navigation size={20} className={gpsLoading ? 'animate-spin' : ''} />
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-charcoal">Pin Your Live GPS Location</p>
-                          <p className="text-[11px] text-charcoal/60 mt-0.5">
-                            We use your live device location to dispatch the dispatch rider directly to your doorstep.
-                          </p>
-                        </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-charcoal/70">
+                        Delivery Destination
+                      </label>
+                      <div className="flex rounded-lg bg-sand/30 p-0.5 text-[11px] font-medium">
                         <button
                           type="button"
-                          onClick={handleGetLocation}
-                          disabled={gpsLoading}
-                          className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo px-4 py-2.5 text-xs font-semibold text-white hover:opacity-90 transition active:scale-[0.98] shadow-sm disabled:opacity-50"
+                          onClick={() => setDeliveryMode('GPS')}
+                          className={`rounded px-2.5 py-1 transition ${
+                            deliveryMode === 'GPS' ? 'bg-white text-indigo shadow-xs font-semibold' : 'text-charcoal/60 hover:text-charcoal'
+                          }`}
                         >
-                          <Navigation size={14} className={gpsLoading ? 'animate-spin' : ''} />
-                          <span>{gpsLoading ? 'Acquiring GPS Signal…' : '📍 Tap to Pin Live Location'}</span>
+                          📍 Pin GPS
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryMode('CHOOSE')}
+                          className={`rounded px-2.5 py-1 transition ${
+                            deliveryMode === 'CHOOSE' ? 'bg-white text-indigo shadow-xs font-semibold' : 'text-charcoal/60 hover:text-charcoal'
+                          }`}
+                        >
+                          🏙️ Choose Area
                         </button>
                       </div>
-                    ) : (
-                      <div className="rounded-xl border border-emerald-600/30 bg-emerald-50/60 p-3.5 space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-700 shrink-0">
-                              <MapPin size={16} />
+                    </div>
+
+                    {deliveryMode === 'GPS' ? (
+                      <div>
+                        {!coords ? (
+                          <div className="rounded-xl border border-indigo/20 bg-indigo/[0.03] p-4 text-center space-y-2.5">
+                            <div className="flex justify-center">
+                              <div className="h-10 w-10 rounded-full bg-indigo/10 flex items-center justify-center text-indigo">
+                                <Navigation size={20} className={gpsLoading ? 'animate-spin' : ''} />
+                              </div>
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-emerald-950">
-                                {zone?.name ? `📍 ${zone.name}` : '📍 Accra Delivery Location'}
-                              </p>
-                              <p className="text-[11px] text-emerald-800/80 font-mono">
-                                {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)} {gpsAccuracy ? `(±${gpsAccuracy}m)` : ''}
+                              <p className="text-xs font-semibold text-charcoal">Pin Your Current Location</p>
+                              <p className="text-[11px] text-charcoal/60 mt-0.5">
+                                Automatically detects your area and calculates the delivery fee.
                               </p>
                             </div>
+                            <button
+                              type="button"
+                              onClick={handleGetLocation}
+                              disabled={gpsLoading}
+                              className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo px-4 py-2.5 text-xs font-semibold text-white hover:opacity-90 transition active:scale-[0.98] shadow-sm disabled:opacity-50"
+                            >
+                              <Navigation size={14} className={gpsLoading ? 'animate-spin' : ''} />
+                              <span>{gpsLoading ? 'Detecting Area…' : '📍 Tap to Pin Live Location'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeliveryMode('CHOOSE')}
+                              className="text-[11px] text-indigo hover:underline block w-full pt-1"
+                            >
+                              Sending to another address? Select area from list →
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={handleGetLocation}
-                            disabled={gpsLoading}
-                            className="text-[11px] font-medium text-emerald-800 hover:text-emerald-950 underline shrink-0"
-                          >
-                            {gpsLoading ? 'Re-pinning…' : '🔄 Re-pin'}
-                          </button>
-                        </div>
+                        ) : (
+                          <div className="rounded-xl border border-emerald-600/30 bg-emerald-50/60 p-3.5 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-700 shrink-0">
+                                  <MapPin size={16} />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-emerald-950">
+                                    📍 {zone?.name ? zone.name : 'Accra Delivery Area'}
+                                  </p>
+                                  <p className="text-[11px] text-emerald-800/80 font-medium">
+                                    Live location saved for rider
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleGetLocation}
+                                disabled={gpsLoading}
+                                className="text-[11px] font-medium text-emerald-800 hover:text-emerald-950 underline shrink-0"
+                              >
+                                {gpsLoading ? 'Re-pinning…' : '🔄 Re-pin'}
+                              </button>
+                            </div>
+
+                            {zone && (
+                              <div className="rounded-lg bg-white/80 px-2.5 py-1.5 text-xs text-charcoal/80 flex items-center justify-between border border-emerald-600/10">
+                                <span className="text-charcoal/70">Calculated Delivery Fee</span>
+                                <span className="font-bold text-indigo">{formatGHS(zone.feeP)}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2 rounded-xl border border-sand/60 bg-white p-3.5 shadow-xs">
+                        <label className="text-xs font-medium text-charcoal/70 block">
+                          Select your delivery neighborhood
+                        </label>
+                        <select
+                          value={zone?.name ?? ''}
+                          onChange={handleSelectNeighborhood}
+                          className="w-full rounded-lg border border-sand/80 bg-sand/10 px-3 py-2 text-xs font-medium text-charcoal outline-none focus:border-indigo"
+                        >
+                          <option value="">-- Choose neighborhood / area --</option>
+                          {zonesList.map((z) => (
+                            <option key={z.id} value={z.name}>
+                              {z.name} — {formatGHS(z.feeP)}
+                            </option>
+                          ))}
+                          <option value="Other Accra / Outside Accra">
+                            Other Accra / Outside Accra (Quote on WhatsApp)
+                          </option>
+                        </select>
 
                         {zone && (
-                          <div className="rounded-lg bg-white/80 px-2.5 py-1.5 text-xs text-charcoal/80 flex items-center justify-between border border-emerald-600/10">
-                            <span className="text-charcoal/70">Calculated Delivery Fee</span>
+                          <div className="rounded-lg bg-sand/20 px-2.5 py-1.5 text-xs text-charcoal/80 flex items-center justify-between">
+                            <span>Delivery to <strong>{zone.name}</strong></span>
                             <span className="font-bold text-indigo">{formatGHS(zone.feeP)}</span>
                           </div>
                         )}

@@ -56,6 +56,10 @@ storefront.get('/products/:slug/image', async (req, res) => {
   }
   return res.status(404).send('Not found');
 });
+storefront.get('/zones', async (_req, res) => {
+  const zones = await db.deliveryZone.findMany({ orderBy: { name: 'asc' } });
+  res.json({ ok: true, zones });
+});
 storefront.get('/zones/match', async (req, res) => {
   const text = typeof req.query.text === 'string' ? req.query.text : '';
   res.json({ ok: true, match: await matchZone(text) });
