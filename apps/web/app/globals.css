@@ -2,8 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
 body {
   @apply bg-cream text-charcoal font-sans antialiased;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  position: relative;
+  touch-action: manipulation;
+}
+
+/* Prevent unwanted gutters and layout shifts */
+*, ::before, ::after {
+  box-sizing: border-box;
+}
+
+#main-content {
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 /* Editorial serif headline utility */

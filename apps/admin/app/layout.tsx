@@ -1,9 +1,16 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Fraunces, Inter } from 'next/font/google';
 import './globals.css';
 
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: 'TOBI CLOTHINGS: Studio',
