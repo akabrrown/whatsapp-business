@@ -171,6 +171,7 @@ export function MiniCart() {
     const { whatsappUrl, code } = body.handoff;
     try {
       sessionStorage.setItem('rd-handoff', JSON.stringify({ url: whatsappUrl, code }));
+      localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
     } catch {
       /* ignore storage quota/private mode */
     }
@@ -224,7 +225,15 @@ export function MiniCart() {
         }
         return setError(body.message ?? 'Unable to start online payment. Please order via WhatsApp.');
       }
-      await clear();
+
+      // Preserve cart items in backup storage so if payment is cancelled or network drops, nothing is lost
+      try {
+        localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
+        if (body.tokenCode) localStorage.setItem('rd-in-flight-token', body.tokenCode);
+      } catch {
+        /* ignore */
+      }
+
       setDrawerOpen(false);
       window.location.href = body.paymentUrl;
     } catch {

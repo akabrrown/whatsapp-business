@@ -23,7 +23,13 @@ function OrderSuccessContent() {
   } | null>(null);
 
   useEffect(() => {
-    // Clear any residual items from the cart
+    // Clear residual items and backup storage upon confirmed payment
+    try {
+      localStorage.removeItem('rd-cart-backup');
+      localStorage.removeItem('rd-in-flight-token');
+    } catch {
+      /* ignore */
+    }
     clear().catch(() => {});
     if (!ref) {
       setLoading(false);

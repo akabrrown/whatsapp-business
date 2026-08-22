@@ -5,9 +5,11 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare, ArrowRight, ShoppingBag } from 'lucide-react';
+import { useCart } from '@/lib/cart';
 
 function HandoffContent() {
   const searchParams = useSearchParams();
+  const { restoreBackup } = useCart();
   const [state, setState] = useState<{ url: string; code: string } | null>(null);
 
   useEffect(() => {
@@ -83,6 +85,15 @@ function HandoffContent() {
               <span>Continue in WhatsApp</span>
               <ArrowRight size={16} />
             </a>
+
+            <button
+              onClick={() => {
+                restoreBackup();
+              }}
+              className="w-full text-center text-xs text-charcoal/60 hover:text-indigo underline pt-1"
+            >
+              ↩️ Want to change items or address? Reopen Bag
+            </button>
           </div>
         )}
 

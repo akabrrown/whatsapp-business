@@ -37,6 +37,7 @@ interface CartContextValue {
   add: (variantId: string, qty: number, meta: Meta) => Promise<{ ok: boolean; message?: string }>;
   setQty: (variantId: string, qty: number) => Promise<void>;
   clear: () => Promise<void>;
+  restoreBackup: () => void;
   sessionId: string;
 }
 
@@ -241,6 +242,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [sessionId]);
 
+  const restoreBackup = useCallback(() => {
+    try {
+      const raw = localStorage.getItem('rd-cart-backup') || sessionStorage.getItem('rd-cart-backup');
+      if (raw) {
+        const parsed = JSON.parse(raw) as CartLine[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setLines(parsed);
+          persistCart(parsed);
+          setDrawerOpen(true);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [persistCart]);
+
   const value = useMemo<CartContextValue>(
     () => ({
       lines,
@@ -251,9 +268,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       add,
       setQty,
       clear,
+      restoreBackup,
       sessionId,
     }),
-    [lines, drawerOpen, add, setQty, clear, sessionId],
+    [lines, drawerOpen, add, setQty, clear, restoreBackup, sessionId],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
