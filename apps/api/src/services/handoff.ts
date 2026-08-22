@@ -8,6 +8,7 @@ import { waDeepLink } from '../adapters/whatsapp.js';
 import { getWhatsAppNumber } from './settings.js';
 import { getOrCreateCustomer } from './orders.js';
 import { initPaymentForToken } from './payments.js';
+import { hub } from './realtime.js';
 import { config } from '../config.js';
 import { formatGHS, TOKEN_TTL_MIN, TOKEN_RATE_LIMIT_PER_HOUR, DUPLICATE_ORDER_WINDOW_MIN, VIP_THRESHOLD_PESWAS, OrderSource, type CartItem } from '../shared.js';
 
@@ -209,6 +210,7 @@ export async function createToken(input: {
     `👉 *Press Send to complete your order!* ✨`;
 
   const whatsappNumber = await getWhatsAppNumber();
+  hub.broadcastAdmin('token.created', { code, phone, totalP });
   return {
     code,
     phone,

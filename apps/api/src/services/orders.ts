@@ -186,6 +186,8 @@ export async function setStatus(orderId: string, next: string, opts: { notify?: 
   if (opts.riderName !== undefined) data.riderName = opts.riderName;
   if (opts.riderPhone !== undefined) data.riderPhone = opts.riderPhone;
   await db.order.update({ where: { id: orderId }, data });
+  hub.broadcast('order.updated', { id: orderId, number: order.number, status: next });
+  hub.broadcastAdmin('order.updated', { id: orderId, number: order.number, status: next });
 
   if (opts.notify !== false && STATUS_MESSAGES[next]) {
     const customer = await db.customer.findUniqueOrThrow({ where: { id: order.customerId } });
@@ -205,6 +207,8 @@ export async function setStatus(orderId: string, next: string, opts: { notify?: 
 export async function reassignRider(orderId: string, riderName: string, riderPhone: string) {
   const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { customer: true } });
   await db.order.update({ where: { id: orderId }, data: { riderName, riderPhone } });
+  hub.broadcast('order.updated', { id: orderId, number: order.number, status: order.status, riderName, riderPhone });
+  hub.broadcastAdmin('order.updated', { id: orderId, number: order.number, status: order.status, riderName, riderPhone });
   if (order.status === OrderStatus.SHIPPED) {
     await sendReliable(order.customer.phone, `Slight update: your order ${order.number} is now with ${riderName}, contact: ${riderPhone}`, {
       conversationId: order.conversationId ?? undefined,
@@ -243,6 +247,8 @@ export async function cancelOrder(orderId: string, opts: { refund?: boolean; not
   }
 
   await db.order.update({ where: { id: orderId }, data: { status: OrderStatus.CANCELLED } });
+  hub.broadcast('order.cancelled', { id: orderId, number: order.number });
+  hub.broadcastAdmin('order.cancelled', { id: orderId, number: order.number });
   await sendReliable(order.customer.phone, STATUS_MESSAGES.CANCELLED({ number: order.number, totalP: order.status === OrderStatus.RESERVED ? 0 : order.totalP }), {
     templateName: 'order_cancelled',
     conversationId: order.conversationId ?? undefined,

@@ -91,6 +91,28 @@ function TrackContent() {
     }
   }, [queryParam]);
 
+  // Live Realtime Poller: auto-refreshes status every 3s without manual page reload
+  useEffect(() => {
+    if (!queryParam) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/orders/track/${encodeURIComponent(queryParam.trim())}`);
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.orders) && data.orders.length > 0) {
+          setOrdersList(data.orders);
+          setOrder((prev) => {
+            if (!prev) return data.orders[0];
+            const updated = data.orders.find((o: TrackedOrder) => o.number === prev.number);
+            return updated || prev;
+          });
+        }
+      } catch {
+        /* silent background poll */
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [queryParam]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;

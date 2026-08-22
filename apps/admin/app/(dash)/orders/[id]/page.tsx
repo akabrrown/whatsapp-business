@@ -4,7 +4,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, MessageSquare, Copy, Check, Store, Truck, MapPin, Send } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, subscribeAdminEvents } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { Timeline } from '@/components/Timeline';
 import { ChatBubbles, type ChatMessage } from '@/components/ChatBubbles';
@@ -69,6 +69,18 @@ export default function OrderDetailPage() {
     apiFetch<{ zones: { id: string; name: string }[] }>('/api/admin/zones')
       .then((r) => setZones(r.zones || []))
       .catch(() => {});
+    const off = subscribeAdminEvents((e) => {
+      if (e.type === 'order.updated' || e.type === 'order.paid' || e.type === 'payment.received') {
+        load();
+      }
+    });
+    const timer = setInterval(() => {
+      load();
+    }, 4000);
+    return () => {
+      off();
+      clearInterval(timer);
+    };
   }, [load]);
 
   const act = async (path: string, body?: unknown) => {
