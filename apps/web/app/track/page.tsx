@@ -50,24 +50,32 @@ interface TrackedOrder {
 function TrackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const queryParam = searchParams.get('q') || searchParams.get('id') || '';
+  const queryParam = searchParams.get('q') || searchParams.get('id') || searchParams.get('order') || '';
   const [query, setQuery] = useState(queryParam);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [order, setOrder] = useState<TrackedOrder | null>(null);
+  const [ordersList, setOrdersList] = useState<TrackedOrder[]>([]);
 
   const fetchTracking = async (q: string) => {
     if (!q.trim()) return;
     setLoading(true);
     setError('');
     setOrder(null);
+    setOrdersList([]);
     try {
       const res = await fetch(`${API}/api/orders/track/${encodeURIComponent(q.trim())}`);
       const data = await res.json();
-      if (!res.ok || !data.ok || !data.order) {
+      if (!res.ok || !data.ok || (!data.order && (!data.orders || data.orders.length === 0))) {
         setError(data.message || 'No order found with that order number or phone number.');
       } else {
-        setOrder(data.order);
+        if (Array.isArray(data.orders) && data.orders.length > 0) {
+          setOrdersList(data.orders);
+          setOrder(data.orders[0]);
+        } else {
+          setOrdersList([data.order]);
+          setOrder(data.order);
+        }
       }
     } catch {
       setError('Unable to fetch order status. Please check your internet connection or contact us on WhatsApp.');
@@ -102,10 +110,10 @@ function TrackContent() {
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <p className="text-xs uppercase tracking-widest text-indigo/70 font-semibold mb-1">Live Order Status</p>
+          <p className="text-xs uppercase tracking-widest text-indigo/70 font-semibold mb-1">Live Order Status & History</p>
           <h1 className="headline text-3xl sm:text-4xl text-indigo mb-3">Track Your Order</h1>
           <p className="text-sm text-charcoal/60 max-w-md mx-auto">
-            Enter your Order Number (e.g. <span className="font-mono text-indigo font-medium">RD-1042</span>) or phone number to see real-time preparation and delivery updates.
+            Enter your Phone Number (e.g. <span className="font-mono text-indigo font-medium">0241234567</span>) or Order Number (<span className="font-mono text-indigo font-medium">RD-1001</span>) to view all current and past orders.
           </p>
         </div>
 
@@ -116,7 +124,7 @@ function TrackContent() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Order Number (e.g. RD-1042) or Phone Number"
+              placeholder="Enter Phone Number or Order Number (e.g. 0241234567 or RD-1001)"
               className="w-full bg-transparent px-4 py-2.5 text-sm sm:text-base outline-none text-charcoal placeholder:text-charcoal/40"
             />
             <button
@@ -125,7 +133,7 @@ function TrackContent() {
               className="rounded-lg bg-indigo px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo/90 shrink-0 flex items-center gap-1.5 disabled:opacity-50"
             >
               <Search size={16} />
-              <span>{loading ? 'Finding…' : 'Track'}</span>
+              <span>{loading ? 'Finding…' : 'Search Orders'}</span>
             </button>
           </div>
         </form>
@@ -148,6 +156,49 @@ function TrackContent() {
                   Chat with Tobi on WhatsApp
                 </a>
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Order History Switcher (When Multiple Orders Exist) */}
+        {ordersList.length > 1 && (
+          <div className="mb-8 rounded-2xl border border-indigo/20 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3 border-b border-sand/30 pb-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo flex items-center gap-1.5">
+                <ShoppingBag size={14} />
+                Your Orders ({ordersList.length})
+              </span>
+              <span className="text-[11px] text-charcoal/50">Select an order to view details</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {ordersList.map((o) => {
+                const isSelected = order?.number === o.number;
+                return (
+                  <button
+                    key={o.number}
+                    type="button"
+                    onClick={() => setOrder(o)}
+                    className={`flex items-center justify-between p-3 rounded-xl border text-left transition cursor-pointer ${
+                      isSelected
+                        ? 'border-indigo bg-indigo/[0.04] shadow-xs ring-1 ring-indigo'
+                        : 'border-sand/60 bg-sand/5 hover:bg-white hover:border-sand'
+                    }`}
+                  >
+                    <div>
+                      <p className={`font-mono text-sm font-bold ${isSelected ? 'text-indigo' : 'text-charcoal'}`}>{o.number}</p>
+                      <p className="text-[11px] text-charcoal/50 mt-0.5">
+                        {new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · {o.items.length} {o.items.length === 1 ? 'item' : 'items'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-charcoal block">{formatGHS(o.totalP)}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${o.status === 'DELIVERED' ? 'text-emerald-700' : 'text-indigo'}`}>
+                        {o.status}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

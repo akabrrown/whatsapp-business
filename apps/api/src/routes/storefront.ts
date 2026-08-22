@@ -214,16 +214,16 @@ storefront.post('/pay/token/:code', async (req, res) => {
   res.json({ ok: true, paymentUrl: link });
 });
 
-// ---- Public Order Tracking Endpoint --------------------------------------
-storefront.get('/orders/track/:query', async (req, res) => {
-  const q = req.params.query.trim();
+// ---- Public Order Tracking Endpoint (Supports Multi-Order History) -------
+async function handleTrack(req: any, res: any) {
+  const q = String(req.params.query ?? '').trim();
   if (!q) return res.status(400).json({ ok: false, error: 'query required' });
 
   // Normalize queries
   const cleanOrderNum = q.toUpperCase().startsWith('RD-') ? q.toUpperCase() : !isNaN(Number(q)) ? `RD-${q}` : q.toUpperCase();
   const cleanPhone = q.replace(/\D/g, '');
 
-  let order = await db.order.findFirst({
+  const matchingOrders = await db.order.findMany({
     where: {
       OR: [
         { number: cleanOrderNum },
@@ -247,13 +247,14 @@ storefront.get('/orders/track/:query', async (req, res) => {
       },
     },
     orderBy: { createdAt: 'desc' },
+    take: 20,
   });
 
-  if (!order) {
+  if (!matchingOrders || matchingOrders.length === 0) {
     // Check if it's an active in-flight checkout bag
     const token = await findActiveToken(q);
     if (token) {
-      const subtotalP = token.items.reduce((s, i) => s + i.variant.priceP * i.qty, 0);
+      const subtotalP = token.items.reduce((s, i) => s + (i.variant?.priceP ?? 0) * i.qty, 0);
       const totalP = subtotalP + (token.deliveryFeeP ?? 0);
       return res.json({
         ok: true,
@@ -269,94 +270,90 @@ storefront.get('/orders/track/:query', async (req, res) => {
     return res.status(404).json({ ok: false, error: 'not_found', message: 'No order found with that order number or phone number.' });
   }
 
-  // Calculate timeline
-  const status = order.status;
-  const isPaid = ['PAID', 'PACKED', 'SHIPPED', 'DELIVERED'].includes(status);
-  const isPacked = ['PACKED', 'SHIPPED', 'DELIVERED'].includes(status);
-  const isDispatched = ['SHIPPED', 'DELIVERED'].includes(status);
-  const isDelivered = status === 'DELIVERED';
-  const isCancelled = status === 'CANCELLED';
+  // Format all matched orders
+  const formattedOrders = matchingOrders.map((order) => {
+    const status = order.status;
+    const isPaid = ['PAID', 'PACKED', 'SHIPPED', 'DELIVERED'].includes(status);
+    const isPacked = ['PACKED', 'SHIPPED', 'DELIVERED'].includes(status);
+    const isDispatched = ['SHIPPED', 'DELIVERED'].includes(status);
+    const isDelivered = status === 'DELIVERED';
+    const isCancelled = status === 'CANCELLED';
 
-  const timeline = [
-    {
-      step: 'placed',
-      title: 'Order Placed',
-      description: 'Your order was received',
-      completed: true,
-      current: status === 'RESERVED',
-      date: order.createdAt,
-    },
-    {
-      step: 'paid',
-      title: 'Payment Confirmed',
-      description: isPaid ? 'Payment verified via Paystack' : 'Awaiting payment confirmation',
-      completed: isPaid,
-      current: status === 'PAID',
-      date: isPaid ? order.createdAt : undefined,
-    },
-    {
-      step: 'packed',
-      title: 'Quality Check & Packed',
-      description: isPacked ? 'Items prepared & safely packaged' : 'Pending packaging',
-      completed: isPacked,
-      current: status === 'PACKED',
-      date: order.packedAt ?? undefined,
-    },
-    {
-      step: 'dispatched',
-      title: 'Dispatched with Rider',
-      description: isDispatched
-        ? order.riderName
-          ? `Out for delivery with ${order.riderName}`
-          : 'Dispatched and on the way'
-        : 'Pending dispatch',
-      completed: isDispatched,
-      current: status === 'SHIPPED',
-    },
-    {
-      step: 'delivered',
-      title: 'Delivered',
-      description: isDelivered ? 'Delivered successfully to customer' : 'Final delivery',
-      completed: isDelivered,
-      current: isDelivered,
-      date: order.deliveredAt ?? undefined,
-    },
-  ];
+    const timeline = [
+      {
+        step: 'placed',
+        title: 'Order Placed',
+        description: 'Your order was received',
+        completed: true,
+        current: status === 'RESERVED',
+        date: order.createdAt,
+      },
+      {
+        step: 'paid',
+        title: 'Payment Confirmed',
+        description: isPaid ? 'Payment verified via Paystack' : 'Awaiting payment confirmation',
+        completed: isPaid,
+        current: status === 'PAID',
+        date: isPaid ? order.createdAt : undefined,
+      },
+      {
+        step: 'packed',
+        title: 'Quality Check & Packed',
+        description: isPacked ? 'Items prepared & safely packaged' : 'Pending packaging',
+        completed: isPacked,
+        current: status === 'PACKED',
+        date: order.packedAt ?? undefined,
+      },
+      {
+        step: 'dispatched',
+        title: 'Dispatched with Rider',
+        description: isDispatched
+          ? order.riderName
+            ? `Out for delivery with ${order.riderName}`
+            : 'Dispatched and on the way'
+          : 'Pending dispatch',
+        completed: isDispatched,
+        current: status === 'SHIPPED',
+      },
+      {
+        step: 'delivered',
+        title: 'Delivered',
+        description: isDelivered ? 'Delivered successfully to customer' : 'Final delivery',
+        completed: isDelivered,
+        current: isDelivered,
+        date: order.deliveredAt ?? undefined,
+      },
+    ];
 
-  // Mask phone for privacy
-  const rawPhone = order.customer.phone;
-  const maskedPhone = rawPhone.length > 4
-    ? `${rawPhone.slice(0, 3)} ••• ••${rawPhone.slice(-2)}`
-    : rawPhone;
+    const rawPhone = order.customer.phone;
+    const maskedPhone = rawPhone.length > 4
+      ? `${rawPhone.slice(0, 3)} ••• ••${rawPhone.slice(-2)}`
+      : rawPhone;
 
-  // Process items
-  const items = order.items.map((i) => {
-    let image = '';
-    try {
-      const parsed = typeof i.variant.product.images === 'string'
-        ? JSON.parse(i.variant.product.images)
-        : i.variant.product.images;
-      if (Array.isArray(parsed) && parsed.length > 0) image = parsed[0];
-    } catch {
-      /* ignore */
-    }
-    const unitP = i.unitPriceP ?? i.variant.priceP;
+    const items = order.items.map((i) => {
+      let image = '';
+      try {
+        const parsed = typeof i.variant?.product?.images === 'string'
+          ? JSON.parse(i.variant.product.images)
+          : i.variant?.product?.images;
+        if (Array.isArray(parsed) && parsed.length > 0) image = parsed[0];
+      } catch {
+        /* ignore */
+      }
+      const unitP = i.unitPriceP ?? i.variant?.priceP ?? 0;
+      return {
+        name: i.variant?.product?.name ?? 'Item',
+        slug: i.variant?.product?.slug ?? '',
+        size: i.variant?.size ?? null,
+        color: i.variant?.color ?? null,
+        qty: i.qty,
+        priceP: unitP,
+        lineP: unitP * i.qty,
+        image,
+      };
+    });
+
     return {
-      name: i.variant.product.name,
-      slug: i.variant.product.slug,
-      size: i.variant.size,
-      color: i.variant.color,
-      qty: i.qty,
-      priceP: unitP,
-      lineP: unitP * i.qty,
-      image,
-    };
-  });
-
-  res.json({
-    ok: true,
-    type: 'order',
-    order: {
       number: order.number,
       status: order.status,
       fulfillmentType: order.fulfillmentType ?? 'DELIVERY',
@@ -377,9 +374,19 @@ storefront.get('/orders/track/:query', async (req, res) => {
       isCancelled,
       items,
       timeline,
-    },
+    };
   });
-});
+
+  res.json({
+    ok: true,
+    type: 'order',
+    orders: formattedOrders,
+    order: formattedOrders[0],
+  });
+}
+
+storefront.get('/orders/track/:query', handleTrack);
+storefront.get('/track/:query', handleTrack);
 
 // ---- Public token status (§14.2: never expose data for unknown tokens) ---
 storefront.get('/orders/by-token/:code', async (req, res) => {
