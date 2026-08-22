@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Menu, ShoppingBag, X } from 'lucide-react';
+import { ChevronDown, Menu, ShoppingBag, X, Truck } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { SearchOverlay } from './SearchOverlay';
 import type { Category } from '@/lib/api';
@@ -60,9 +60,19 @@ export function Navbar({ categories }: { categories: Category[] }) {
             TOBI <span className="text-rose">CLOTHINGS</span>
           </Link>
 
-          {/* Actions: Search + Cart */}
-          <div className="flex items-center gap-4">
+          {/* Actions: Track + Search + Cart */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link
+              href="/track"
+              className="flex items-center gap-1 text-xs font-medium text-charcoal/70 transition-colors hover:text-indigo"
+              title="Track Order"
+            >
+              <Truck size={18} aria-hidden />
+              <span className="hidden sm:inline">Track Order</span>
+            </Link>
+
             <SearchOverlay categories={categories} />
+
             <button
               aria-label="Shopping bag"
               onClick={() => setDrawerOpen(true)}
