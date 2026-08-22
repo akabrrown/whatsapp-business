@@ -10,7 +10,7 @@ import { formatGHS } from '@rose/shared';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export function MiniCart() {
-  const { lines, subtotalP, drawerOpen, setDrawerOpen, setQty, sessionId } = useCart();
+  const { lines, subtotalP, drawerOpen, setDrawerOpen, setQty, clear, sessionId } = useCart();
   const router = useRouter();
   const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [phone, setPhone] = useState('');
@@ -174,6 +174,7 @@ export function MiniCart() {
     } catch {
       /* ignore storage quota/private mode */
     }
+    await clear();
     setDrawerOpen(false);
     // Directly push to handoff page with token and URL encoded in query params as rock-solid fallback
     const targetUrl = `/handoff?code=${encodeURIComponent(code)}&url=${encodeURIComponent(whatsappUrl)}`;
@@ -223,6 +224,7 @@ export function MiniCart() {
         }
         return setError(body.message ?? 'Unable to start online payment. Please order via WhatsApp.');
       }
+      await clear();
       setDrawerOpen(false);
       window.location.href = body.paymentUrl;
     } catch {

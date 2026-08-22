@@ -4,12 +4,14 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, ShoppingBag, MessageSquare, ArrowRight, Truck, ShieldCheck } from 'lucide-react';
+import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
+  const { clear } = useCart();
   const ref = searchParams.get('reference') || searchParams.get('ref') || searchParams.get('trxref') || '';
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<{
@@ -21,6 +23,8 @@ function OrderSuccessContent() {
   } | null>(null);
 
   useEffect(() => {
+    // Clear any residual items from the cart
+    clear().catch(() => {});
     if (!ref) {
       setLoading(false);
       return;

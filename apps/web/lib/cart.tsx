@@ -36,6 +36,7 @@ interface CartContextValue {
   setDrawerOpen: (open: boolean) => void;
   add: (variantId: string, qty: number, meta: Meta) => Promise<{ ok: boolean; message?: string }>;
   setQty: (variantId: string, qty: number) => Promise<void>;
+  clear: () => Promise<void>;
   sessionId: string;
 }
 
@@ -215,6 +216,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [sessionId, lines, applyServerCart, persistCart],
   );
 
+  const clear = useCallback<CartContextValue['clear']>(async () => {
+    setLines([]);
+    try {
+      localStorage.removeItem('rd-cart-lines');
+      localStorage.removeItem('rd-cart-meta');
+    } catch {
+      /* ignore */
+    }
+    const currentSid = sessionId || localStorage.getItem('rd-session') || '';
+    if (currentSid) {
+      try {
+        await fetch(`${API}/api/cart/${currentSid}`, { method: 'DELETE' });
+      } catch {
+        /* ignore */
+      }
+    }
+    const nextSid = newSessionId();
+    setSessionId(nextSid);
+    try {
+      localStorage.setItem('rd-session', nextSid);
+    } catch {
+      /* ignore */
+    }
+  }, [sessionId]);
+
   const value = useMemo<CartContextValue>(
     () => ({
       lines,
@@ -224,9 +250,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setDrawerOpen,
       add,
       setQty,
+      clear,
       sessionId,
     }),
-    [lines, drawerOpen, add, setQty, sessionId],
+    [lines, drawerOpen, add, setQty, clear, sessionId],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
