@@ -3,7 +3,7 @@
 // actions, "new orders" indicator (§3.8), stale-PACKED flag (§8.6), and In-Flight WhatsApp Bags (§4.7).
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Download, RefreshCw, ShoppingBag, CheckCircle } from 'lucide-react';
+import { Download, RefreshCw, ShoppingBag, CheckCircle, MessageSquare, Copy, Check } from 'lucide-react';
 import { apiFetch, subscribeAdminEvents } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { formatGHS } from '@rose/shared';
@@ -50,6 +50,8 @@ export default function OrdersPage() {
   const [to, setTo] = useState('');
   const [newCount, setNewCount] = useState(0);
   const [converting, setConverting] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [sendingCode, setSendingCode] = useState<string | null>(null);
 
   const loadOrders = useCallback(async (silent = false) => {
     const qs = new URLSearchParams();
@@ -98,6 +100,40 @@ export default function OrdersPage() {
       alert((err as Error).message);
     } finally {
       setConverting(null);
+    }
+  };
+
+  const handleCopyPayLink = async (token: OrderTokenRow) => {
+    try {
+      const res = await apiFetch<{ ok: boolean; paymentUrl: string }>(`/api/admin/tokens/${token.code}/payment-link`, { method: 'POST' });
+      if (res.paymentUrl) {
+        await navigator.clipboard.writeText(res.paymentUrl);
+        setCopiedCode(token.code);
+        setTimeout(() => setCopiedCode(null), 2500);
+      }
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  };
+
+  const handleSendWhatsAppPayLink = async (token: OrderTokenRow) => {
+    setSendingCode(token.code);
+    try {
+      const res = await apiFetch<{ ok: boolean; paymentUrl: string }>(`/api/admin/tokens/${token.code}/payment-link`, { method: 'POST' });
+      if (res.paymentUrl) {
+        const cleanPhone = token.phone.replace(/\D/g, '');
+        const msg = encodeURIComponent(
+          `Hello! Here is your secured Paystack payment link for your order (${token.code}):\n\n` +
+          `💰 Total: ${formatGHS(token.totalP)}\n` +
+          `👉 Pay with Mobile Money / Card: ${res.paymentUrl}\n\n` +
+          `Thank you for shopping with TOBI CLOTHINGS!`
+        );
+        window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
+      }
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setSendingCode(null);
     }
   };
 
@@ -217,14 +253,36 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {t.status === 'ACTIVE' && (
-                      <button
-                        onClick={() => convertTokenToPaid(t.code)}
-                        disabled={converting === t.code}
-                        className="inline-flex items-center gap-1 rounded bg-wagreen px-2.5 py-1 text-xs font-medium text-white hover:bg-wagreen/90 disabled:opacity-50"
-                      >
-                        <CheckCircle size={12} />
-                        {converting === t.code ? 'Processing...' : 'Confirm as Paid'}
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleSendWhatsAppPayLink(t)}
+                          disabled={sendingCode === t.code}
+                          title="Open WhatsApp to send customer Paystack payment link"
+                          className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-50 transition shadow-sm"
+                        >
+                          <MessageSquare size={12} />
+                          <span>{sendingCode === t.code ? 'Generating...' : 'Send Pay Link'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleCopyPayLink(t)}
+                          title="Copy direct Paystack checkout link"
+                          className="inline-flex items-center gap-1 rounded border border-sand/80 bg-white px-2 py-1 text-xs font-medium text-charcoal hover:bg-sand/20 transition shadow-sm"
+                        >
+                          {copiedCode === t.code ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                          <span>{copiedCode === t.code ? 'Copied!' : 'Copy Link'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => convertTokenToPaid(t.code)}
+                          disabled={converting === t.code}
+                          title="Mark order as confirmed and paid (e.g. cash or manual MoMo)"
+                          className="inline-flex items-center gap-1 rounded bg-indigo px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 transition shadow-sm"
+                        >
+                          <CheckCircle size={12} />
+                          <span>{converting === t.code ? 'Processing...' : 'Confirm Paid'}</span>
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

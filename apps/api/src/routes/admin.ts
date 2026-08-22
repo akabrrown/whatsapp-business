@@ -6,7 +6,7 @@ import { requireAuth, requireOwner, issueToken, issueTempToken, verifyTempToken,
 import * as orders from '../services/orders.js';
 import * as inventory from '../services/inventory.js';
 import * as retention from '../services/retention.js';
-import { refundOrder } from '../services/payments.js';
+import { refundOrder, initPaymentForToken } from '../services/payments.js';
 import { takeOver, releaseToBot } from '../services/bot.js';
 import { sendReliable } from '../services/messaging.js';
 import { validateUpload, uploadToCloudinary } from '../adapters/images.js';
@@ -146,6 +146,54 @@ admin.post('/tokens/:code/convert', async (req, res) => {
   await db.orderToken.update({ where: { id: token.id }, data: { status: 'USED' } });
   hub.broadcastAdmin('order.created', { id: order.id, number: order.number });
   res.json({ ok: true, order });
+});
+
+admin.post('/tokens/:code/payment-link', async (req, res) => {
+  const token = await db.orderToken.findUnique({
+    where: { code: req.params.code },
+    include: { items: true },
+  });
+  if (!token) return res.status(404).json({ ok: false, error: 'Token not found' });
+
+  const paymentUrl = await initPaymentForToken(token.code, {
+    phone: token.phone,
+    zoneName: token.zoneName ?? undefined,
+    deliveryFeeP: token.deliveryFeeP ?? 0,
+    fulfillmentType: token.fulfillmentType ?? 'DELIVERY',
+    latitude: token.latitude ?? undefined,
+    longitude: token.longitude ?? undefined,
+    channel: OrderSource.WHATSAPP_DIRECT,
+  });
+
+  if (!paymentUrl) {
+    return res.status(500).json({ ok: false, error: 'Failed to generate Paystack link' });
+  }
+
+  res.json({ ok: true, paymentUrl, code: token.code });
+});
+
+admin.post('/orders/:id/payment-link', async (req, res) => {
+  const order = await db.order.findUnique({
+    where: { id: req.params.id },
+    include: { customer: true },
+  });
+  if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+
+  const paymentUrl = await initPaymentForToken(order.number, {
+    phone: order.customer.phone,
+    zoneName: order.zoneName ?? undefined,
+    deliveryFeeP: order.deliveryFeeP ?? 0,
+    fulfillmentType: order.fulfillmentType ?? 'DELIVERY',
+    latitude: order.latitude ?? undefined,
+    longitude: order.longitude ?? undefined,
+    channel: OrderSource.WHATSAPP_DIRECT,
+  });
+
+  if (!paymentUrl) {
+    return res.status(500).json({ ok: false, error: 'Failed to generate Paystack link' });
+  }
+
+  res.json({ ok: true, paymentUrl, orderNumber: order.number });
 });
 
 // ---- Orders (§8, §11) -------------------------------------------------------

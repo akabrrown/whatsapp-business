@@ -3,7 +3,7 @@
 // embedded WhatsApp thread (§3.9), fulfillment actions incl. failed delivery.
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Copy, Check } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { Timeline } from '@/components/Timeline';
@@ -44,6 +44,7 @@ export default function OrderDetailPage() {
   const [rider, setRider] = useState({ name: '', phone: '' });
   const [address, setAddress] = useState('');
   const [zoneName, setZoneName] = useState('');
+  const [copiedPayLink, setCopiedPayLink] = useState(false);
 
   const load = useCallback(async () => {
     const r = await apiFetch<{ order: OrderDetail; messages: ChatMessage[] }>(`/api/admin/orders/${id}`);
@@ -182,14 +183,72 @@ export default function OrderDetailPage() {
             </div>
           </section>
 
-          <section>
-            <p className="mb-2 text-xs uppercase tracking-wide text-charcoal/50">Payment</p>
-            {order.payments.length === 0 && <p className="text-sm text-charcoal/50">No payment recorded yet.</p>}
-            {order.payments.map((p) => (
-              <p key={p.paystackRef} className="text-sm text-charcoal/70">
-                {formatGHS(p.amountP)} via {p.channel} · ref <span className="font-mono text-xs">{p.paystackRef}</span> · {p.status}
-              </p>
-            ))}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-charcoal/50">Payment</p>
+              {order.payments.length === 0 && (
+                <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                  UNPAID
+                </span>
+              )}
+            </div>
+
+            {order.payments.length === 0 ? (
+              <div className="rounded-lg border border-sand/40 bg-sand/10 p-3 space-y-2">
+                <p className="text-xs text-charcoal/70">No online payment recorded yet.</p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await apiFetch<{ ok: boolean; paymentUrl: string }>(`/api/admin/orders/${id}/payment-link`, { method: 'POST' });
+                        if (res.paymentUrl) {
+                          const cleanPhone = order.customer.phone.replace(/\D/g, '');
+                          const msg = encodeURIComponent(
+                            `Hello! Here is your secured Paystack payment link for your order (${order.number}):\n\n` +
+                            `💰 Total: ${formatGHS(order.totalP)}\n` +
+                            `👉 Pay with Mobile Money / Card: ${res.paymentUrl}\n\n` +
+                            `Thank you for shopping with TOBI CLOTHINGS!`
+                          );
+                          window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
+                        }
+                      } catch (e) {
+                        alert((e as Error).message);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 transition shadow-sm"
+                  >
+                    <MessageSquare size={13} />
+                    <span>Send Pay Link via WhatsApp</span>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await apiFetch<{ ok: boolean; paymentUrl: string }>(`/api/admin/orders/${id}/payment-link`, { method: 'POST' });
+                        if (res.paymentUrl) {
+                          await navigator.clipboard.writeText(res.paymentUrl);
+                          setCopiedPayLink(true);
+                          setTimeout(() => setCopiedPayLink(false), 2500);
+                        }
+                      } catch (e) {
+                        alert((e as Error).message);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded border border-sand/80 bg-white px-2.5 py-1.5 text-xs font-semibold text-charcoal hover:bg-sand/20 transition shadow-sm"
+                  >
+                    {copiedPayLink ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                    <span>{copiedPayLink ? 'Copied!' : 'Copy Pay Link'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              order.payments.map((p) => (
+                <div key={p.paystackRef} className="rounded bg-emerald-50 border border-emerald-200/60 p-2.5 text-xs text-emerald-900 space-y-0.5">
+                  <p className="font-semibold">{formatGHS(p.amountP)} via {p.channel.toUpperCase()}</p>
+                  <p className="font-mono text-[11px] text-emerald-700">Ref: {p.paystackRef} · {p.status}</p>
+                </div>
+              ))
+            )}
           </section>
 
           <section className="rounded-lg border border-sand/40 bg-white/60 p-3">
