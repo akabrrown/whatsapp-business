@@ -134,7 +134,9 @@ export function MiniCart() {
     if (!cleanPhone || digits.length < 9) {
       return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
     }
-    if (fulfillmentType === 'DELIVERY' && !zoneChecked) await checkZone();
+    if (fulfillmentType === 'DELIVERY' && !coords) {
+      return setError('Please tap "Pin Live Delivery Location" to detect your delivery address via GPS.');
+    }
     setBusy(true);
     const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
     const res = await fetch(`${API}/api/handoff`, {
@@ -145,7 +147,7 @@ export function MiniCart() {
         sessionId,
         items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
         fulfillmentType,
-        zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : zone?.name,
+        zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (zone?.name || 'Accra Delivery Zone'),
         deliveryFeeP: feeP,
         latitude: coords?.lat,
         longitude: coords?.lng,
@@ -189,7 +191,9 @@ export function MiniCart() {
     if (!cleanPhone || digits.length < 9) {
       return setError('Please enter a valid phone number with numbers only (at least 9–10 digits).');
     }
-    if (fulfillmentType === 'DELIVERY' && !zoneChecked) await checkZone();
+    if (fulfillmentType === 'DELIVERY' && !coords) {
+      return setError('Please tap "Pin Live Delivery Location" to detect your delivery address via GPS.');
+    }
     setOnlineBusy(true);
     const feeP = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? 0);
     try {
@@ -198,11 +202,11 @@ export function MiniCart() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: cleanPhone,
-          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : zoneText.trim(),
+          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name ? `${zone.name} (Live GPS Pin)` : 'Accra Location (GPS Pinned)'),
           sessionId,
           items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
           fulfillmentType,
-          zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : zone?.name,
+          zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (zone?.name || 'Accra Delivery Zone'),
           deliveryFeeP: feeP,
           latitude: coords?.lat,
           longitude: coords?.lng,
@@ -351,47 +355,68 @@ export function MiniCart() {
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-charcoal/70">
-                        Delivery Neighborhood / Street
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleGetLocation}
-                        disabled={gpsLoading}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo hover:text-indigo/80 underline touch-manipulation disabled:opacity-50"
-                      >
-                        <Navigation size={12} className={gpsLoading ? 'animate-spin' : ''} />
-                        {gpsLoading ? 'Locating GPS…' : '📍 Pin Live Location'}
-                      </button>
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        value={zoneText}
-                        onChange={(e) => setZoneText(e.target.value)}
-                        placeholder="e.g. East Legon, Cantonments, Spintex"
-                        className="flex-1 border-b border-charcoal/30 bg-transparent py-1 text-[16px] sm:text-sm outline-none focus:border-indigo touch-manipulation"
-                      />
-                      <button onClick={checkZone} className="text-xs text-indigo underline touch-manipulation">Check</button>
-                    </div>
-                  </div>
+                    <label className="text-xs font-semibold uppercase tracking-wider text-charcoal/70 block mb-1.5">
+                      Delivery Location (Live GPS Only)
+                    </label>
 
-                  {coords && (
-                    <div className="flex items-center justify-between rounded-lg border border-emerald-600/20 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-900">
-                      <div className="flex items-center gap-2">
-                        <MapPin size={14} className="text-emerald-600 shrink-0" />
-                        <span>Live GPS Pinned ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})</span>
+                    {!coords ? (
+                      <div className="rounded-xl border border-indigo/20 bg-indigo/[0.03] p-4 text-center space-y-2.5">
+                        <div className="flex justify-center">
+                          <div className="h-10 w-10 rounded-full bg-indigo/10 flex items-center justify-center text-indigo">
+                            <Navigation size={20} className={gpsLoading ? 'animate-spin' : ''} />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-charcoal">Pin Your Live GPS Location</p>
+                          <p className="text-[11px] text-charcoal/60 mt-0.5">
+                            We use your live device location to dispatch the dispatch rider directly to your doorstep.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGetLocation}
+                          disabled={gpsLoading}
+                          className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo px-4 py-2.5 text-xs font-semibold text-white hover:opacity-90 transition active:scale-[0.98] shadow-sm disabled:opacity-50"
+                        >
+                          <Navigation size={14} className={gpsLoading ? 'animate-spin' : ''} />
+                          <span>{gpsLoading ? 'Acquiring GPS Signal…' : '📍 Tap to Pin Live Location'}</span>
+                        </button>
                       </div>
-                      {gpsAccuracy && <span className="text-[10px] text-emerald-700/70 font-mono">±{gpsAccuracy}m</span>}
-                    </div>
-                  )}
+                    ) : (
+                      <div className="rounded-xl border border-emerald-600/30 bg-emerald-50/60 p-3.5 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-700 shrink-0">
+                              <MapPin size={16} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-emerald-950">
+                                {zone?.name ? `📍 ${zone.name}` : '📍 Accra Delivery Location'}
+                              </p>
+                              <p className="text-[11px] text-emerald-800/80 font-mono">
+                                {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)} {gpsAccuracy ? `(±${gpsAccuracy}m)` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleGetLocation}
+                            disabled={gpsLoading}
+                            className="text-[11px] font-medium text-emerald-800 hover:text-emerald-950 underline shrink-0"
+                          >
+                            {gpsLoading ? 'Re-pinning…' : '🔄 Re-pin'}
+                          </button>
+                        </div>
 
-                  {zone && (
-                    <div className="rounded-lg bg-sand/20 px-3 py-2 text-xs text-charcoal/80 flex items-center justify-between">
-                      <span>Delivery to <strong>{zone.name}</strong></span>
-                      <span className="font-semibold text-indigo">{formatGHS(zone.feeP)}</span>
-                    </div>
-                  )}
+                        {zone && (
+                          <div className="rounded-lg bg-white/80 px-2.5 py-1.5 text-xs text-charcoal/80 flex items-center justify-between border border-emerald-600/10">
+                            <span className="text-charcoal/70">Calculated Delivery Fee</span>
+                            <span className="font-bold text-indigo">{formatGHS(zone.feeP)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
