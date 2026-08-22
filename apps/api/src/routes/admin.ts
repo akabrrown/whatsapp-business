@@ -900,7 +900,18 @@ admin.get('/inbox', async (_req, res) => {
     }
 
     const conversations = await db.conversation.findMany({
-      include: { customer: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      include: {
+        customer: {
+          include: {
+            orders: {
+              orderBy: { createdAt: 'desc' },
+              take: 5,
+              include: { items: { include: { variant: { include: { product: true } } } } },
+            },
+          },
+        },
+        messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
       orderBy: { lastMsgAt: 'desc' },
       take: 200,
     });
