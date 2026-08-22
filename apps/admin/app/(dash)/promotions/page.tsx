@@ -13,6 +13,7 @@ import {
   AlertCircle,
   TrendingDown,
   ShoppingBag,
+  Truck,
 } from 'lucide-react';
 import { apiFetch, getUser } from '@/lib/api';
 import { formatGHS } from '@rose/shared';
@@ -22,6 +23,12 @@ interface PromoBanner {
   text: string;
   link?: string;
   badge?: string;
+}
+
+interface FreeDeliveryConfig {
+  enabled: boolean;
+  thresholdP: number;
+  bannerText?: string;
 }
 
 interface CouponItem {
@@ -53,6 +60,9 @@ interface ProductPromotion {
 export default function PromotionsPage() {
   const [banner, setBanner] = useState<PromoBanner>({ enabled: false, text: '', link: '', badge: '' });
   const [bannerSaved, setBannerSaved] = useState(false);
+  const [freeDelivery, setFreeDelivery] = useState<FreeDeliveryConfig>({ enabled: true, thresholdP: 40000 });
+  const [freeDeliveryThresholdGHS, setFreeDeliveryThresholdGHS] = useState('400');
+  const [freeDeliverySaved, setFreeDeliverySaved] = useState(false);
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [productPromotions, setProductPromotions] = useState<Record<string, ProductPromotion>>({});
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -84,12 +94,16 @@ export default function PromotionsPage() {
   const loadData = useCallback(async () => {
     try {
       const [promoRes, prodRes] = await Promise.all([
-        apiFetch<{ banner: PromoBanner; coupons: CouponItem[]; productPromotions: Record<string, ProductPromotion> }>('/api/admin/promotions'),
+        apiFetch<{ banner: PromoBanner; coupons: CouponItem[]; productPromotions: Record<string, ProductPromotion>; freeDelivery?: FreeDeliveryConfig }>('/api/admin/promotions'),
         apiFetch<{ products: ProductItem[] }>('/api/admin/products'),
       ]);
       if (promoRes.banner) setBanner(promoRes.banner);
       if (promoRes.coupons) setCoupons(promoRes.coupons);
       if (promoRes.productPromotions) setProductPromotions(promoRes.productPromotions);
+      if (promoRes.freeDelivery) {
+        setFreeDelivery(promoRes.freeDelivery);
+        setFreeDeliveryThresholdGHS((promoRes.freeDelivery.thresholdP / 100).toString());
+      }
       if (prodRes.products) setProducts(prodRes.products);
     } catch (e) {
       setError((e as Error).message);
@@ -99,6 +113,35 @@ export default function PromotionsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Save Free Delivery Configuration
+  const handleSaveFreeDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const thresholdP = Math.round(Number(freeDeliveryThresholdGHS || 0) * 100);
+      const res = await apiFetch<{ freeDelivery: FreeDeliveryConfig }>('/api/admin/promotions/free-delivery', {
+        method: 'POST',
+        body: JSON.stringify({
+          enabled: freeDelivery.enabled,
+          thresholdP,
+          bannerText: freeDelivery.bannerText,
+        }),
+      });
+      setFreeDelivery(res.freeDelivery);
+      setFreeDeliverySaved(true);
+      setSuccess('Free delivery threshold updated successfully!');
+      setTimeout(() => {
+        setFreeDeliverySaved(false);
+        setSuccess('');
+      }, 2500);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // Save Announcement Banner
   const handleSaveBanner = async (e: React.FormEvent) => {
@@ -337,7 +380,107 @@ export default function PromotionsPage() {
         </form>
       </div>
 
-      {/* Section 2: Discount Coupons & Promo Vouchers */}
+      {/* Section 2: Free Delivery Threshold & Cart Promotion */}
+      <div className="rounded-2xl border border-sand/60 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between border-b border-sand/40 pb-4 mb-4">
+          <div className="flex items-center gap-2">
+            <Truck className="text-indigo" size={20} />
+            <div>
+              <h2 className="font-semibold text-charcoal text-sm">Free Delivery Threshold (Cart Progress)</h2>
+              <p className="text-xs text-charcoal/50">Motivate customers to add more items to their cart to unlock free delivery across Accra.</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={freeDelivery.enabled}
+              onChange={(e) => setFreeDelivery({ ...freeDelivery, enabled: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-sand/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-sand after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo"></div>
+            <span className="ml-2.5 text-xs font-semibold text-charcoal">
+              {freeDelivery.enabled ? 'Active' : 'Disabled'}
+            </span>
+          </label>
+        </div>
+
+        {/* Live Cart Preview */}
+        {freeDelivery.enabled && (
+          <div className="mb-5 rounded-xl border border-indigo/20 bg-indigo/[0.03] p-4 text-xs space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-indigo">Customer Cart Live Preview</p>
+            <div className="flex items-center justify-between font-medium text-charcoal">
+              <span className="flex items-center gap-1.5">
+                <Truck size={14} className="text-indigo" />
+                <span>
+                  Add <strong className="text-indigo">GH₵{Number(freeDeliveryThresholdGHS || 400) > 150 ? (Number(freeDeliveryThresholdGHS || 400) - 150).toFixed(2) : '50.00'}</strong> more to unlock <strong>FREE Delivery across Accra!</strong>
+                </span>
+              </span>
+              <span className="text-[11px] text-charcoal/50 font-mono">60%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-sand/40">
+              <div className="h-full bg-indigo rounded-full" style={{ width: '60%' }} />
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSaveFreeDelivery} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-charcoal/70 mb-1">
+              Minimum Order Spend for Free Delivery (GH₵)
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[200px]">
+                <span className="absolute left-3.5 top-2.5 text-xs font-bold text-charcoal/50">GH₵</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="10"
+                  value={freeDeliveryThresholdGHS}
+                  onChange={(e) => setFreeDeliveryThresholdGHS(e.target.value)}
+                  placeholder="400.00"
+                  className="w-full rounded-xl border border-sand/70 bg-sand/10 pl-12 pr-3.5 py-2.5 text-xs font-bold text-indigo outline-none focus:border-indigo"
+                  required
+                />
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-[11px] text-charcoal/40 font-medium mr-1">Presets:</span>
+                {[250, 350, 400, 500, 600].map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => setFreeDeliveryThresholdGHS(amount.toString())}
+                    className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                      freeDeliveryThresholdGHS === amount.toString()
+                        ? 'border-indigo bg-indigo text-white shadow-2xs'
+                        : 'border-sand/70 bg-sand/10 text-charcoal hover:border-indigo/50'
+                    }`}
+                  >
+                    GH₵{amount}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="mt-1.5 text-[11px] text-charcoal/50">
+              When a customer&apos;s cart reaches GH₵{Number(freeDeliveryThresholdGHS || 400).toFixed(2)}, standard delivery fees across Accra automatically drop to GH₵0.00.
+            </p>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={busy}
+              className="rounded-xl bg-indigo px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-indigo/90 flex items-center gap-1.5"
+            >
+              {freeDeliverySaved ? <Check size={14} /> : null}
+              <span>{freeDeliverySaved ? 'Saved!' : 'Save Free Delivery Threshold'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Section 3: Discount Coupons & Promo Vouchers */}
       <div className="rounded-2xl border border-sand/60 bg-white p-6 shadow-sm">
         <div className="border-b border-sand/40 pb-4 mb-5">
           <div className="flex items-center gap-2">

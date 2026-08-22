@@ -103,3 +103,28 @@ export async function setProductPromotion(productId: string, promo: ProductPromo
   }
   await setSetting('product_promotions', JSON.stringify(current));
 }
+
+export interface FreeDeliveryConfig {
+  enabled: boolean;
+  thresholdP: number; // e.g. 40000 for GH₵400.00
+  bannerText?: string;
+}
+
+export async function getFreeDeliveryConfig(): Promise<FreeDeliveryConfig> {
+  const raw = await getSetting('free_delivery_config');
+  if (!raw) return { enabled: true, thresholdP: 40000 };
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      enabled: parsed.enabled ?? true,
+      thresholdP: typeof parsed.thresholdP === 'number' ? parsed.thresholdP : 40000,
+      bannerText: parsed.bannerText ?? '',
+    };
+  } catch {
+    return { enabled: true, thresholdP: 40000 };
+  }
+}
+
+export async function setFreeDeliveryConfig(cfg: FreeDeliveryConfig): Promise<void> {
+  await setSetting('free_delivery_config', JSON.stringify(cfg));
+}

@@ -46,6 +46,12 @@ export function MiniCart() {
   const [busy, setBusy] = useState(false);
   const [onlineBusy, setOnlineBusy] = useState(false);
 
+  // Dynamic Free Delivery Configuration
+  const [freeDeliveryConfig, setFreeDeliveryConfig] = useState<{ enabled: boolean; thresholdP: number }>({
+    enabled: true,
+    thresholdP: 40000,
+  });
+
   // Coupon / Promo Code State
   const [showCouponInput, setShowCouponInput] = useState(false);
   const [couponInput, setCouponInput] = useState('');
@@ -62,8 +68,20 @@ export function MiniCart() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
-  // Load delivery zones list for manual neighborhood choice
+  // Load delivery zones list and free delivery threshold
   useEffect(() => {
+    fetch(`${API}/api/settings/free-delivery`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok && data.config) {
+          setFreeDeliveryConfig({
+            enabled: data.config.enabled !== false,
+            thresholdP: typeof data.config.thresholdP === 'number' ? data.config.thresholdP : 40000,
+          });
+        }
+      })
+      .catch(() => {});
+
     fetch(`${API}/api/zones`)
       .then((r) => r.json())
       .then((data) => {
@@ -222,7 +240,8 @@ export function MiniCart() {
 
   // Pricing calculations
   const rawDeliveryFee = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? (deliveryMode === 'GPS' && coords ? 2500 : 0));
-  const isFreeDeliveryQualified = subtotalP >= FREE_DELIVERY_THRESHOLD_P;
+  const activeThresholdP = freeDeliveryConfig.thresholdP || 40000;
+  const isFreeDeliveryQualified = freeDeliveryConfig.enabled && subtotalP >= activeThresholdP;
   const effectiveDeliveryFee = isFreeDeliveryQualified || fulfillmentType === 'PICKUP' ? 0 : rawDeliveryFee;
 
   let couponDiscountP = appliedCoupon?.discountP ?? 0;
@@ -232,8 +251,8 @@ export function MiniCart() {
   const finalTotal = Math.max(0, subtotalP + effectiveDeliveryFee - couponDiscountP);
 
   // Free delivery progress
-  const progressPercent = Math.min(100, Math.round((subtotalP / FREE_DELIVERY_THRESHOLD_P) * 100));
-  const remainingForFreeDeliveryP = Math.max(0, FREE_DELIVERY_THRESHOLD_P - subtotalP);
+  const progressPercent = Math.min(100, Math.round((subtotalP / activeThresholdP) * 100));
+  const remainingForFreeDeliveryP = Math.max(0, activeThresholdP - subtotalP);
 
   const complete = async () => {
     setError('');
@@ -386,7 +405,7 @@ export function MiniCart() {
         </div>
 
         {/* Free Delivery Threshold Progress Bar */}
-        {lines.length > 0 && (
+        {lines.length > 0 && freeDeliveryConfig.enabled && (
           <div className="border-b border-sand/30 bg-indigo/[0.03] px-6 py-3">
             <div className="flex items-center justify-between text-xs font-semibold">
               <span className="flex items-center gap-1.5 text-charcoal">

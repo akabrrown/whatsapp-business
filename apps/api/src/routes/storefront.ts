@@ -400,12 +400,17 @@ storefront.get('/orders/by-token/:code', async (req, res) => {
 });
 
 // ---- Public settings (for storefront) --------------------------------------
-import { getWhatsAppNumber, getPromoBanner, getCoupons } from '../services/settings.js';
+import { getWhatsAppNumber, getPromoBanner, getCoupons, getFreeDeliveryConfig } from '../services/settings.js';
 import { hub } from '../services/realtime.js';
 
 storefront.get('/settings/whatsapp', async (_req, res) => {
   const whatsappNumber = await getWhatsAppNumber();
   res.json({ ok: true, whatsappNumber });
+});
+
+storefront.get('/settings/free-delivery', async (_req, res) => {
+  const config = await getFreeDeliveryConfig();
+  res.json({ ok: true, config });
 });
 
 // ---- Public Promo Banner ----------------------------------------------------

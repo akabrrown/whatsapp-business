@@ -27,8 +27,6 @@ import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-const FREE_DELIVERY_THRESHOLD_P = 40000; // GH₵400.00 for free delivery
-
 export default function CartPage() {
   const { lines, subtotalP, setQty, clear, sessionId } = useCart();
   const router = useRouter();
@@ -45,6 +43,12 @@ export default function CartPage() {
   const [busy, setBusy] = useState(false);
   const [onlineBusy, setOnlineBusy] = useState(false);
 
+  // Dynamic Free Delivery Configuration
+  const [freeDeliveryConfig, setFreeDeliveryConfig] = useState<{ enabled: boolean; thresholdP: number }>({
+    enabled: true,
+    thresholdP: 40000,
+  });
+
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{
@@ -57,8 +61,20 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
 
-  // Load delivery zones list
+  // Load delivery zones list and free delivery settings
   useEffect(() => {
+    fetch(`${API}/api/settings/free-delivery`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok && data.config) {
+          setFreeDeliveryConfig({
+            enabled: data.config.enabled !== false,
+            thresholdP: typeof data.config.thresholdP === 'number' ? data.config.thresholdP : 40000,
+          });
+        }
+      })
+      .catch(() => {});
+
     fetch(`${API}/api/zones`)
       .then((r) => r.json())
       .then((data) => {
@@ -164,7 +180,8 @@ export default function CartPage() {
 
   // Pricing calculations
   const rawDeliveryFee = fulfillmentType === 'PICKUP' ? 0 : (zone?.feeP ?? (deliveryMode === 'GPS' && coords ? 2500 : 0));
-  const isFreeDeliveryQualified = subtotalP >= FREE_DELIVERY_THRESHOLD_P;
+  const activeThresholdP = freeDeliveryConfig.thresholdP || 40000;
+  const isFreeDeliveryQualified = freeDeliveryConfig.enabled && subtotalP >= activeThresholdP;
   const effectiveDeliveryFee = isFreeDeliveryQualified || fulfillmentType === 'PICKUP' ? 0 : rawDeliveryFee;
 
   let couponDiscountP = appliedCoupon?.discountP ?? 0;
@@ -173,8 +190,8 @@ export default function CartPage() {
   }
   const finalTotal = Math.max(0, subtotalP + effectiveDeliveryFee - couponDiscountP);
 
-  const progressPercent = Math.min(100, Math.round((subtotalP / FREE_DELIVERY_THRESHOLD_P) * 100));
-  const remainingForFreeDeliveryP = Math.max(0, FREE_DELIVERY_THRESHOLD_P - subtotalP);
+  const progressPercent = Math.min(100, Math.round((subtotalP / activeThresholdP) * 100));
+  const remainingForFreeDeliveryP = Math.max(0, activeThresholdP - subtotalP);
 
   const completeWhatsApp = async () => {
     setError('');
@@ -327,7 +344,8 @@ export default function CartPage() {
       </div>
 
       {/* Free Delivery Bar */}
-      <div className="rounded-2xl border border-indigo/20 bg-indigo/[0.03] p-4 shadow-xs">
+      {freeDeliveryConfig.enabled && (
+        <div className="rounded-2xl border border-indigo/20 bg-indigo/[0.03] p-4 shadow-xs">
         <div className="flex items-center justify-between text-xs font-bold text-charcoal">
           <span className="flex items-center gap-2">
             <Truck size={16} className="text-indigo" />
@@ -350,6 +368,7 @@ export default function CartPage() {
           />
         </div>
       </div>
+      )}
 
       {/* Main 2-Column Grid */}
       <div className="grid gap-8 lg:grid-cols-[1fr_380px] items-start">

@@ -1130,18 +1130,34 @@ import {
   saveCoupons,
   getProductPromotions,
   setProductPromotion,
+  getFreeDeliveryConfig,
+  setFreeDeliveryConfig,
   type PromoBanner,
   type CouponItem,
   type ProductPromotion,
+  type FreeDeliveryConfig,
 } from '../services/settings.js';
 
 admin.get('/promotions', requireAuth, async (_req, res) => {
-  const [banner, coupons, productPromotions] = await Promise.all([
+  const [banner, coupons, productPromotions, freeDelivery] = await Promise.all([
     getPromoBanner(),
     getCoupons(),
     getProductPromotions(),
+    getFreeDeliveryConfig(),
   ]);
-  res.json({ ok: true, banner, coupons, productPromotions });
+  res.json({ ok: true, banner, coupons, productPromotions, freeDelivery });
+});
+
+admin.post('/promotions/free-delivery', requireOwner, async (req, res) => {
+  const { enabled, thresholdP, bannerText } = req.body as { enabled?: boolean; thresholdP?: number; bannerText?: string };
+  const config: FreeDeliveryConfig = {
+    enabled: enabled !== false,
+    thresholdP: Math.max(0, Number(thresholdP) || 40000),
+    bannerText: bannerText || '',
+  };
+  await setFreeDeliveryConfig(config);
+  hub.broadcast('web', 'free_delivery_updated', { time: Date.now() });
+  res.json({ ok: true, freeDelivery: config });
 });
 
 admin.post('/promotions/banner', requireOwner, async (req, res) => {
