@@ -158,6 +158,90 @@ export async function search(term: string, categorySlug?: string): Promise<Catal
   );
 }
 
+export async function relatedProducts(slug: string, limit: number = 4): Promise<CatalogProduct[]> {
+  const current = await db.product.findFirst({
+    where: { slug, status: 'active' },
+    include: { category: { select: { id: true, parentId: true, name: true, slug: true } } },
+  });
+  if (!current) return [];
+
+  // 1. Same exact sub-category first
+  const sameCategoryProducts = await db.product.findMany({
+    where: {
+      status: 'active',
+      categoryId: current.categoryId,
+      id: { not: current.id },
+    },
+    include,
+    take: limit,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const results: CatalogProduct[] = sameCategoryProducts.map(toCatalog);
+  if (results.length >= limit) return results;
+
+  // 2. If product has a parent category (e.g. Men's Fashion), query sibling subcategories under SAME parent only
+  const parentId = current.category.parentId;
+  if (parentId) {
+    const siblingCategories = await db.category.findMany({
+      where: {
+        OR: [
+          { id: parentId },
+          { parentId: parentId },
+        ],
+        id: { not: current.categoryId },
+      },
+      select: { id: true },
+    });
+    const siblingIds = siblingCategories.map((c) => c.id);
+
+    if (siblingIds.length > 0) {
+      const needed = limit - results.length;
+      const siblingProducts = await db.product.findMany({
+        where: {
+          status: 'active',
+          categoryId: { in: siblingIds },
+          id: { not: current.id },
+        },
+        include,
+        take: needed,
+        orderBy: { createdAt: 'desc' },
+      });
+      for (const p of siblingProducts) {
+        if (!results.some((r) => r.id === p.id)) {
+          results.push(toCatalog(p));
+        }
+      }
+    }
+  } else {
+    // If product is at the root category level, query its direct child categories only
+    const childCategories = await db.category.findMany({
+      where: { parentId: current.categoryId },
+      select: { id: true },
+    });
+    if (childCategories.length > 0) {
+      const needed = limit - results.length;
+      const childProducts = await db.product.findMany({
+        where: {
+          status: 'active',
+          categoryId: { in: childCategories.map((c) => c.id) },
+          id: { not: current.id },
+        },
+        include,
+        take: needed,
+        orderBy: { createdAt: 'desc' },
+      });
+      for (const p of childProducts) {
+        if (!results.some((r) => r.id === p.id)) {
+          results.push(toCatalog(p));
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
 export async function categories() {
   return db.category.findMany({ 
     where: { parentId: null },

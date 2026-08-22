@@ -30,6 +30,11 @@ storefront.get('/products/:slug', async (req, res) => {
   if (!p) return res.status(404).json({ ok: false, error: 'not_found' });
   res.json({ ok: true, product: p });
 });
+storefront.get('/products/:slug/related', async (req, res) => {
+  const limit = parseInt(String(req.query.limit ?? '4'), 10) || 4;
+  const products = await catalog.relatedProducts(req.params.slug, limit);
+  res.json({ ok: true, products });
+});
 storefront.get('/products/:slug/image', async (req, res) => {
   const p = await catalog.bySlug(req.params.slug);
   if (!p || !p.images || p.images.length === 0) {

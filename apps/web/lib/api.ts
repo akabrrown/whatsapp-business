@@ -61,6 +61,14 @@ export const api = {
       return null;
     }
   },
+  related: async (slug: string, limit: number = 4) => {
+    try {
+      const r = await get<{ ok: boolean; products: CatalogProduct[] }>(`/api/products/${encodeURIComponent(slug)}/related?limit=${limit}`);
+      return r.products || [];
+    } catch {
+      return [];
+    }
+  },
   settings: async () => {
     try {
       return await get<{ ok: boolean; whatsappNumber: string }>('/api/settings/whatsapp');

@@ -41,29 +41,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [product, settings] = await Promise.all([
+  const [product, settings, recommended] = await Promise.all([
     api.product(slug),
     api.settings(),
+    api.related(slug, 4),
   ]);
   if (!product) notFound(); // §3.5: unknown slug resolves to a clean 404
-
-  // Fetch recommended products in the same category / sub-category
-  let recommended: CatalogProduct[] = [];
-  try {
-    const categoryProducts = await api.catalog(product.category.slug);
-    recommended = categoryProducts.filter((p) => p.id !== product.id).slice(0, 4);
-
-    // If fewer than 4 items in same category, supplement with general catalog pieces
-    if (recommended.length < 4) {
-      const allProducts = await api.catalog();
-      const additional = allProducts.filter(
-        (p) => p.id !== product.id && !recommended.some((r) => r.id === p.id)
-      ).slice(0, 4 - recommended.length);
-      recommended = [...recommended, ...additional];
-    }
-  } catch {
-    /* fallback to empty */
-  }
 
   const jsonLd = {
     '@context': 'https://schema.org',
