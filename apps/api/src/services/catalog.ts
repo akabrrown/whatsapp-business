@@ -99,7 +99,18 @@ function toCatalog(
 
 const include = {
   category: { select: { slug: true, name: true } },
-  variants: true,
+  variants: {
+    select: {
+      id: true,
+      sku: true,
+      size: true,
+      color: true,
+      priceP: true,
+      stockQuantity: true,
+      reservedStock: true,
+      lowStockThreshold: true,
+    },
+  },
 } as const;
 
 function getSlugVariations(slugOrName: string): string[] {

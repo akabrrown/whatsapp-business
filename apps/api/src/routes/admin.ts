@@ -325,7 +325,18 @@ admin.patch('/orders/:id/address', async (req, res) => {
 admin.get('/inventory', async (_req, res) => {
   try {
     const variants = await db.productVariant.findMany({
-      include: { product: { select: { id: true, name: true, slug: true, status: true, category: { select: { name: true } } } } },
+      select: {
+        id: true,
+        sku: true,
+        size: true,
+        color: true,
+        priceP: true,
+        stockQuantity: true,
+        reservedStock: true,
+        lowStockThreshold: true,
+        productId: true,
+        product: { select: { id: true, name: true, slug: true, status: true, category: { select: { name: true } } } },
+      },
       orderBy: { sku: 'asc' },
     });
     res.json({
@@ -345,9 +356,27 @@ admin.get('/inventory', async (_req, res) => {
 admin.get('/products', async (_req, res) => {
   try {
     const products = await db.product.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        status: true,
+        images: true,
+        createdAt: true,
         category: { select: { id: true, name: true, slug: true } },
-        variants: true,
+        variants: {
+          select: {
+            id: true,
+            sku: true,
+            size: true,
+            color: true,
+            priceP: true,
+            stockQuantity: true,
+            reservedStock: true,
+            lowStockThreshold: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
