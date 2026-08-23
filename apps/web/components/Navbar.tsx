@@ -44,7 +44,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
   return (
     <>
-      <div className="sticky top-0 z-40 bg-cream shadow-xs border-b border-sand/40">
+      <div className="relative z-40 bg-cream shadow-xs border-b border-sand/40">
         {/* ─── Storewide Announcement / Promo Banner ─── */}
         <PromoBanner />
 
