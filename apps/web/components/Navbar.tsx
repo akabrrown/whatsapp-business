@@ -48,7 +48,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
       <PromoBanner />
 
       {/* ─── Top Bar: Brand + Actions ─── */}
-      <header className="sticky top-0 z-40 bg-cream">
+      <header className="relative z-40 bg-cream">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
           {/* Mobile hamburger */}
           <button
