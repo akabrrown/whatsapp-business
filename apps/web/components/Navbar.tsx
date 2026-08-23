@@ -44,11 +44,12 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
   return (
     <>
-      {/* ─── Storewide Announcement / Promo Banner ─── */}
-      <PromoBanner />
+      <div className="sticky top-0 z-40 bg-cream shadow-xs border-b border-sand/40">
+        {/* ─── Storewide Announcement / Promo Banner ─── */}
+        <PromoBanner />
 
-      {/* ─── Top Bar: Brand + Actions ─── */}
-      <header className="relative z-40 bg-cream">
+        {/* ─── Top Bar: Brand + Actions ─── */}
+        <header className="relative bg-cream">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
           {/* Mobile hamburger */}
           <button
@@ -194,6 +195,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
           </div>
         </nav>
       </header>
+    </div>
 
       {/* ─── Mobile Full-Screen Drawer ─── */}
       {/* Backdrop */}
