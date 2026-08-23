@@ -32,8 +32,15 @@ export function resetRuntime() {
 }
 export const resetState = resetRuntime;
 
-/** Clear all rows between scenarios. */
+/** Clear all rows between scenarios (ONLY in isolated test database). */
 export async function resetDb(db: PrismaClient) {
+  const url = process.env.DATABASE_URL || '';
+  // Safety guard: only allow truncate if explicitly configured for a separate test database
+  if (!url.includes('_test') && !process.env.ALLOW_DB_RESET) {
+    // Skip destructive truncate on development/production databases
+    return;
+  }
+
   const tables = [
     'RetentionState', 'InventoryLog', 'Message', 'Conversation', 'AdminUser',
     'DeliveryZone', 'WebhookEvent', 'TokenItem', 'OrderToken', 'Payment',
