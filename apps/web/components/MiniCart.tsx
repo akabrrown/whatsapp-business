@@ -22,7 +22,7 @@ import {
   ShoppingBag,
   Sparkles,
 } from 'lucide-react';
-import { LiveMap } from './LiveMap';
+import { SmartLocationSelector } from './SmartLocationSelector';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -592,83 +592,21 @@ export function MiniCart() {
                 </div>
               ) : (
                 <div className="space-y-3 rounded-2xl border border-sand/60 bg-white p-4 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-charcoal">
-                      Delivery Destination
-                    </label>
-                    <div className="flex rounded-lg bg-sand/30 p-0.5 text-[11px] font-medium">
-                      <button
-                        type="button"
-                        onClick={() => setDeliveryMode('GPS')}
-                        className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
-                          deliveryMode === 'GPS'
-                            ? 'bg-white text-indigo shadow-2xs font-bold'
-                            : 'text-charcoal/60 hover:text-charcoal'
-                        }`}
-                      >
-                        <Navigation size={11} />
-                        <span>Live GPS</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeliveryMode('CHOOSE')}
-                        className={`rounded px-2.5 py-1 transition inline-flex items-center gap-1 ${
-                          deliveryMode === 'CHOOSE'
-                            ? 'bg-white text-indigo shadow-2xs font-bold'
-                            : 'text-charcoal/60 hover:text-charcoal'
-                        }`}
-                      >
-                        <MapPin size={11} />
-                        <span>Area List</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {deliveryMode === 'GPS' ? (
-                    <div className="space-y-2">
-                      <LiveMap
-                        lat={coords?.lat}
-                        lng={coords?.lng}
-                        addressLabel={zoneText || zone?.name}
-                        zoom={coords ? 15 : 13}
-                        height={180}
-                        interactive={true}
-                        showStore={true}
-                        onLocationChange={(loc) => {
-                          setCoords({ lat: loc.lat, lng: loc.lng });
-                          if (loc.zoneName && loc.feeP != null) {
-                            setZone({ name: loc.zoneName, feeP: loc.feeP });
-                            setZoneText(loc.address || loc.zoneName);
-                          } else {
-                            setZone({ name: 'Accra Area', feeP: 2500 });
-                            setZoneText(loc.address || 'Accra Area');
-                          }
-                          setError('');
-                        }}
-                      />
-                      <p className="text-[10px] text-charcoal/50 text-center">
-                        Tap anywhere on the map to place your delivery pin, or use search above.
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <select
-                        value={zone?.name ?? ''}
-                        onChange={handleSelectNeighborhood}
-                        className="w-full rounded-xl border border-sand/80 bg-sand/10 px-3.5 py-2 text-xs font-medium text-charcoal outline-none focus:border-indigo"
-                      >
-                        <option value="">-- Select Accra Neighborhood --</option>
-                        {zonesList.map((z) => (
-                          <option key={z.id} value={z.name}>
-                            {z.name} — {isFreeDeliveryQualified ? 'Free' : formatGHS(z.feeP)}
-                          </option>
-                        ))}
-                        <option value="Other Accra / Outside Accra">
-                          Other Accra / Outside Accra (WhatsApp Quote)
-                        </option>
-                      </select>
-                    </div>
-                  )}
+                  <SmartLocationSelector
+                    selectedZone={zone}
+                    coords={coords}
+                    addressText={zoneText}
+                    onLocationSelect={(loc) => {
+                      setZone({ name: loc.zoneName, feeP: loc.feeP });
+                      if (loc.lat && loc.lng) {
+                        setCoords({ lat: loc.lat, lng: loc.lng });
+                      }
+                      if (loc.address) {
+                        setZoneText(loc.address);
+                      }
+                      setError('');
+                    }}
+                  />
                 </div>
               )}
 
