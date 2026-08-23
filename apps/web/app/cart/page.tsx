@@ -662,7 +662,7 @@ export default function CartPage() {
 
             {error && <p className="rounded-xl bg-rose/10 px-3 py-2 text-xs text-rose font-medium">{error}</p>}
 
-            {/* Dual Checkout Buttons */}
+            {/* Primary Checkout CTA */}
             <div className="space-y-2.5 pt-2">
               <button
                 type="button"
@@ -673,30 +673,9 @@ export default function CartPage() {
                 <CreditCard size={18} />
                 <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MTN / Telecel MoMo & Card)'}</span>
               </button>
-              <p className="text-[10px] text-center text-charcoal/60 font-medium">
-                💡 Instant MoMo/Card payment → Then send complete order to WhatsApp in 1 tap
+              <p className="text-[11px] text-center text-charcoal/60 font-medium">
+                💡 Instant MoMo/Card payment → Then send complete order to WhatsApp on completion
               </p>
-
-              <div className="relative my-2 text-center">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-sand/40" /></div>
-                <span className="relative bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-charcoal/40">Or</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={completeWhatsApp}
-                disabled={busy || onlineBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3.5 text-xs font-bold text-white shadow-sm hover:bg-[#1EBE5D] transition active:scale-[0.99] disabled:opacity-50"
-              >
-                <MessageSquare size={16} />
-                <span>
-                  {busy
-                    ? 'Reserving Items…'
-                    : confirmDup
-                    ? 'Confirm Duplicate Order'
-                    : 'Order Directly on WhatsApp'}
-                </span>
-              </button>
             </div>
 
             <div className="flex items-center justify-center gap-2 text-[10px] text-charcoal/40 pt-2 border-t border-sand/30">
