@@ -406,15 +406,128 @@ async function handleTrack(req: any, res: any) {
 storefront.get('/orders/track/:query', handleTrack);
 storefront.get('/track/:query', handleTrack);
 
-// ---- Public token status (§14.2: never expose data for unknown tokens) ---
+// ---- Public token & order lookup for post-checkout receipt ----------------
 storefront.get('/orders/by-token/:code', async (req, res) => {
-  const token = await findActiveToken(req.params.code);
+  const code = req.params.code;
+  const token = await findActiveToken(code);
   if (!token) {
-    const used = await db.order.findFirst({ where: { payments: { some: { tokenCode: req.params.code } } }, orderBy: { createdAt: 'desc' } });
-    if (used) return res.json({ ok: true, order: { number: used.number, status: used.status } });
-    return res.status(404).json({ ok: false, message: 'I couldn\'t find that order. Please visit our website to place a new order.' });
+    const used = await db.order.findFirst({
+      where: {
+        OR: [
+          { number: code },
+          { payments: { some: { OR: [{ tokenCode: code }, { reference: code }] } } },
+        ],
+      },
+      include: {
+        items: { include: { product: true, variant: true } },
+        customer: true,
+        payments: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (used) {
+      const p = used.payments[0];
+      return res.json({
+        ok: true,
+        order: {
+          number: used.number,
+          status: used.status,
+          fulfillmentType: used.fulfillmentType,
+          subtotalP: used.subtotalP,
+          deliveryFeeP: used.deliveryFeeP,
+          totalP: used.totalP,
+          zoneName: used.zoneName,
+          deliveryAddress: used.deliveryAddress,
+          latitude: used.latitude,
+          longitude: used.longitude,
+          paymentReference: p?.reference || p?.tokenCode || code,
+          customer: {
+            phone: used.customer.phone,
+            name: used.customer.name,
+          },
+          items: used.items.map((i) => {
+            let img = '';
+            try {
+              const parsed = JSON.parse(i.product.images || '[]');
+              img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
+            } catch {}
+            return {
+              name: i.product.name,
+              size: i.variant?.size || undefined,
+              color: i.variant?.color || undefined,
+              qty: i.qty,
+              priceP: i.priceP,
+              lineP: i.priceP * i.qty,
+              image: img,
+            };
+          }),
+        },
+      });
+    }
+    return res.status(404).json({ ok: false, message: 'Order not found.' });
   }
   res.json({ ok: true, token: { code: token.code, status: token.status, expiresAt: token.expiresAt } });
+});
+
+storefront.get('/orders/by-reference/:ref', async (req, res) => {
+  const ref = req.params.ref;
+  const order = await db.order.findFirst({
+    where: {
+      OR: [
+        { number: ref },
+        { payments: { some: { OR: [{ reference: ref }, { tokenCode: ref }] } } },
+      ],
+    },
+    include: {
+      items: { include: { product: true, variant: true } },
+      customer: true,
+      payments: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!order) {
+    return res.status(404).json({ ok: false, message: 'Order not found for this reference.' });
+  }
+
+  const p = order.payments[0];
+  res.json({
+    ok: true,
+    order: {
+      number: order.number,
+      status: order.status,
+      fulfillmentType: order.fulfillmentType,
+      subtotalP: order.subtotalP,
+      deliveryFeeP: order.deliveryFeeP,
+      totalP: order.totalP,
+      zoneName: order.zoneName,
+      deliveryAddress: order.deliveryAddress,
+      latitude: order.latitude,
+      longitude: order.longitude,
+      paymentReference: p?.reference || ref,
+      customer: {
+        phone: order.customer.phone,
+        name: order.customer.name,
+      },
+      items: order.items.map((i) => {
+        let img = '';
+        try {
+          const parsed = JSON.parse(i.product.images || '[]');
+          img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
+        } catch {}
+        return {
+          name: i.product.name,
+          size: i.variant?.size || undefined,
+          color: i.variant?.color || undefined,
+          qty: i.qty,
+          priceP: i.priceP,
+          lineP: i.priceP * i.qty,
+          image: img,
+        };
+      }),
+    },
+  });
 });
 
 // ---- Public settings (for storefront) --------------------------------------

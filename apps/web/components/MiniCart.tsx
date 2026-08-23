@@ -785,17 +785,25 @@ export function MiniCart() {
                 type="button"
                 onClick={completeOnline}
                 disabled={busy || onlineBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 text-xs font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
               >
                 <CreditCard size={15} />
-                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MoMo / Cards)'}</span>
+                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MTN / Telecel MoMo & Card)'}</span>
               </button>
+              <p className="text-[10px] text-center text-charcoal/60 font-medium">
+                💡 Instant MoMo/Card payment → Then send complete order to WhatsApp in 1 tap
+              </p>
+
+              <div className="relative my-1 text-center">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-sand/40" /></div>
+                <span className="relative bg-[#FAF8F5] px-2 text-[9px] font-bold uppercase tracking-wider text-charcoal/40">Or</span>
+              </div>
 
               <button
                 type="button"
                 onClick={complete}
                 disabled={busy || onlineBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-[#1EBE5D] transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-xs font-bold text-white shadow-sm hover:bg-[#1EBE5D] transition active:scale-[0.99] disabled:opacity-50"
               >
                 <MessageSquare size={15} />
                 <span>
@@ -803,14 +811,14 @@ export function MiniCart() {
                     ? 'Reserving Items…'
                     : confirmDup
                     ? 'Confirm Duplicate Order'
-                    : 'Checkout on WhatsApp'}
+                    : 'Order Directly on WhatsApp'}
                 </span>
               </button>
             </div>
 
             <div className="flex items-center justify-center gap-2 text-[10px] text-charcoal/40 pt-1">
               <ShieldCheck size={12} className="text-emerald-600" />
-              <span>256-bit SSL Encrypted · Instant Order Confirmation</span>
+              <span>256-bit SSL Secured by Paystack · Fast Accra Delivery</span>
             </div>
           </div>
         )}

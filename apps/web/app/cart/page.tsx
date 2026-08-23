@@ -668,17 +668,25 @@ export default function CartPage() {
                 type="button"
                 onClick={completeOnline}
                 disabled={busy || onlineBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 text-xs font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-4 text-xs sm:text-sm font-bold text-white shadow-lg hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
               >
-                <CreditCard size={16} />
-                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MoMo / Card)'}</span>
+                <CreditCard size={18} />
+                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MTN / Telecel MoMo & Card)'}</span>
               </button>
+              <p className="text-[10px] text-center text-charcoal/60 font-medium">
+                💡 Instant MoMo/Card payment → Then send complete order to WhatsApp in 1 tap
+              </p>
+
+              <div className="relative my-2 text-center">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-sand/40" /></div>
+                <span className="relative bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-charcoal/40">Or</span>
+              </div>
 
               <button
                 type="button"
                 onClick={completeWhatsApp}
                 disabled={busy || onlineBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3.5 text-xs font-bold text-white shadow-md hover:bg-[#1EBE5D] transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3.5 text-xs font-bold text-white shadow-sm hover:bg-[#1EBE5D] transition active:scale-[0.99] disabled:opacity-50"
               >
                 <MessageSquare size={16} />
                 <span>
@@ -686,14 +694,14 @@ export default function CartPage() {
                     ? 'Reserving Items…'
                     : confirmDup
                     ? 'Confirm Duplicate Order'
-                    : 'Checkout on WhatsApp'}
+                    : 'Order Directly on WhatsApp'}
                 </span>
               </button>
             </div>
 
             <div className="flex items-center justify-center gap-2 text-[10px] text-charcoal/40 pt-2 border-t border-sand/30">
               <ShieldCheck size={13} className="text-emerald-600" />
-              <span>256-bit SSL Encrypted · Instant Confirmation</span>
+              <span>256-bit SSL Secured by Paystack · Fast Delivery across Accra</span>
             </div>
           </div>
         </div>
