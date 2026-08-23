@@ -85,7 +85,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <CartProvider>
           <Navbar categories={categories} />
-          <main id="main-content" className="mx-auto max-w-6xl px-4 md:px-6">{children}</main>
+          <main id="main-content" className="mx-auto max-w-6xl px-4 md:px-6 pt-24 md:pt-32 min-h-[75vh]">{children}</main>
           <Footer />
           <MiniCart />
         </CartProvider>
