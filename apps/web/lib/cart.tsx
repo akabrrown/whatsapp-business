@@ -53,55 +53,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
-  // Restore session + full cart items immediately from localStorage after hydration.
-  useEffect(() => {
-    let sid = localStorage.getItem('rd-session') ?? '';
-    if (!sid) {
-      sid = newSessionId();
-      localStorage.setItem('rd-session', sid);
-    }
-    setSessionId(sid);
-
-    try {
-      const savedLines = localStorage.getItem('rd-cart-lines');
-      if (savedLines) {
-        const parsed = JSON.parse(savedLines) as CartLine[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setLines(parsed);
-        }
-      }
-    } catch {
-      /* ignore parse errors */
-    }
-    setHydrated(true);
-
-    const meta = JSON.parse(localStorage.getItem('rd-cart-meta') ?? '{}') as Record<string, Meta>;
-    fetch(`${API}/api/cart/${sid}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((r: { cart?: { items?: { variantId: string; qty: number }[] } } | null) => {
-        if (!r) return;
-        const items = r.cart?.items ?? [];
-        if (items.length > 0) {
-          setLines((prev) => {
-            const merged = items
-              .filter((i) => meta[i.variantId] || prev.find((p) => p.variantId === i.variantId))
-              .map((i) => {
-                const existing = prev.find((p) => p.variantId === i.variantId);
-                const info = meta[i.variantId] || existing!;
-                return { variantId: i.variantId, qty: i.qty, ...info };
-              });
-            localStorage.setItem('rd-cart-lines', JSON.stringify(merged));
-            return merged;
-          });
-        }
-      })
-      .catch(() => {
-        /* keep local lines if server cart fetch fails */
-      });
-  }, []);
-
+  // Helper to sync state to localStorage
   const persistCart = useCallback((next: CartLine[]) => {
     try {
+      if (next.length === 0) {
+        localStorage.removeItem('rd-cart-lines');
+        localStorage.removeItem('rd-cart-meta');
+        localStorage.removeItem('rd-cart-backup');
+        return;
+      }
+
       localStorage.setItem('rd-cart-lines', JSON.stringify(next));
       const meta: Record<string, Meta> = {};
       for (const l of next) {
@@ -121,25 +82,74 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const applyServerCart = useCallback(
-    (items: { variantId: string; qty: number }[], prev: CartLine[]) => {
-      if (items.length === 0 && prev.length > 0) {
-        // Keep local cart if server returns empty unexpectedly
-        return;
+  // Restore session + full cart items immediately from localStorage after hydration.
+  useEffect(() => {
+    let sid = localStorage.getItem('rd-session') ?? '';
+    if (!sid) {
+      sid = newSessionId();
+      localStorage.setItem('rd-session', sid);
+    }
+    setSessionId(sid);
+
+    let initialLines: CartLine[] = [];
+    try {
+      const savedLines = localStorage.getItem('rd-cart-lines');
+      if (savedLines) {
+        const parsed = JSON.parse(savedLines) as CartLine[];
+        if (Array.isArray(parsed)) {
+          initialLines = parsed.filter((l) => l && l.variantId && l.qty > 0);
+          setLines(initialLines);
+        }
       }
-      const next = items
-        .map((i) => {
-          const known = prev.find((p) => p.variantId === i.variantId);
-          return known ? { ...known, qty: i.qty } : null;
-        })
-        .filter((l): l is CartLine => l !== null);
-      if (next.length > 0) {
-        setLines(next);
-        persistCart(next);
-      }
-    },
-    [persistCart],
-  );
+    } catch {
+      /* ignore parse errors */
+    }
+    setHydrated(true);
+
+    const meta = JSON.parse(localStorage.getItem('rd-cart-meta') ?? '{}') as Record<string, Meta>;
+    fetch(`${API}/api/cart/${sid}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((r: { cart?: { items?: { variantId: string; qty: number }[] } } | null) => {
+        if (!r?.cart) return;
+        const serverItems = r.cart.items ?? [];
+        
+        // If server returns empty and local is empty, ensure clean state
+        if (serverItems.length === 0) {
+          if (initialLines.length === 0) {
+            setLines([]);
+            persistCart([]);
+          }
+          return;
+        }
+
+        // Server has items: merge with metadata
+        setLines((prev) => {
+          const merged: CartLine[] = [];
+          for (const item of serverItems) {
+            const existing = prev.find((p) => p.variantId === item.variantId);
+            const m = meta[item.variantId] || existing;
+            if (m && item.qty > 0) {
+              merged.push({
+                variantId: item.variantId,
+                qty: item.qty,
+                name: m.name,
+                slug: m.slug,
+                size: m.size,
+                color: m.color,
+                priceP: m.priceP,
+                image: m.image,
+                maxQty: m.maxQty,
+              });
+            }
+          }
+          persistCart(merged);
+          return merged;
+        });
+      })
+      .catch(() => {
+        /* keep local lines if server cart fetch fails */
+      });
+  }, [persistCart]);
 
   const add = useCallback<CartContextValue['add']>(
     async (variantId, qty, meta) => {
@@ -150,31 +160,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setSessionId(currentSid);
       }
 
-      // Optimistic UI update + instant localStorage save
-      let nextLines: CartLine[] = [];
+      // Optimistic local state update
       setLines((prev) => {
-        const existingLine = prev.find((l) => l.variantId === variantId);
-        nextLines = existingLine
-          ? prev.map((l) => (l.variantId === variantId ? { ...l, qty: l.qty + qty } : l))
-          : [...prev, { variantId, qty, ...meta }];
-        persistCart(nextLines);
-        return nextLines;
+        const existing = prev.find((l) => l.variantId === variantId);
+        let next: CartLine[];
+        if (existing) {
+          next = prev.map((l) =>
+            l.variantId === variantId
+              ? { ...l, qty: l.maxQty !== undefined ? Math.min(l.qty + qty, l.maxQty) : l.qty + qty }
+              : l,
+          );
+        } else {
+          next = [...prev, { variantId, qty, ...meta }];
+        }
+        persistCart(next);
+        return next;
       });
 
+      // Synchronize with backend
       try {
         const res = await fetch(`${API}/api/cart/${currentSid}/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ variantId, qty }),
         });
-        const body = (await res.json()) as { ok: boolean; cart?: { items: { variantId: string; qty: number }[] }; message?: string };
-
-        if (!res.ok || !body.ok) {
-          return { ok: false, message: body.message ?? 'Sorry, this just sold out' };
-        }
-
-        if (body.cart?.items) {
-          applyServerCart(body.cart.items, nextLines);
+        const body = (await res.json()) as { ok?: boolean; error?: string; message?: string; cart?: { items: { variantId: string; qty: number }[] } };
+        if (!res.ok) {
+          return { ok: false, message: body.message || body.error || 'Could not add item' };
         }
         return { ok: true };
       } catch (err) {
@@ -182,7 +194,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return { ok: true };
       }
     },
-    [sessionId, applyServerCart, persistCart],
+    [sessionId, persistCart],
   );
 
   const setQty = useCallback<CartContextValue['setQty']>(
@@ -201,20 +213,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!currentSid) return;
 
       try {
-        const res = await fetch(`${API}/api/cart/${currentSid}/items`, {
+        await fetch(`${API}/api/cart/${currentSid}/items`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variantId, qty }),
+          body: JSON.stringify({ variantId, qty: Math.max(0, qty) }),
         });
-        const body = (await res.json()) as { cart?: { items: { variantId: string; qty: number }[] } };
-        if (body.cart?.items) {
-          applyServerCart(body.cart.items, lines);
-        }
       } catch (e) {
         /* offline update stays in localStorage */
       }
     },
-    [sessionId, lines, applyServerCart, persistCart],
+    [sessionId, persistCart],
   );
 
   const clear = useCallback<CartContextValue['clear']>(async () => {
@@ -222,6 +230,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem('rd-cart-lines');
       localStorage.removeItem('rd-cart-meta');
+      localStorage.removeItem('rd-cart-backup');
     } catch {
       /* ignore */
     }
@@ -258,11 +267,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [persistCart]);
 
+  const count = useMemo(() => lines.reduce((s, l) => s + l.qty, 0), [lines]);
+  const subtotalP = useMemo(() => lines.reduce((s, l) => s + l.priceP * l.qty, 0), [lines]);
+
   const value = useMemo<CartContextValue>(
     () => ({
       lines,
-      count: lines.reduce((s, l) => s + l.qty, 0),
-      subtotalP: lines.reduce((s, l) => s + l.priceP * l.qty, 0),
+      count,
+      subtotalP,
       drawerOpen,
       setDrawerOpen,
       add,
@@ -271,16 +283,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       restoreBackup,
       sessionId,
     }),
-    [lines, drawerOpen, add, setQty, clear, restoreBackup, sessionId],
+    [lines, count, subtotalP, drawerOpen, add, setQty, clear, restoreBackup, sessionId],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
-export function useCart(): CartContextValue {
+export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error('useCart outside CartProvider');
+  if (!ctx) throw new Error('useCart must be used within CartProvider');
   return ctx;
 }
-
-export { formatGHS };
