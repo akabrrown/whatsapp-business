@@ -155,6 +155,13 @@ export class SimPaystack implements PaystackAdapter {
     const raw = JSON.stringify(payload);
     await this.listener?.('charge.failed', payload, this.sign(raw));
   }
+
+  clear() {
+    this.outage = false;
+    this.initialized = [];
+    this.refunds = [];
+    this.charges.clear();
+  }
 }
 
 export const paystack: PaystackAdapter & Partial<SimPaystack> =

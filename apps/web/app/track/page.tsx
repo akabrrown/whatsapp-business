@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Package, CheckCircle2, Clock, Truck, Home, MessageSquare, ShoppingBag, AlertCircle, Store, MapPin } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
+import { LiveMap } from '@/components/LiveMap';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -302,26 +303,30 @@ function TrackContent() {
                     <p className="text-amber-900/80">Accra Flagship Store — Ring Road Central, Osu. Show this screen or your phone number at the counter.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-cream/40 p-3">
-                      <span className="text-charcoal/50 block">Destination Area</span>
-                      <span className="font-semibold text-charcoal">{order.zoneName || order.deliveryAddress || 'Accra Delivery'}</span>
-                      {order.googleMapsUrl && (
-                        <a
-                          href={order.googleMapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1.5 inline-flex items-center gap-1 font-medium text-indigo underline"
-                        >
-                          <MapPin size={12} />
-                          <span>View Pinned Location on Map</span>
-                        </a>
-                      )}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-cream/40 p-3">
+                        <span className="text-charcoal/50 block">Destination Area</span>
+                        <span className="font-semibold text-charcoal">{order.zoneName || order.deliveryAddress || 'Accra Delivery'}</span>
+                      </div>
+                      <div className="rounded-lg bg-cream/40 p-3">
+                        <span className="text-charcoal/50 block">Contact Phone</span>
+                        <span className="font-mono font-medium text-charcoal">{order.maskedPhone}</span>
+                      </div>
                     </div>
-                    <div className="rounded-lg bg-cream/40 p-3">
-                      <span className="text-charcoal/50 block">Contact Phone</span>
-                      <span className="font-mono font-medium text-charcoal">{order.maskedPhone}</span>
-                    </div>
+
+                    {order.latitude != null && order.longitude != null && (
+                      <div className="mt-2">
+                        <LiveMap
+                          lat={order.latitude}
+                          lng={order.longitude}
+                          addressLabel={order.zoneName || order.deliveryAddress || undefined}
+                          height={200}
+                          interactive={false}
+                          showStore={true}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

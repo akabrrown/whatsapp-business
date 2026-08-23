@@ -65,7 +65,7 @@ describe('§7 Delivery Address & Zones', () => {
     const match = await matchZone('Kasoa, Accra');
     expect(match).toEqual({ ok: false, reason: 'out_of_zone' });
     const far = await matchPin(6.688, -1.624); // Kumasi: far from any mapped zone
-    expect(far).toEqual({ ok: false, reason: 'out_of_zone' });
+    expect(far).toMatchObject({ ok: false, reason: 'out_of_zone' });
     // bot flow: checkout then out-of-zone address → handoff message
     await handleInbound({ phone: '233203333333', text: 'hi' });
     await handleInbound({ phone: '233203333333', text: 'add 1' });

@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   Sparkles,
 } from 'lucide-react';
+import { LiveMap } from './LiveMap';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -624,51 +625,30 @@ export function MiniCart() {
                   </div>
 
                   {deliveryMode === 'GPS' ? (
-                    <div>
-                      {!coords ? (
-                        <div className="rounded-xl border border-dashed border-indigo/30 bg-indigo/[0.02] p-4 text-center space-y-2.5">
-                          <p className="text-xs font-bold text-charcoal">Pin Live Delivery Location</p>
-                          <p className="text-[11px] text-charcoal/60">
-                            Enables accurate dispatch rider routing across Accra.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={handleGetLocation}
-                            disabled={gpsLoading}
-                            className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-deep transition shadow-xs disabled:opacity-50"
-                          >
-                            <Navigation size={13} className={gpsLoading ? 'animate-spin' : ''} />
-                            <span>{gpsLoading ? 'Detecting Area…' : 'Tap to Pin Location via GPS'}</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-emerald-600/30 bg-emerald-50/60 p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-700 shrink-0">
-                                <MapPin size={14} />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-emerald-950">
-                                  {zone?.name || 'Accra Delivery Area'}
-                                </p>
-                                <p className="text-[10px] text-emerald-800 font-medium">
-                                  Live GPS pinned for dispatch rider
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={handleGetLocation}
-                              disabled={gpsLoading}
-                              className="text-[11px] font-bold text-emerald-800 hover:underline inline-flex items-center gap-1"
-                            >
-                              <RotateCcw size={10} className={gpsLoading ? 'animate-spin' : ''} />
-                              <span>Re-pin</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                    <div className="space-y-2">
+                      <LiveMap
+                        lat={coords?.lat}
+                        lng={coords?.lng}
+                        addressLabel={zoneText || zone?.name}
+                        zoom={coords ? 15 : 13}
+                        height={180}
+                        interactive={true}
+                        showStore={true}
+                        onLocationChange={(loc) => {
+                          setCoords({ lat: loc.lat, lng: loc.lng });
+                          if (loc.zoneName && loc.feeP != null) {
+                            setZone({ name: loc.zoneName, feeP: loc.feeP });
+                            setZoneText(loc.address || loc.zoneName);
+                          } else {
+                            setZone({ name: 'Accra Area', feeP: 2500 });
+                            setZoneText(loc.address || 'Accra Area');
+                          }
+                          setError('');
+                        }}
+                      />
+                      <p className="text-[10px] text-charcoal/50 text-center">
+                        Tap anywhere on the map to place your delivery pin, or use search above.
+                      </p>
                     </div>
                   ) : (
                     <div>

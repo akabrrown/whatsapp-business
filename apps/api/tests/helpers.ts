@@ -1,4 +1,4 @@
-// Test harness: shared baseline data, table reset, re-exports for scenario suites.
+import 'dotenv/config';
 import type { PrismaClient } from '@prisma/client';
 
 export { db } from '../src/db.js';
@@ -26,11 +26,11 @@ export function resetRuntime() {
   whatsapp.outsideWindow.clear();
   whatsapp.outage = false;
   whatsapp.enforceTemplateWindow = false;
-  paystack.outage = false;
-  paystack.refunds.splice(0);
+  paystack.clear?.();
   hub.log.length = 0;
   resetLoginRateLimit();
 }
+export const resetState = resetRuntime;
 
 /** Clear all rows between scenarios. */
 export async function resetDb(db: PrismaClient) {
@@ -39,9 +39,11 @@ export async function resetDb(db: PrismaClient) {
     'DeliveryZone', 'WebhookEvent', 'TokenItem', 'OrderToken', 'Payment',
     'OrderItem', 'Order', 'Customer', 'ProductVariant', 'Product', 'Category',
   ];
-  await db.$executeRawUnsafe('PRAGMA foreign_keys = OFF');
-  for (const t of tables) await db.$executeRawUnsafe(`DELETE FROM "${t}"`).catch(() => {});
-  await db.$executeRawUnsafe('PRAGMA foreign_keys = ON');
+  for (const t of tables) {
+    await db.$executeRawUnsafe(`TRUNCATE TABLE "${t}" CASCADE`).catch(async () => {
+      await db.$executeRawUnsafe(`DELETE FROM "${t}"`).catch(() => {});
+    });
+  }
 }
 
 /** Minimal working catalog + zones for scenario tests. */

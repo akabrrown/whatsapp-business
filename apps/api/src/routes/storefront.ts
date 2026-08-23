@@ -6,6 +6,7 @@ import * as handoff from '../services/handoff.js';
 import { findActiveToken } from '../services/handoff.js';
 import { initPaymentForToken, lastPaystackError } from '../services/payments.js';
 import { matchZone, matchPin } from '../services/address.js';
+import { liveReverseGeocode, liveForwardGeocode } from '../services/geocode.js';
 import { InsufficientStock } from '../services/inventory.js';
 import { db } from '../db.js';
 import { OrderSource } from '../shared.js';
@@ -71,6 +72,23 @@ storefront.get('/zones/match-pin', async (req, res) => {
     return res.status(400).json({ ok: false, error: 'valid lat and lng required' });
   }
   res.json({ ok: true, match: await matchPin(lat, lng) });
+});
+
+// ---- Live Geocoding API ----------------------------------------------------
+storefront.get('/geocode/reverse', async (req, res) => {
+  const lat = parseFloat(String(req.query.lat ?? ''));
+  const lng = parseFloat(String(req.query.lng ?? ''));
+  if (isNaN(lat) || isNaN(lng)) {
+    return res.status(400).json({ ok: false, error: 'valid lat and lng required' });
+  }
+  const result = await liveReverseGeocode(lat, lng);
+  res.json(result);
+});
+
+storefront.get('/geocode/search', async (req, res) => {
+  const q = String(req.query.q ?? '');
+  const result = await liveForwardGeocode(q);
+  res.json(result);
 });
 
 // ---- Cart sessions (§4) --------------------------------------------------

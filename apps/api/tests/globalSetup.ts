@@ -8,11 +8,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const prismaCli = require.resolve('prisma');
 
 export default function setup() {
-  // Invoke the Prisma CLI through node directly (npx shims are not
-  // spawnable on Windows via execFileSync).
-  execFileSync(process.execPath, [prismaCli, 'db', 'push', '--skip-generate', '--force-reset', '--schema', 'prisma/schema.test.prisma'], {
-    cwd: ROOT,
-    env: { ...process.env, DATABASE_URL: 'file:./test.db' },
-    stdio: 'inherit',
-  });
+  if (process.env.DATABASE_URL?.startsWith('file:')) {
+    execFileSync(process.execPath, [prismaCli, 'db', 'push', '--skip-generate', '--force-reset', '--schema', 'prisma/schema.test.prisma'], {
+      cwd: ROOT,
+      env: { ...process.env },
+      stdio: 'inherit',
+    });
+  }
 }

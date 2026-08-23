@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Lock,
 } from 'lucide-react';
+import { LiveMap } from '@/components/LiveMap';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 
@@ -526,40 +527,28 @@ export default function CartPage() {
                 </div>
 
                 {deliveryMode === 'GPS' ? (
-                  <div>
-                    {!coords ? (
-                      <div className="rounded-xl border border-dashed border-indigo/30 bg-indigo/[0.02] p-4 text-center space-y-2">
-                        <p className="text-xs font-bold text-charcoal">Pin Live Location for Dispatch Rider</p>
-                        <button
-                          type="button"
-                          onClick={handleGetLocation}
-                          disabled={gpsLoading}
-                          className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-deep transition shadow-xs"
-                        >
-                          <Navigation size={13} className={gpsLoading ? 'animate-spin' : ''} />
-                          <span>{gpsLoading ? 'Detecting Area…' : 'Tap to Pin Location via GPS'}</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-emerald-600/30 bg-emerald-50/70 p-3.5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <MapPin size={16} className="text-emerald-700" />
-                          <div>
-                            <p className="text-xs font-bold text-emerald-950">{zone?.name || 'Accra Delivery Area'}</p>
-                            <p className="text-[10px] text-emerald-800 font-medium">GPS location saved for delivery rider</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleGetLocation}
-                          disabled={gpsLoading}
-                          className="text-[11px] font-bold text-emerald-800 hover:underline inline-flex items-center gap-1"
-                        >
-                          <RotateCcw size={11} className={gpsLoading ? 'animate-spin' : ''} />
-                          <span>Re-pin</span>
-                        </button>
-                      </div>
-                    )}
+                  <div className="space-y-2">
+                    <LiveMap
+                      lat={coords?.lat}
+                      lng={coords?.lng}
+                      addressLabel={zone?.name}
+                      zoom={coords ? 15 : 13}
+                      height={220}
+                      interactive={true}
+                      showStore={true}
+                      onLocationChange={(loc) => {
+                        setCoords({ lat: loc.lat, lng: loc.lng });
+                        if (loc.zoneName && loc.feeP != null) {
+                          setZone({ name: loc.zoneName, feeP: loc.feeP });
+                        } else {
+                          setZone({ name: 'Accra Area', feeP: 2500 });
+                        }
+                        setError('');
+                      }}
+                    />
+                    <p className="text-[11px] text-charcoal/50 text-center">
+                      Tap or drag anywhere on the map to pinpoint your exact gate or building for the dispatch rider.
+                    </p>
                   </div>
                 ) : (
                   <select

@@ -3,7 +3,6 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     env: {
-      DATABASE_URL: 'file:./test.db',
       PAYSTACK_MODE: 'sim',
       WHATSAPP_MODE: 'sim',
       IMAGES_MODE: 'sim',

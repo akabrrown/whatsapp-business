@@ -109,6 +109,12 @@ export interface ZoneMatch {
   ok: boolean;
   zone?: { id: string; name: string; feeP: number };
   reason?: 'unrecognized' | 'out_of_zone';
+  address?: string;
+  suburb?: string;
+  road?: string;
+  displayName?: string;
+  lat?: number;
+  lng?: number;
 }
 
 // ---- helpers ----------------------------------------------------------
