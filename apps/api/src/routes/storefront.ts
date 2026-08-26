@@ -415,11 +415,11 @@ storefront.get('/orders/by-token/:code', async (req, res) => {
       where: {
         OR: [
           { number: code },
-          { payments: { some: { OR: [{ tokenCode: code }, { reference: code }] } } },
+          { payments: { some: { OR: [{ tokenCode: code }, { paystackRef: code }] } } },
         ],
       },
       include: {
-        items: { include: { product: true, variant: true } },
+        items: { include: { product: true, variant: { include: { product: true } } } },
         customer: true,
         payments: true,
       },
@@ -441,24 +441,26 @@ storefront.get('/orders/by-token/:code', async (req, res) => {
           deliveryAddress: used.deliveryAddress,
           latitude: used.latitude,
           longitude: used.longitude,
-          paymentReference: p?.reference || p?.tokenCode || code,
+          paymentReference: p?.paystackRef || p?.tokenCode || code,
           customer: {
-            phone: used.customer.phone,
-            name: used.customer.name,
+            phone: used.customer?.phone || '',
+            name: used.customer?.name || '',
           },
           items: used.items.map((i) => {
+            const prod = i.product || i.variant?.product;
             let img = '';
             try {
-              const parsed = JSON.parse(i.product.images || '[]');
+              const parsed = JSON.parse(prod?.images || '[]');
               img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
             } catch {}
+            const unitPrice = i.unitPriceP || i.variant?.priceP || 0;
             return {
-              name: i.product.name,
+              name: prod?.name || 'Product',
               size: i.variant?.size || undefined,
               color: i.variant?.color || undefined,
               qty: i.qty,
-              priceP: i.priceP,
-              lineP: i.priceP * i.qty,
+              priceP: unitPrice,
+              lineP: unitPrice * i.qty,
               image: img,
             };
           }),
@@ -476,11 +478,11 @@ storefront.get('/orders/by-reference/:ref', async (req, res) => {
     where: {
       OR: [
         { number: ref },
-        { payments: { some: { OR: [{ reference: ref }, { tokenCode: ref }] } } },
+        { payments: { some: { OR: [{ paystackRef: ref }, { tokenCode: ref }] } } },
       ],
     },
     include: {
-      items: { include: { product: true, variant: true } },
+      items: { include: { product: true, variant: { include: { product: true } } } },
       customer: true,
       payments: true,
     },
@@ -505,24 +507,26 @@ storefront.get('/orders/by-reference/:ref', async (req, res) => {
       deliveryAddress: order.deliveryAddress,
       latitude: order.latitude,
       longitude: order.longitude,
-      paymentReference: p?.reference || ref,
+      paymentReference: p?.paystackRef || p?.tokenCode || ref,
       customer: {
-        phone: order.customer.phone,
-        name: order.customer.name,
+        phone: order.customer?.phone || '',
+        name: order.customer?.name || '',
       },
       items: order.items.map((i) => {
+        const prod = i.product || i.variant?.product;
         let img = '';
         try {
-          const parsed = JSON.parse(i.product.images || '[]');
+          const parsed = JSON.parse(prod?.images || '[]');
           img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
         } catch {}
+        const unitPrice = i.unitPriceP || i.variant?.priceP || 0;
         return {
-          name: i.product.name,
+          name: prod?.name || 'Product',
           size: i.variant?.size || undefined,
           color: i.variant?.color || undefined,
           qty: i.qty,
-          priceP: i.priceP,
-          lineP: i.priceP * i.qty,
+          priceP: unitPrice,
+          lineP: unitPrice * i.qty,
           image: img,
         };
       }),
