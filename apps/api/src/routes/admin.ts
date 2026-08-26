@@ -468,7 +468,25 @@ admin.post('/products', async (req, res) => {
       },
     },
   }); // §11.1: visible immediately on site + bot
-  hub.broadcast('web', 'catalog_updated', { time: Date.now() });
+
+  const firstImage = resolvedImages && resolvedImages.length > 0
+    ? (typeof resolvedImages[0] === 'string' ? resolvedImages[0] : resolvedImages[0]?.url || '')
+    : '';
+  const minPriceP = Math.min(...variants.map((v) => v.priceP));
+
+  hub.broadcast('web', 'new_product_drop', {
+    type: 'new_product',
+    title: '🔥 New Arrival Just Dropped!',
+    product: {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      image: firstImage,
+      minPriceP,
+    },
+    time: Date.now(),
+  });
+
   res.json({ ok: true, product });
 });
 

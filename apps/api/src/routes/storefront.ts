@@ -602,10 +602,59 @@ storefront.post('/promotions/validate-coupon', async (req, res) => {
   });
 });
 
-// ---- Hybrid Realtime Event Polling Endpoint (Fallback for WebSockets) -----
-storefront.get('/events/poll', (req, res) => {
+// ---- Hybrid Realtime Event Polling Endpoint (Serverless & WebSocket fallback) -----
+storefront.get('/events/poll', async (req, res) => {
   const since = parseInt(String(req.query.since ?? '0'), 10) || 0;
   const channel = typeof req.query.channel === 'string' ? req.query.channel : undefined;
   const events = hub.getEventsSince(since, channel);
+
+  // Serverless resilience: query database for products added since the last poll
+  if (since > 0 && since > Date.now() - 3600000) {
+    try {
+      const newProducts = await db.product.findMany({
+        where: {
+          createdAt: { gt: new Date(since) },
+          status: 'active',
+        },
+        include: { variants: true },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+      });
+
+      for (const p of newProducts) {
+        const alreadyInEvents = events.some((e) => (e.payload as any)?.product?.id === p.id);
+        if (!alreadyInEvents) {
+          let firstImg = '';
+          try {
+            const parsed = JSON.parse(p.images || '[]');
+            firstImg = Array.isArray(parsed) && parsed.length > 0
+              ? (typeof parsed[0] === 'string' ? parsed[0] : parsed[0].url)
+              : '';
+          } catch {}
+          const minPrice = p.variants.length > 0 ? Math.min(...p.variants.map((v) => v.priceP)) : 0;
+          events.push({
+            id: `db-drop-${p.id}`,
+            type: 'new_product_drop',
+            channel: 'web',
+            payload: {
+              type: 'new_product',
+              title: '🔥 New Arrival Just Dropped!',
+              product: {
+                id: p.id,
+                name: p.name,
+                slug: p.slug,
+                image: firstImg,
+                minPriceP: minPrice,
+              },
+            },
+            timestamp: p.createdAt.getTime(),
+          });
+        }
+      }
+    } catch {
+      /* ignore db error during poll */
+    }
+  }
+
   res.json({ ok: true, events, timestamp: Date.now() });
 });

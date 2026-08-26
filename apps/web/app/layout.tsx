@@ -6,7 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MiniCart } from '@/components/MiniCart';
 import { api } from '@/lib/api';
-import { RealtimeSync } from '@/components/RealtimeSync';
+import { RealtimePushToast } from '@/components/RealtimePushToast';
 
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -89,7 +89,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Footer />
           <MiniCart />
         </CartProvider>
-        <RealtimeSync />
+        <RealtimePushToast />
       </body>
     </html>
   );
