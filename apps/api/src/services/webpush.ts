@@ -29,6 +29,18 @@ export interface PushPayload {
   tag?: string;
 }
 
+export interface DevicePushSubRecord {
+  id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const pushDb = (db as any).devicePushSubscription;
+
 /** Save or update a customer device push subscription */
 export async function savePushSubscription(sub: {
   endpoint: string;
@@ -39,27 +51,31 @@ export async function savePushSubscription(sub: {
     throw new Error('Invalid push subscription format');
   }
 
-  return db.devicePushSubscription.upsert({
-    where: { endpoint: sub.endpoint },
-    create: {
-      endpoint: sub.endpoint,
-      p256dh: sub.keys.p256dh,
-      auth: sub.keys.auth,
-      userAgent: sub.userAgent || '',
-    },
-    update: {
-      p256dh: sub.keys.p256dh,
-      auth: sub.keys.auth,
-      userAgent: sub.userAgent || '',
-      updatedAt: new Date(),
-    },
-  });
+  if (pushDb?.upsert) {
+    return pushDb.upsert({
+      where: { endpoint: sub.endpoint },
+      create: {
+        endpoint: sub.endpoint,
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+        userAgent: sub.userAgent || '',
+      },
+      update: {
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+        userAgent: sub.userAgent || '',
+        updatedAt: new Date(),
+      },
+    });
+  }
 }
 
 /** Remove an unsubscribed device */
 export async function removePushSubscription(endpoint: string) {
   try {
-    await db.devicePushSubscription.delete({ where: { endpoint } });
+    if (pushDb?.delete) {
+      await pushDb.delete({ where: { endpoint } });
+    }
   } catch {
     /* ignore if already removed */
   }
@@ -68,8 +84,9 @@ export async function removePushSubscription(endpoint: string) {
 /** Broadcast a lock-screen Push Notification to all subscribed customer devices */
 export async function broadcastPushToAllDevices(payload: PushPayload) {
   try {
-    const subs = await db.devicePushSubscription.findMany();
-    if (subs.length === 0) return { sent: 0, failed: 0 };
+    if (!pushDb?.findMany) return { sent: 0, failed: 0 };
+    const subs: DevicePushSubRecord[] = await pushDb.findMany();
+    if (!subs || subs.length === 0) return { sent: 0, failed: 0 };
 
     const notificationPayload = JSON.stringify({
       title: payload.title,
@@ -84,7 +101,7 @@ export async function broadcastPushToAllDevices(payload: PushPayload) {
     });
 
     const results = await Promise.allSettled(
-      subs.map(async (s) => {
+      subs.map(async (s: DevicePushSubRecord) => {
         try {
           await webpush.sendNotification(
             {
@@ -102,16 +119,16 @@ export async function broadcastPushToAllDevices(payload: PushPayload) {
           );
         } catch (err: any) {
           // If subscription expired or revoked (HTTP 410 Gone / 404 Not Found), purge it
-          if (err.statusCode === 410 || err.statusCode === 404) {
-            await db.devicePushSubscription.delete({ where: { id: s.id } }).catch(() => {});
+          if (err?.statusCode === 410 || err?.statusCode === 404) {
+            await pushDb.delete({ where: { id: s.id } }).catch(() => {});
           }
           throw err;
         }
       })
     );
 
-    const sent = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.filter((r) => r.status === 'rejected').length;
+    const sent = results.filter((r: PromiseSettledResult<any>) => r.status === 'fulfilled').length;
+    const failed = results.filter((r: PromiseSettledResult<any>) => r.status === 'rejected').length;
 
     logger.info('Dispatched System Web Push Notifications', { sent, failed, title: payload.title });
     return { sent, failed };
