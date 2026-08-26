@@ -10,6 +10,8 @@ import { liveReverseGeocode, liveForwardGeocode } from '../services/geocode.js';
 import { InsufficientStock } from '../services/inventory.js';
 import { db } from '../db.js';
 import { OrderSource } from '../shared.js';
+import { getVapidPublicKey, savePushSubscription, removePushSubscription } from '../services/webpush.js';
+import { hub } from '../services/realtime.js';
 
 export const storefront = Router();
 
@@ -536,7 +538,6 @@ storefront.get('/orders/by-reference/:ref', async (req, res) => {
 
 // ---- Public settings (for storefront) --------------------------------------
 import { getWhatsAppNumber, getPromoBanner, getCoupons, getFreeDeliveryConfig } from '../services/settings.js';
-import { hub } from '../services/realtime.js';
 
 storefront.get('/settings/whatsapp', async (_req, res) => {
   const whatsappNumber = await getWhatsAppNumber();
@@ -657,4 +658,34 @@ storefront.get('/events/poll', async (req, res) => {
   }
 
   res.json({ ok: true, events, timestamp: Date.now() });
+});
+
+// ---- Web Push Notification Subscription Endpoints -------------------------
+storefront.get('/push/public-key', (_req, res) => {
+  res.json({ ok: true, publicKey: getVapidPublicKey() });
+});
+
+storefront.post('/push/subscribe', async (req, res) => {
+  const { subscription, userAgent } = req.body as {
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
+    userAgent?: string;
+  };
+  if (!subscription?.endpoint || !subscription?.keys) {
+    return res.status(400).json({ ok: false, error: 'Subscription object required' });
+  }
+
+  try {
+    await savePushSubscription({ ...subscription, userAgent });
+    res.json({ ok: true, message: 'Subscribed to lock-screen drop notifications' });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err?.message || 'Failed to save subscription' });
+  }
+});
+
+storefront.post('/push/unsubscribe', async (req, res) => {
+  const { endpoint } = req.body as { endpoint: string };
+  if (endpoint) {
+    await removePushSubscription(endpoint);
+  }
+  res.json({ ok: true });
 });

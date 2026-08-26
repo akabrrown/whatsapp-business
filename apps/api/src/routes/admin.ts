@@ -13,6 +13,7 @@ import { validateUpload, uploadToCloudinary } from '../adapters/images.js';
 import { now, DAY } from '../clock.js';
 import { STALE_PACKED_HOURS, OrderSource } from '../shared.js';
 import { hub } from '../services/realtime.js';
+import { broadcastPushToAllDevices } from '../services/webpush.js';
 import { generateSecret, generateURI, generateSync, verifySync } from 'otplib';
 import QRCode from 'qrcode';
 
@@ -486,6 +487,14 @@ admin.post('/products', async (req, res) => {
     },
     time: Date.now(),
   });
+
+  // Dispatch background OS Lock-Screen Push Notification to all subscribed customer devices
+  broadcastPushToAllDevices({
+    title: `🔥 New Drop: ${product.name}`,
+    body: `Now live on TOBI CLOTHINGS • GH₵ ${(minPriceP / 100).toFixed(2)} • Tap to view piece`,
+    image: firstImage || undefined,
+    url: `/product/${product.slug}`,
+  }).catch(() => {});
 
   res.json({ ok: true, product });
 });
