@@ -9,10 +9,20 @@ export function RealtimeSync() {
   const router = useRouter();
 
   useEffect(() => {
+    // Only attempt WebSocket if window exists and we're not running in a mock/ssr environment
+    if (typeof window === 'undefined') return;
+
+    // If on production (HTTPS) and API is still localhost:4000, don't spam failed connections
+    if (window.location.protocol === 'https:' && API.includes('localhost')) {
+      return;
+    }
+
     let ws: WebSocket | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
     let isConnected = false;
     let destroyed = false;
+    let retryCount = 0;
 
     const startPolling = () => {
       if (pollTimer || destroyed) return;
@@ -20,7 +30,7 @@ export function RealtimeSync() {
         if (!isConnected && !destroyed) {
           router.refresh();
         }
-      }, 10000); // 10s poll
+      }, 30000); // 30s graceful fallback poll
     };
 
     const stopPolling = () => {
@@ -31,18 +41,20 @@ export function RealtimeSync() {
     };
 
     const connectWs = () => {
-      if (destroyed || typeof window === 'undefined') return;
+      if (destroyed) return;
       try {
-        const wsUrl = `${API.replace(/^http/, 'ws')}/ws?channel=web`;
+        const protocol = API.startsWith('https') ? 'wss' : 'ws';
+        const wsUrl = `${API.replace(/^https?/, protocol)}/ws?channel=web`;
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
           isConnected = true;
+          retryCount = 0;
           stopPolling();
         };
 
         ws.onmessage = () => {
-          // When inventory changes, instantly refresh server components
+          // When catalog changes in real time, refresh server components
           router.refresh();
         };
 
@@ -51,7 +63,10 @@ export function RealtimeSync() {
           ws = null;
           if (!destroyed) {
             startPolling();
-            setTimeout(connectWs, 20000); // retry WS
+            // Exponential backoff capped at 60s
+            const delay = Math.min(3000 * Math.pow(1.5, retryCount), 60000);
+            retryCount++;
+            reconnectTimeout = setTimeout(connectWs, delay);
           }
         };
 
@@ -60,25 +75,20 @@ export function RealtimeSync() {
           ws?.close();
         };
       } catch {
-        isConnected = false;
         startPolling();
       }
     };
 
     connectWs();
-    // Fallback if WS initial connection takes too long
-    setTimeout(() => {
-      if (!isConnected && !destroyed) startPolling();
-    }, 3000);
 
     return () => {
       destroyed = true;
-      isConnected = false;
       stopPolling();
-      try {
-        ws?.close();
-      } catch {
-        /* ignore */
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (ws) {
+        ws.onclose = null;
+        ws.onerror = null;
+        ws.close();
       }
     };
   }, [router]);
