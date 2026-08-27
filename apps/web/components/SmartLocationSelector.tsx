@@ -15,8 +15,7 @@ import {
   Info,
 } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiUrl } from '@/lib/config';
 
 export interface LocationSelection {
   zoneName: string;
@@ -56,6 +55,7 @@ export function SmartLocationSelector({
   onLocationSelect,
   className = '',
 }: SmartLocationSelectorProps) {
+  const API = getApiUrl();
   const [activeTab, setActiveTab] = useState<'popular' | 'search' | 'gps'>('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ displayName: string; lat: number; lng: number; suburb?: string }[]>([]);

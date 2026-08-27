@@ -1,6 +1,4 @@
-// Server-side API client: every page fetches the Express API with no caching
-// so catalog stock/availability is always live (§3.1).
-const API_URL = process.env.API_URL ?? 'http://localhost:4000';
+const API_URL = (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
 
 export interface CatalogVariant {
   id: string;

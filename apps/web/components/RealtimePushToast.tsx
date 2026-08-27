@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, X, ArrowRight } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiUrl } from '@/lib/config';
 
 interface PushNotificationData {
   id: string;
@@ -133,6 +132,7 @@ export function RealtimePushToast() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    const API = getApiUrl();
     let ws: WebSocket | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let destroyed = false;
@@ -141,6 +141,7 @@ export function RealtimePushToast() {
     const pollServerlessEvents = async () => {
       if (destroyed) return;
       try {
+        const API = getApiUrl();
         const since = lastEventTimeRef.current;
         const res = await fetch(`${API}/api/events/poll?channel=web&since=${since}`);
         if (!res.ok) return;

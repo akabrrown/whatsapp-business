@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { X, Megaphone } from 'lucide-react';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiUrl } from '@/lib/config';
 
 interface PromoBannerData {
   enabled: boolean;
@@ -25,6 +25,7 @@ export function PromoBanner() {
       return;
     }
 
+    const API = getApiUrl();
     fetch(`${API}/api/promotions/banner`)
       .then((r) => r.json())
       .then((data) => {

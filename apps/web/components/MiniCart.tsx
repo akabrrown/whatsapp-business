@@ -25,11 +25,12 @@ import {
 import { SmartLocationSelector } from './SmartLocationSelector';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
+import { getApiUrl } from '@/lib/config';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const FREE_DELIVERY_THRESHOLD_P = 40000; // GH₵400.00 for free delivery
 
 export function MiniCart() {
+  const API = getApiUrl();
   const { lines, subtotalP, drawerOpen, setDrawerOpen, setQty, clear, sessionId } = useCart();
   const router = useRouter();
 

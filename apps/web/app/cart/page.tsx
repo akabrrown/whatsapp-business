@@ -26,9 +26,10 @@ import {
 import { SmartLocationSelector } from '@/components/SmartLocationSelector';
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
+import { getApiUrl } from '@/lib/config';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export default function CartPage() {
+  const API = getApiUrl();
   const { lines, subtotalP, setQty, clear, sessionId } = useCart();
   const router = useRouter();
 

@@ -3,8 +3,7 @@
 // truth at checkout (§4.5). Session id survives refreshes via localStorage.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { formatGHS } from '@rose/shared';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiUrl } from './config';
 
 export interface CartLine {
   variantId: string;
@@ -52,6 +51,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const API = getApiUrl();
 
   // Helper to sync state to localStorage
   const persistCart = useCallback((next: CartLine[]) => {

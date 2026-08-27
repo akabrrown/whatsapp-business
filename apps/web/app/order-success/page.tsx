@@ -19,8 +19,7 @@ import {
 import { useCart } from '@/lib/cart';
 import { formatGHS } from '@rose/shared';
 import { LiveMap } from '@/components/LiveMap';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiUrl } from '@/lib/config';
 
 interface SuccessOrder {
   number: string;
@@ -51,6 +50,7 @@ function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const { clear } = useCart();
   const ref = searchParams.get('reference') || searchParams.get('ref') || searchParams.get('trxref') || '';
+  const API = getApiUrl();
   
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<SuccessOrder | null>(null);

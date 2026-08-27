@@ -6,8 +6,7 @@ import Link from 'next/link';
 import { Search, Package, CheckCircle2, Clock, Truck, Home, MessageSquare, ShoppingBag, AlertCircle, Store, MapPin } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 import { LiveMap } from '@/components/LiveMap';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiUrl } from '@/lib/config';
 
 interface TimelineStep {
   step: string;
@@ -49,6 +48,7 @@ interface TrackedOrder {
 }
 
 function TrackContent() {
+  const API = getApiUrl();
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryParam = searchParams.get('q') || searchParams.get('id') || searchParams.get('order') || '';

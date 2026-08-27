@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Bell, X, Sparkles, Check } from 'lucide-react';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiUrl } from '@/lib/config';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -60,6 +59,7 @@ export function PushNotificationManager() {
     setLoading(true);
 
     try {
+      const API = getApiUrl();
       // 1. Fetch VAPID Public Key from backend API
       const keyRes = await fetch(`${API}/api/push/public-key`);
       const keyData = await keyRes.json();
