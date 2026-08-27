@@ -94,7 +94,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
         </div>
 
         {/* ─── Desktop Category Navigation Strip ─── */}
-        <nav className="hidden border-t border-sand/30 md:block" aria-label="Main navigation">
+        <nav className="relative hidden border-t border-sand/30 md:block" aria-label="Main navigation">
           <div className="mx-auto flex max-w-6xl items-center justify-center gap-1 px-4 md:px-6">
             <Link
               href="/"
@@ -121,13 +121,13 @@ export function Navbar({ categories }: { categories: Category[] }) {
               return (
                 <div
                   key={cat.slug}
-                  className="relative"
+                  className="static"
                   onMouseEnter={() => openDropdown(cat.slug)}
                   onMouseLeave={closeDropdown}
                 >
                   <button
                     className={`flex items-center gap-1 px-4 py-2.5 text-sm tracking-wide transition-colors ${
-                      activeDropdown === cat.slug ? 'text-indigo' : 'text-charcoal/70 hover:text-indigo'
+                      activeDropdown === cat.slug ? 'text-indigo font-medium' : 'text-charcoal/70 hover:text-indigo'
                     }`}
                     onClick={() => setActiveDropdown(activeDropdown === cat.slug ? null : cat.slug)}
                     aria-expanded={activeDropdown === cat.slug}
@@ -141,9 +141,9 @@ export function Navbar({ categories }: { categories: Category[] }) {
                     />
                   </button>
 
-                  {/* Dropdown panel */}
+                  {/* Centered Screen-Safe Mega Dropdown */}
                   <div
-                    className={`absolute left-0 top-full z-50 pt-2 transition-all duration-200 ${
+                    className={`absolute left-1/2 top-full z-50 -translate-x-1/2 pt-2 transition-all duration-200 ${
                       activeDropdown === cat.slug
                         ? 'pointer-events-auto translate-y-0 opacity-100'
                         : 'pointer-events-none -translate-y-1.5 opacity-0'
@@ -151,15 +151,18 @@ export function Navbar({ categories }: { categories: Category[] }) {
                     onMouseEnter={() => openDropdown(cat.slug)}
                     onMouseLeave={closeDropdown}
                   >
-                    <div className="w-[360px] sm:w-[420px] max-w-[90vw] overflow-hidden rounded-2xl border border-sand/80 bg-white p-4 shadow-xl ring-1 ring-charcoal/5">
+                    <div className="w-[560px] max-w-[calc(100vw-32px)] overflow-hidden rounded-2xl border border-sand/80 bg-white p-5 shadow-2xl ring-1 ring-charcoal/5">
                       {/* Header / Shop All Parent Link */}
                       <div className="flex items-center justify-between pb-3 mb-3 border-b border-sand/30">
-                        <span className="text-xs font-bold uppercase tracking-wider text-charcoal/50">
-                          {cat.name}
-                        </span>
+                        <div>
+                          <span className="text-xs font-bold uppercase tracking-wider text-rose">
+                            {cat.name}
+                          </span>
+                          <p className="text-[11px] text-charcoal/50">Explore curated pieces and apparel</p>
+                        </div>
                         <Link
                           href={`/shop/${cat.slug}`}
-                          className="inline-flex items-center gap-1 text-xs font-bold text-rose hover:text-rose/80 transition"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-sand/30 px-3 py-1.5 text-xs font-bold text-indigo hover:bg-indigo hover:text-white transition shadow-2xs"
                           onClick={() => setActiveDropdown(null)}
                         >
                           <span>Shop All {cat.name}</span>
@@ -167,13 +170,13 @@ export function Navbar({ categories }: { categories: Category[] }) {
                         </Link>
                       </div>
 
-                      {/* Structured 2-column list of subcategories */}
-                      <div className="grid grid-cols-2 gap-1.5 max-h-[320px] overflow-y-auto pr-1">
+                      {/* Structured 3-column list of subcategories */}
+                      <div className="grid grid-cols-3 gap-2 max-h-[340px] overflow-y-auto pr-1">
                         {cat.children!.map((child) => (
                           <Link
                             key={child.slug}
                             href={`/shop/${child.slug}`}
-                            className="group flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-charcoal/80 transition-all hover:bg-sand/20 hover:text-indigo hover:translate-x-0.5"
+                            className="group flex items-center justify-between rounded-xl p-2.5 text-xs font-medium text-charcoal/80 transition-all hover:bg-sand/20 hover:text-indigo hover:translate-x-0.5"
                             onClick={() => setActiveDropdown(null)}
                           >
                             <span className="truncate">{child.name}</span>
