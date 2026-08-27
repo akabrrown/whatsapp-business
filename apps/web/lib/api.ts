@@ -1,4 +1,8 @@
-const API_URL = (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
+let rawApiUrl = (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').trim();
+if (!rawApiUrl.startsWith('http://') && !rawApiUrl.startsWith('https://')) {
+  rawApiUrl = `https://${rawApiUrl}`;
+}
+const API_URL = rawApiUrl.replace(/\/+$/, '');
 
 export interface CatalogVariant {
   id: string;
