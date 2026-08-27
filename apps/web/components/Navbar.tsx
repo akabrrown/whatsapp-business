@@ -143,33 +143,43 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
                   {/* Dropdown panel */}
                   <div
-                    className={`absolute left-1/2 top-full z-50 -translate-x-1/2 pt-1 transition-all duration-200 ${
+                    className={`absolute left-0 top-full z-50 pt-2 transition-all duration-200 ${
                       activeDropdown === cat.slug
                         ? 'pointer-events-auto translate-y-0 opacity-100'
-                        : 'pointer-events-none -translate-y-1 opacity-0'
+                        : 'pointer-events-none -translate-y-1.5 opacity-0'
                     }`}
                     onMouseEnter={() => openDropdown(cat.slug)}
                     onMouseLeave={closeDropdown}
                   >
-                    <div className="w-max max-w-4xl rounded-lg border border-sand/30 bg-cream p-3 shadow-lg shadow-charcoal/5">
-                      {/* Link to browse entire parent category */}
-                      <Link
-                        href={`/shop/${cat.slug}`}
-                        className="block rounded-md px-4 py-2 text-sm font-medium text-indigo transition-colors hover:bg-sand/20"
-                        onClick={() => setActiveDropdown(null)}
-                      >
-                        All {cat.name}
-                      </Link>
-                      <div className="my-1.5 border-t border-sand/20" />
-                      <div className="grid grid-cols-5 gap-1">
+                    <div className="w-[360px] sm:w-[420px] max-w-[90vw] overflow-hidden rounded-2xl border border-sand/80 bg-white p-4 shadow-xl ring-1 ring-charcoal/5">
+                      {/* Header / Shop All Parent Link */}
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-sand/30">
+                        <span className="text-xs font-bold uppercase tracking-wider text-charcoal/50">
+                          {cat.name}
+                        </span>
+                        <Link
+                          href={`/shop/${cat.slug}`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-rose hover:text-rose/80 transition"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <span>Shop All {cat.name}</span>
+                          <span>→</span>
+                        </Link>
+                      </div>
+
+                      {/* Structured 2-column list of subcategories */}
+                      <div className="grid grid-cols-2 gap-1.5 max-h-[320px] overflow-y-auto pr-1">
                         {cat.children!.map((child) => (
                           <Link
                             key={child.slug}
                             href={`/shop/${child.slug}`}
-                            className="block whitespace-nowrap rounded-md px-4 py-2 text-sm text-charcoal/70 transition-colors hover:bg-sand/20 hover:text-indigo"
+                            className="group flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-charcoal/80 transition-all hover:bg-sand/20 hover:text-indigo hover:translate-x-0.5"
                             onClick={() => setActiveDropdown(null)}
                           >
-                            {child.name}
+                            <span className="truncate">{child.name}</span>
+                            <span className="text-charcoal/30 group-hover:text-indigo transition opacity-0 group-hover:opacity-100 text-[10px]">
+                              ›
+                            </span>
                           </Link>
                         ))}
                       </div>
