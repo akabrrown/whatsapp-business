@@ -41,7 +41,9 @@ mutations, graceful shutdown, health/readiness/liveness probes, failover
 paths, dead-letter queues, backpressure under load. Concurrency: race
 conditions, deadlocks, thread safety, distributed locks, optimistic vs.
 pessimistic locking, atomic operations — checked wherever two writers can
-touch the same row/resource.
+touch the same row/resource. Polling & Sync: client-side pollers must
+be visibility-aware (`document.hidden` pause + focus refresh) and halt
+immediately upon entering terminal states to avoid runaway database drain.
 
 ## API design
 

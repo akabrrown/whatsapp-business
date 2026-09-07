@@ -26,6 +26,26 @@ assume it will be hit harder than the happy-path demo suggests.
   often they can fire, so a misbehaving upstream (or an attacker)
   can trigger unlimited billable work.
 
+## Client-side polling loops & egress vampires
+
+- **Tab Abandonment Egress Drain:** Never write client-side polling
+  (`setInterval`) without Page Visibility API awareness (`document.hidden`,
+  `visibilitychange`, window `focus`). An abandoned browser tab polling every
+  3–5 seconds fires 17,280+ database/API queries per day, silently burning
+  through monthly database egress quotas (e.g. Supabase 5GB limit) and serverless
+  compute invocations.
+- **Terminal State Halting:** Polling loops for async processes (order tracking,
+  payment confirmations, background jobs) MUST halt permanently once the record
+  reaches a terminal state (`DELIVERED`, `CANCELLED`, `PAID`, `FAILED`).
+- **Serverless Polling Endpoint Caching:** Fallback polling endpoints (e.g.
+  `/api/events/poll`) queried by multiple clients must use a short in-memory TTL
+  cache (15–30s) or Redis rather than querying the primary database directly on
+  every single poll.
+- **Provider Quota Hierarchies:** Cloud quotas (bandwidth, egress, build minutes)
+  are almost universally enforced at the **Organization / Account level**, not the
+  individual project level. Moving or recreating a project inside the same
+  organization inherits the organization's quota exhaustion and grace period.
+
 ## Missing caching where it's cheap to add
 
 - Repeated identical calls to a metered API within the same request or

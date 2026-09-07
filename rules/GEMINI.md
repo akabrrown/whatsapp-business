@@ -64,7 +64,8 @@ obvious action, apology-padding.
 5. Is every protected action authorized server-side against the actual
    record ID — not just "is this user logged in"?
 6. Is any secret reachable from client-visible code or a public repo?
-7. Would a senior engineer ship this today?
+7. Are all client polling/sync loops visibility-aware (pausing on `document.hidden`) and halted on terminal states to prevent quota/egress burns?
+8. Would a senior engineer ship this today?
 
 If any answer is no — fix it first, then respond.
 
