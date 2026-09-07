@@ -60,29 +60,42 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
   let lastTimestamp = Date.now();
   let isWsConnected = false;
 
+  const doPoll = async () => {
+    if (closed || isWsConnected) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    try {
+      const token = getToken();
+      const res = await fetch(`${API}/api/events/poll?channel=admin&since=${lastTimestamp}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { ok: boolean; events?: { type: string; payload: unknown; timestamp: number }[]; timestamp?: number };
+      if (data.events && Array.isArray(data.events)) {
+        for (const ev of data.events) {
+          onEvent({ type: ev.type, payload: ev.payload });
+          if (ev.timestamp > lastTimestamp) lastTimestamp = ev.timestamp;
+        }
+      }
+      if (data.timestamp && data.timestamp > lastTimestamp) lastTimestamp = data.timestamp;
+    } catch {
+      /* silent catch during poll */
+    }
+  };
+
   const startPolling = () => {
     if (pollInterval || closed) return;
-    pollInterval = setInterval(async () => {
-      if (closed || isWsConnected) return;
-      try {
-        const token = getToken();
-        const res = await fetch(`${API}/api/events/poll?channel=admin&since=${lastTimestamp}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as { ok: boolean; events?: { type: string; payload: unknown; timestamp: number }[]; timestamp?: number };
-        if (data.events && Array.isArray(data.events)) {
-          for (const ev of data.events) {
-            onEvent({ type: ev.type, payload: ev.payload });
-            if (ev.timestamp > lastTimestamp) lastTimestamp = ev.timestamp;
-          }
-        }
-        if (data.timestamp && data.timestamp > lastTimestamp) lastTimestamp = data.timestamp;
-      } catch {
-        /* silent catch during poll */
-      }
-    }, 5000);
+    pollInterval = setInterval(doPoll, 20000);
   };
+
+  const handleActive = () => {
+    if (typeof document !== 'undefined' && !document.hidden && !isWsConnected && !closed) {
+      doPoll();
+    }
+  };
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
+  }
 
   const stopPolling = () => {
     if (pollInterval) {
@@ -145,6 +158,10 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
     closed = true;
     isWsConnected = false;
     stopPolling();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
+    }
     if (reconnectTimeout) clearTimeout(reconnectTimeout);
     try {
       if (ws) {

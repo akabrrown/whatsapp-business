@@ -137,9 +137,10 @@ export function RealtimePushToast() {
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let destroyed = false;
 
-    // Fast polling function for Vercel Serverless compatibility
-    const pollServerlessEvents = async () => {
+    // Polling function: only polls when user is actively viewing the tab
+    const pollServerlessEvents = async (force = false) => {
       if (destroyed) return;
+      if (!force && typeof document !== 'undefined' && document.hidden) return;
       try {
         const API = getApiUrl();
         const since = lastEventTimeRef.current;
@@ -162,14 +163,17 @@ export function RealtimePushToast() {
       }
     };
 
-    // Poll every 8 seconds for serverless Vercel deployments
-    pollTimer = setInterval(pollServerlessEvents, 8000);
+    // Conservative 35-second poll (only fires if tab is actively visible)
+    pollTimer = setInterval(() => pollServerlessEvents(false), 35000);
 
-    // Also poll immediately when tab regains focus
-    const handleFocus = () => {
-      pollServerlessEvents();
+    // Immediate check whenever user returns to tab
+    const handleActive = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        pollServerlessEvents(true);
+      }
     };
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
 
     // In non-serverless environments, also try WebSocket
     const isVercelHttps = window.location.protocol === 'https:' && !API.startsWith('https');
@@ -191,7 +195,8 @@ export function RealtimePushToast() {
     return () => {
       destroyed = true;
       if (pollTimer) clearInterval(pollTimer);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
       if (progressTimer.current) clearInterval(progressTimer.current);
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
       if (ws) {

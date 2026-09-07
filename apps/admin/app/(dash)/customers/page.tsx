@@ -39,10 +39,26 @@ export default function CustomersPage() {
     const off = subscribeAdminEvents((e) => {
       if (e.type === 'order.created' || e.type === 'order.updated') load().catch(() => {});
     });
-    const poll = setInterval(() => load().catch(() => {}), 5000);
+
+    const poll = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        load().catch(() => {});
+      }
+    }, 60000);
+
+    const handleActive = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        load().catch(() => {});
+      }
+    };
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
+
     return () => {
       off();
       clearInterval(poll);
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
     };
   }, [load]);
 

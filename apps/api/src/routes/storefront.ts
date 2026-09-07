@@ -603,24 +603,34 @@ storefront.post('/promotions/validate-coupon', async (req, res) => {
   });
 });
 
+// In-memory cache for recent products to avoid hammering Supabase on every poll
+let cachedRecentProducts: any[] = [];
+let lastProductCheckTime = 0;
+
 // ---- Hybrid Realtime Event Polling Endpoint (Serverless & WebSocket fallback) -----
 storefront.get('/events/poll', async (req, res) => {
   const since = parseInt(String(req.query.since ?? '0'), 10) || 0;
   const channel = typeof req.query.channel === 'string' ? req.query.channel : undefined;
   const events = hub.getEventsSince(since, channel);
 
-  // Serverless resilience: query database for products added since the last poll
+  // Serverless resilience: query database for products added recently (cached 30s)
   if (since > 0 && since > Date.now() - 3600000) {
     try {
-      const newProducts = await db.product.findMany({
-        where: {
-          createdAt: { gt: new Date(since) },
-          status: 'active',
-        },
-        include: { variants: true },
-        orderBy: { createdAt: 'desc' },
-        take: 3,
-      });
+      const now = Date.now();
+      if (now - lastProductCheckTime > 30000) {
+        lastProductCheckTime = now;
+        cachedRecentProducts = await db.product.findMany({
+          where: {
+            createdAt: { gt: new Date(now - 3600000) },
+            status: 'active',
+          },
+          include: { variants: true },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+        });
+      }
+
+      const newProducts = cachedRecentProducts.filter((p) => p.createdAt.getTime() > since);
 
       for (const p of newProducts) {
         const alreadyInEvents = events.some((e) => (e.payload as any)?.product?.id === p.id);

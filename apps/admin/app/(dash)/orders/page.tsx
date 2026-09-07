@@ -76,12 +76,29 @@ export default function OrdersPage() {
     loadAll().catch(() => {});
     const off = subscribeAdminEvents((e) => {
       if (e.type === 'order.created') setNewCount((n) => n + 1);
-      if (e.type === 'order.created' || e.type === 'order.updated') loadAll().catch(() => {});
+      if (e.type === 'order.created' || e.type === 'order.updated') loadAll(true).catch(() => {});
     });
-    const poll = setInterval(() => loadAll().catch(() => {}), 5000); // 5s live polling
+
+    // 30s polling only when tab is actively focused
+    const poll = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadAll(true).catch(() => {});
+      }
+    }, 30000);
+
+    const handleActive = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadAll(true).catch(() => {});
+      }
+    };
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
+
     return () => {
       off();
       clearInterval(poll);
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
     };
   }, [loadAll]);
 

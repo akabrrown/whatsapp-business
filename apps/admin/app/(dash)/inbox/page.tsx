@@ -135,18 +135,52 @@ export default function InboxPage() {
         loadList().catch(() => {});
       }
     });
-    const poll = setInterval(() => loadList().catch(() => {}), 8_000);
+
+    const poll = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadList().catch(() => {});
+      }
+    }, 30_000);
+
+    const handleActive = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadList().catch(() => {});
+      }
+    };
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
+
     return () => {
       off();
       clearInterval(poll);
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
     };
   }, [loadList]);
 
   useEffect(() => {
     if (!selected) return;
     loadThread(selected);
-    const poll = setInterval(() => loadThread(selected).catch(() => {}), 5_000);
-    return () => clearInterval(poll);
+
+    const poll = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadThread(selected).catch(() => {});
+      }
+    }, 15_000);
+
+    const handleActive = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadThread(selected).catch(() => {});
+      }
+    };
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
+    };
   }, [selected, loadThread]);
 
   const current = convs.find((c) => c.id === selected);

@@ -27,11 +27,20 @@ export function RealtimeSync() {
     const startPolling = () => {
       if (pollTimer || destroyed) return;
       pollTimer = setInterval(() => {
-        if (!isConnected && !destroyed) {
+        if (!isConnected && !destroyed && typeof document !== 'undefined' && !document.hidden) {
           router.refresh();
         }
-      }, 30000); // 30s graceful fallback poll
+      }, 60000); // 60s fallback poll (only when tab is visible)
     };
+
+    // Refresh once when returning to tab
+    const handleActive = () => {
+      if (!isConnected && !destroyed && typeof document !== 'undefined' && !document.hidden) {
+        router.refresh();
+      }
+    };
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
 
     const stopPolling = () => {
       if (pollTimer) {
@@ -84,6 +93,8 @@ export function RealtimeSync() {
     return () => {
       destroyed = true;
       stopPolling();
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (ws) {
         ws.onclose = null;

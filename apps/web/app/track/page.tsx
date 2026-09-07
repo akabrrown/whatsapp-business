@@ -92,10 +92,16 @@ function TrackContent() {
     }
   }, [queryParam]);
 
-  // Live Realtime Poller: auto-refreshes status every 3s without manual page reload
+  // Live Poller: refreshes status every 20s when actively viewed and not delivered/cancelled
   useEffect(() => {
     if (!queryParam) return;
-    const interval = setInterval(async () => {
+
+    const pollStatus = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      // Stop polling if current order reached final state
+      if (order?.status === 'DELIVERED' || order?.status === 'CANCELLED' || order?.status === 'REFUNDED') {
+        return;
+      }
       try {
         const res = await fetch(`${API}/api/orders/track/${encodeURIComponent(queryParam.trim())}`);
         const data = await res.json();
@@ -110,9 +116,23 @@ function TrackContent() {
       } catch {
         /* silent background poll */
       }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [queryParam]);
+    };
+
+    const interval = setInterval(pollStatus, 20000);
+    const handleActive = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        pollStatus();
+      }
+    };
+    window.addEventListener('focus', handleActive);
+    window.addEventListener('visibilitychange', handleActive);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleActive);
+      window.removeEventListener('visibilitychange', handleActive);
+    };
+  }, [queryParam, order?.status]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
