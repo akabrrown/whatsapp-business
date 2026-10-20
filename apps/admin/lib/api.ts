@@ -85,6 +85,16 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
   let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   let lastTimestamp = Date.now();
   let isWsConnected = false;
+  let wsAttempts = 0;
+  const MAX_WS_ATTEMPTS = 2;
+
+  const base = getAdminBaseUrl();
+  const isServerless =
+    base.includes('vercel.app') ||
+    base.includes('workers.dev') ||
+    base.includes('pages.dev') ||
+    base.includes('netlify.app') ||
+    (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
 
   const doPoll = async () => {
     if (closed || isWsConnected) return;
@@ -111,7 +121,8 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
 
   const startPolling = () => {
     if (pollInterval || closed) return;
-    pollInterval = setInterval(doPoll, 20000);
+    doPoll();
+    pollInterval = setInterval(doPoll, 12000);
   };
 
   const handleActive = () => {
@@ -133,10 +144,23 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
 
   const connectWs = () => {
     if (closed || typeof window === 'undefined') return;
+
+    // Serverless platforms (Vercel, Cloudflare Workers, etc.) do not support persistent WebSockets; use polling
+    if (isServerless) {
+      startPolling();
+      return;
+    }
+
+    if (wsAttempts >= MAX_WS_ATTEMPTS) {
+      startPolling();
+      return;
+    }
+
+    wsAttempts++;
+
     try {
       const token = getToken();
       const qs = token ? `?channel=admin&token=${encodeURIComponent(token)}` : '?channel=admin';
-      const base = getAdminBaseUrl();
       let wsUrl: string;
       if (!base) {
         const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -149,6 +173,7 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
 
       ws.onopen = () => {
         isWsConnected = true;
+        wsAttempts = 0;
         stopPolling();
       };
 
@@ -167,7 +192,9 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
         ws = null;
         if (!closed) {
           startPolling();
-          reconnectTimeout = setTimeout(connectWs, 15000); // retry WS every 15s
+          if (wsAttempts < MAX_WS_ATTEMPTS) {
+            reconnectTimeout = setTimeout(connectWs, 15000);
+          }
         }
       };
 
@@ -178,16 +205,18 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
     } catch {
       isWsConnected = false;
       startPolling();
-      reconnectTimeout = setTimeout(connectWs, 15000);
     }
   };
 
-  // Start with WebSocket, fallback to REST
-  connectWs();
-  // Fallback safety in case initial connection hangs
-  setTimeout(() => {
-    if (!isWsConnected && !closed) startPolling();
-  }, 2000);
+  // Immediate start: polling for serverless, WS for long-running nodes
+  if (isServerless) {
+    startPolling();
+  } else {
+    connectWs();
+    setTimeout(() => {
+      if (!isWsConnected && !closed) startPolling();
+    }, 2000);
+  }
 
   return () => {
     closed = true;

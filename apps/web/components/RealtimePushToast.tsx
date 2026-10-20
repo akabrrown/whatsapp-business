@@ -176,8 +176,14 @@ export function RealtimePushToast() {
     window.addEventListener('visibilitychange', handleActive);
 
     // In non-serverless environments, also try WebSocket
-    const isVercelHttps = window.location.protocol === 'https:' && !API.startsWith('https');
-    if (!isVercelHttps && !API.includes('localhost:4000')) {
+    const isServerless =
+      API.includes('vercel.app') ||
+      API.includes('workers.dev') ||
+      API.includes('pages.dev') ||
+      API.includes('netlify.app') ||
+      (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
+
+    if (!isServerless) {
       try {
         const protocol = API.startsWith('https') ? 'wss' : 'ws';
         const wsUrl = `${API.replace(/^https?/, protocol)}/ws?channel=web`;

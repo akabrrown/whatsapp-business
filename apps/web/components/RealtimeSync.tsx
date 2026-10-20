@@ -49,8 +49,19 @@ export function RealtimeSync() {
       }
     };
 
+    const isServerless =
+      API.includes('vercel.app') ||
+      API.includes('workers.dev') ||
+      API.includes('pages.dev') ||
+      API.includes('netlify.app') ||
+      (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
+
     const connectWs = () => {
       if (destroyed) return;
+      if (isServerless || retryCount >= 2) {
+        startPolling();
+        return;
+      }
       try {
         const protocol = API.startsWith('https') ? 'wss' : 'ws';
         const wsUrl = `${API.replace(/^https?/, protocol)}/ws?channel=web`;
@@ -72,10 +83,11 @@ export function RealtimeSync() {
           ws = null;
           if (!destroyed) {
             startPolling();
-            // Exponential backoff capped at 60s
-            const delay = Math.min(3000 * Math.pow(1.5, retryCount), 60000);
-            retryCount++;
-            reconnectTimeout = setTimeout(connectWs, delay);
+            if (retryCount < 2) {
+              const delay = Math.min(3000 * Math.pow(1.5, retryCount), 60000);
+              retryCount++;
+              reconnectTimeout = setTimeout(connectWs, delay);
+            }
           }
         };
 
