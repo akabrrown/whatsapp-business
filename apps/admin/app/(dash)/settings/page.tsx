@@ -37,6 +37,8 @@ export default function SettingsPage() {
   const [newZone, setNewZone] = useState({ name: '', city: 'Accra', fee: '' });
   
   const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', slug: '', flagship: false, image: '', parentId: '' });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   
@@ -260,6 +262,60 @@ export default function SettingsPage() {
       setError((e as Error).message);
     }
   };
+  const getCategoryDescendantIds = useCallback((parentId: string, allCats: Category[]): string[] => {
+    const children = allCats.filter((c) => c.parentId === parentId);
+    return children.flatMap((child) => [child.id, ...getCategoryDescendantIds(child.id, allCats)]);
+  }, []);
+
+  const toggleSelectCategory = (c: Category, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedCategoryIds((prev) => {
+      const isSelected = prev.includes(c.id);
+      const descendantIds = getCategoryDescendantIds(c.id, categories);
+      const groupIds = [c.id, ...descendantIds];
+
+      if (isSelected) {
+        return prev.filter((id) => !groupIds.includes(id));
+      } else {
+        return Array.from(new Set([...prev, ...groupIds]));
+      }
+    });
+  };
+
+  const toggleSelectAllCategories = () => {
+    if (categories.length === 0) return;
+    if (selectedCategoryIds.length === categories.length) {
+      setSelectedCategoryIds([]);
+    } else {
+      setSelectedCategoryIds(categories.map((c) => c.id));
+    }
+  };
+
+  const bulkDeleteCategories = async () => {
+    if (selectedCategoryIds.length === 0) return;
+    const selectedCats = categories.filter((c) => selectedCategoryIds.includes(c.id));
+    const mainCount = selectedCats.filter((c) => !c.parentId).length;
+    const subCount = selectedCats.filter((c) => !!c.parentId).length;
+
+    const confirmMsg = `Permanently delete ${selectedCategoryIds.length} selected category/categories (${mainCount} main, ${subCount} sub/types)? Any nested subcategories will also be deleted. This cannot be undone.`;
+    if (!confirm(confirmMsg)) return;
+
+    setBulkDeleting(true);
+    setError('');
+    try {
+      await apiFetch('/api/admin/categories/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids: selectedCategoryIds }),
+      });
+      setSelectedCategoryIds([]);
+      await loadCategories();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const deleteCategory = async (c: Category) => {
     const subCats = categories.filter((sub) => sub.parentId === c.id);
     const msg =
@@ -270,6 +326,7 @@ export default function SettingsPage() {
     setError('');
     try {
       await apiFetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
+      setSelectedCategoryIds((prev) => prev.filter((id) => id !== c.id && !subCats.some((s) => s.id === id)));
       await loadCategories();
     } catch (e) {
       setError((e as Error).message);
@@ -408,18 +465,92 @@ export default function SettingsPage() {
 
           {isOwner && (
             <div>
-              <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
-                <Tag size={13} aria-hidden /> Categories
-              </p>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
+                  <Tag size={13} aria-hidden /> Categories ({categories.length})
+                </p>
+                {categories.length > 0 && (
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-charcoal/70 hover:text-indigo select-none">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategoryIds.length > 0 && selectedCategoryIds.length === categories.length}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate = selectedCategoryIds.length > 0 && selectedCategoryIds.length < categories.length;
+                        }
+                      }}
+                      onChange={toggleSelectAllCategories}
+                      className="h-3.5 w-3.5 rounded border-charcoal/30 text-indigo focus:ring-indigo/30"
+                    />
+                    <span className="text-[11px] font-medium">Select all ({categories.length})</span>
+                  </label>
+                )}
+              </div>
+
+              {/* Bulk actions banner */}
+              {selectedCategoryIds.length > 0 && (
+                <div className="mb-3 flex items-center justify-between rounded border border-rose/30 bg-rose/10 px-3.5 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose text-[11px] font-bold text-cream">
+                      {selectedCategoryIds.length}
+                    </span>
+                    <span className="text-xs font-medium text-charcoal">
+                      {selectedCategoryIds.length === 1 ? '1 category selected' : `${selectedCategoryIds.length} categories selected`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategoryIds([])}
+                      disabled={bulkDeleting}
+                      className="rounded px-2.5 py-1 text-xs text-charcoal/70 hover:bg-black/5 hover:text-charcoal disabled:opacity-50"
+                    >
+                      Deselect
+                    </button>
+                    <button
+                      type="button"
+                      onClick={bulkDeleteCategories}
+                      disabled={bulkDeleting}
+                      className="flex items-center gap-1.5 rounded bg-rose px-3 py-1 text-xs font-medium text-cream shadow-sm hover:bg-rose/90 disabled:opacity-50 transition-colors"
+                    >
+                      {bulkDeleting ? (
+                        <>
+                          <RefreshCw size={12} className="animate-spin" />
+                          <span>Deleting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={12} />
+                          <span>Delete selected ({selectedCategoryIds.length})</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <ul className="divide-y divide-sand/20 rounded border border-sand/30 bg-white/50 text-sm">
                 {categories.filter(c => !c.parentId).map((mainCat) => {
                   const subCats = categories.filter(sub => sub.parentId === mainCat.id);
+                  const isMainSelected = selectedCategoryIds.includes(mainCat.id);
+                  const hasSelectedSubs = subCats.some((s) => selectedCategoryIds.includes(s.id) || categories.some(ss => ss.parentId === s.id && selectedCategoryIds.includes(ss.id)));
                   return (
                     <li key={mainCat.id} className="flex flex-col border-b border-sand/20 last:border-b-0">
                       <details className="group" open={subCats.length > 0}>
-                        <summary className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-sand/10 marker:content-['']">
+                        <summary className={`flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-sand/10 marker:content-[''] ${isMainSelected ? 'bg-rose/5' : ''}`}>
                           {/* Main Category Header row */}
                           <div className="flex flex-1 items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isMainSelected}
+                              ref={(el) => {
+                                if (el) el.indeterminate = !isMainSelected && hasSelectedSubs;
+                              }}
+                              onChange={(e) => toggleSelectCategory(mainCat, e as any)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-4 w-4 rounded border-charcoal/30 text-indigo focus:ring-indigo/30"
+                              title={`Select "${mainCat.name}"`}
+                            />
                             {mainCat.image ? <img src={mainCat.image} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-sand/30" />}
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
@@ -460,9 +591,22 @@ export default function SettingsPage() {
                           <ul className="bg-sand/10 pb-2">
                             {subCats.map(sub => {
                               const subSubCats = categories.filter(ss => ss.parentId === sub.id);
+                              const isSubSelected = selectedCategoryIds.includes(sub.id);
+                              const hasSelectedSubSubs = subSubCats.some((ss) => selectedCategoryIds.includes(ss.id));
                               return (
                                 <li key={sub.id} className="flex flex-col border-t border-sand/20 first:border-t-0">
-                                  <div className="flex items-center gap-3 px-4 py-2 pl-12 hover:bg-sand/20">
+                                  <div className={`flex items-center gap-3 px-4 py-2 pl-12 hover:bg-sand/20 ${isSubSelected ? 'bg-rose/5' : ''}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isSubSelected}
+                                      ref={(el) => {
+                                        if (el) el.indeterminate = !isSubSelected && hasSelectedSubSubs;
+                                      }}
+                                      onChange={(e) => toggleSelectCategory(sub, e as any)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="h-3.5 w-3.5 rounded border-charcoal/30 text-indigo focus:ring-indigo/30"
+                                      title={`Select subcategory "${sub.name}"`}
+                                    />
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
                                         <p className="text-sm font-medium text-charcoal/80">{sub.name} <span className="text-xs font-normal text-charcoal/40">/{sub.slug}</span></p>
@@ -493,31 +637,42 @@ export default function SettingsPage() {
                                   {/* Tier 3 Sub-subcategories */}
                                   {subSubCats.length > 0 && (
                                     <ul className="bg-sand/20 py-1">
-                                      {subSubCats.map(ss => (
-                                        <li key={ss.id} className="flex items-center gap-3 px-4 py-1.5 pl-24 hover:bg-sand/30">
-                                          <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                              <p className="text-xs font-medium text-charcoal/70">{ss.name} <span className="text-[10px] font-normal text-charcoal/40">/{ss.slug}</span></p>
-                                              <span className="text-[9px] bg-sand/60 px-1 rounded text-charcoal/50">Type</span>
-                                              <button onClick={() => setEditingCategory(ss)} className="text-[10px] text-indigo hover:underline">edit</button>
+                                      {subSubCats.map(ss => {
+                                        const isSsSelected = selectedCategoryIds.includes(ss.id);
+                                        return (
+                                          <li key={ss.id} className={`flex items-center gap-3 px-4 py-1.5 pl-24 hover:bg-sand/30 ${isSsSelected ? 'bg-rose/5' : ''}`}>
+                                            <input
+                                              type="checkbox"
+                                              checked={isSsSelected}
+                                              onChange={(e) => toggleSelectCategory(ss, e as any)}
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="h-3 w-3 rounded border-charcoal/30 text-indigo focus:ring-indigo/30"
+                                              title={`Select type "${ss.name}"`}
+                                            />
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-2">
+                                                <p className="text-xs font-medium text-charcoal/70">{ss.name} <span className="text-[10px] font-normal text-charcoal/40">/{ss.slug}</span></p>
+                                                <span className="text-[9px] bg-sand/60 px-1 rounded text-charcoal/50">Type</span>
+                                                <button onClick={() => setEditingCategory(ss)} className="text-[10px] text-indigo hover:underline">edit</button>
+                                              </div>
+                                              <p className="text-[9px] text-charcoal/40">{ss._count?.products ?? 0} products</p>
                                             </div>
-                                            <p className="text-[9px] text-charcoal/40">{ss._count?.products ?? 0} products</p>
-                                          </div>
-                                          <div className="flex items-center gap-3">
-                                            <button
-                                              onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                deleteCategory(ss);
-                                              }}
-                                              title="Delete type"
-                                              className="p-1 text-charcoal/40 hover:text-rose transition-colors"
-                                            >
-                                              <Trash2 size={12} />
-                                            </button>
-                                          </div>
-                                        </li>
-                                      ))}
+                                            <div className="flex items-center gap-3">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  deleteCategory(ss);
+                                                }}
+                                                title="Delete type"
+                                                className="p-1 text-charcoal/40 hover:text-rose transition-colors"
+                                              >
+                                                <Trash2 size={12} />
+                                              </button>
+                                            </div>
+                                          </li>
+                                        );
+                                      })}
                                     </ul>
                                   )}
                                 </li>

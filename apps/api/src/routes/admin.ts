@@ -873,6 +873,75 @@ admin.delete('/categories/:id', requireOwner, async (req, res) => {
   }
 });
 
+const handleBulkDeleteCategories = async (req: any, res: any) => {
+  const { ids } = req.body as { ids?: string[] };
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ ok: false, error: 'Category ids array required' });
+  }
+
+  const cleanIds = Array.from(new Set(ids.filter((id) => typeof id === 'string' && id.trim().length > 0)));
+  if (cleanIds.length === 0) {
+    return res.status(400).json({ ok: false, error: 'No valid category ids provided' });
+  }
+
+  try {
+    async function collectDescendants(parentIds: string[]): Promise<string[]> {
+      if (parentIds.length === 0) return [];
+      const subs = await db.category.findMany({
+        where: { parentId: { in: parentIds } },
+        select: { id: true },
+      });
+      if (subs.length === 0) return [];
+      const subIds = subs.map((s) => s.id);
+      const deeper = await collectDescendants(subIds);
+      return [...subIds, ...deeper];
+    }
+
+    const descendantIds = await collectDescendants(cleanIds);
+    const allIds = Array.from(new Set([...cleanIds, ...descendantIds]));
+
+    // Check if any product is attached to any of the selected categories
+    const attachedProducts = await db.product.findMany({
+      where: { categoryId: { in: allIds } },
+      select: { id: true, name: true, category: { select: { name: true } } },
+      take: 3,
+    });
+
+    if (attachedProducts.length > 0) {
+      const count = await db.product.count({
+        where: { categoryId: { in: allIds } },
+      });
+      const names = attachedProducts.map((p) => `"${p.name}" (${p.category.name})`).join(', ');
+      return res.status(409).json({
+        ok: false,
+        error: `Cannot delete: ${count} product(s) are assigned to the selected categories (including ${names}). Please reassign or delete these products first.`,
+      });
+    }
+
+    // Safely delete in a transaction: nullify parentId first to satisfy FK constraints
+    await db.$transaction(async (tx) => {
+      if (descendantIds.length > 0) {
+        await tx.category.updateMany({
+          where: { id: { in: descendantIds } },
+          data: { parentId: null },
+        });
+      }
+      await tx.category.deleteMany({
+        where: { id: { in: allIds } },
+      });
+    });
+
+    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
+    res.json({ ok: true, deletedCount: allIds.length });
+  } catch (e) {
+    console.error('Bulk delete categories error:', e);
+    res.status(500).json({ ok: false, error: (e as Error).message });
+  }
+};
+
+admin.post('/categories/bulk-delete', requireOwner, handleBulkDeleteCategories);
+admin.delete('/categories/bulk', requireOwner, handleBulkDeleteCategories);
+
 // ---- Customers / CRM (§9.3) ---------------------------------------------------
 admin.get('/customers', async (_req, res) => {
   res.json({ ok: true, customers: await db.customer.findMany({ orderBy: { totalSpentP: 'desc' }, take: 200 }) });
