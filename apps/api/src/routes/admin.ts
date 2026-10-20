@@ -953,17 +953,32 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
       }
 
       // Safeguard: Never delete the fallback category that now holds the reassigned products
-      const idsToDelete = fallbackId ? allIds.filter((id) => id !== fallbackId) : allIds;
-      const descendantsToDelete = fallbackId ? descendantIds.filter((id) => id !== fallbackId) : descendantIds;
+      let idsToDelete = fallbackId ? allIds.filter((id) => id !== fallbackId) : allIds;
 
-      // Detach parentId on descendants first to prevent foreign key errors
-      if (descendantsToDelete.length > 0) {
+      // Absolute Zero-Tolerance FK Guard: Check if ANY product still references any category in idsToDelete
+      const lingeringProducts = await tx.product.count({
+        where: { categoryId: { in: idsToDelete } },
+      });
+      if (lingeringProducts > 0) {
+        if (!fallbackId) {
+          const fallback = await getOrCreateUncategorized();
+          fallbackId = fallback.id;
+        }
+        await tx.product.updateMany({
+          where: { categoryId: { in: idsToDelete } },
+          data: { categoryId: fallbackId },
+        });
+        // Ensure fallbackId is excluded from deletion
+        idsToDelete = idsToDelete.filter((id) => id !== fallbackId);
+      }
+
+      // Detach parentId on ANY category referencing any category to be deleted
+      if (idsToDelete.length > 0) {
         await tx.category.updateMany({
-          where: { id: { in: descendantsToDelete } },
+          where: { parentId: { in: idsToDelete } },
           data: { parentId: null },
         });
-      }
-      if (idsToDelete.length > 0) {
+
         const delRes = await tx.category.deleteMany({
           where: { id: { in: idsToDelete } },
         });
