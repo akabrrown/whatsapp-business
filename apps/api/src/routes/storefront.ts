@@ -642,7 +642,7 @@ storefront.get('/events/poll', async (req, res) => {
               ? (typeof parsed[0] === 'string' ? parsed[0] : parsed[0].url)
               : '';
           } catch {}
-          const minPrice = p.variants.length > 0 ? Math.min(...p.variants.map((v) => v.priceP)) : 0;
+          const minPrice = p.variants && p.variants.length > 0 ? Math.min(...p.variants.map((v: any) => v.priceP)) : 0;
           events.push({
             id: `db-drop-${p.id}`,
             type: 'new_product_drop',

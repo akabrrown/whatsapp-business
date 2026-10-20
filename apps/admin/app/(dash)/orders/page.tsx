@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Download, RefreshCw, ShoppingBag, CheckCircle, MessageSquare, Copy, Check, MapPin } from 'lucide-react';
-import { apiFetch, subscribeAdminEvents } from '@/lib/api';
+import { apiFetch, subscribeAdminEvents, buildAdminApiUrl } from '@/lib/api';
 import { StatusPill } from '@/components/StatusPill';
 import { formatGHS } from '@rose/shared';
 
@@ -159,7 +159,7 @@ export default function OrdersPage() {
     if (from) qs.set('from', from);
     if (to) qs.set('to', to);
     const q = qs.toString();
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/admin/export/orders.csv${q ? `?${q}` : ''}`, {
+    const res = await fetch(buildAdminApiUrl(`/api/admin/export/orders.csv${q ? `?${q}` : ''}`), {
       headers: { Authorization: `Bearer ${localStorage.getItem('rd-admin-token') ?? ''}` },
     });
     const blob = await res.blob();

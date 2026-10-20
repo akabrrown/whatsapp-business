@@ -1,5 +1,30 @@
 // Admin API client: JWT in localStorage, typed responses, WS subscribe helper.
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+export function getAdminBaseUrl(): string {
+  const envUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || '').trim();
+  if (!envUrl) {
+    if (typeof window !== 'undefined') {
+      return '';
+    }
+    return 'http://localhost:4000';
+  }
+  let normalized = envUrl;
+  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+    normalized = `https://${normalized}`;
+  }
+  return normalized.replace(/\/+$/, '');
+}
+
+export function buildAdminApiUrl(path: string): string {
+  const base = getAdminBaseUrl();
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (!base) return cleanPath;
+  if (base.endsWith('/api') && cleanPath.startsWith('/api/')) {
+    return `${base}${cleanPath.slice(4)}`;
+  }
+  return `${base}${cleanPath}`;
+}
+
+const API = getAdminBaseUrl();
 
 export function getToken(): string {
   if (typeof window === 'undefined') return '';
@@ -32,7 +57,8 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const url = buildAdminApiUrl(path);
+  const res = await fetch(url, {
     ...init,
     headers: {
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
@@ -65,7 +91,8 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
     if (typeof document !== 'undefined' && document.hidden) return;
     try {
       const token = getToken();
-      const res = await fetch(`${API}/api/events/poll?channel=admin&since=${lastTimestamp}`, {
+      const pollUrl = buildAdminApiUrl(`/api/events/poll?channel=admin&since=${lastTimestamp}`);
+      const res = await fetch(pollUrl, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) return;
@@ -109,7 +136,15 @@ export function subscribeAdminEvents(onEvent: (e: { type: string; payload: unkno
     try {
       const token = getToken();
       const qs = token ? `?channel=admin&token=${encodeURIComponent(token)}` : '?channel=admin';
-      const wsUrl = `${API.replace(/^http/, 'ws')}/ws${qs}`;
+      const base = getAdminBaseUrl();
+      let wsUrl: string;
+      if (!base) {
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${proto}//${window.location.host}/ws${qs}`;
+      } else {
+        const wsBase = base.replace(/^http/, 'ws').replace(/\/api$/, '');
+        wsUrl = `${wsBase}/ws${qs}`;
+      }
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {

@@ -20,6 +20,15 @@ import QRCode from 'qrcode';
 export const admin = Router();
 
 // ---- Auth -----------------------------------------------------------------
+admin.get('/login', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'admin-api',
+    status: 'online',
+    message: 'Admin authentication endpoint. Submit a POST request with email and password to log in.',
+  });
+});
+
 admin.post('/login', rateLimitLogin, async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
   const user = await db.adminUser.findUnique({ where: { email: email?.toLowerCase() ?? '' } });

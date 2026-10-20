@@ -100,12 +100,20 @@ export function createApp() {
   app.get('/health', healthHandler);
   app.get('/healthz', healthHandler);
   app.get('/api/health', healthHandler);
-  app.use('/api', storefront);
+
+  // Specific sub-routers mounted first to prevent route shadowing
   app.use('/api/admin', admin);
+  app.use('/admin', admin);
   app.use('/api/cron', cronRouter);
-  app.use('/webhooks', webhooks);
+  app.use('/cron', cronRouter);
   app.use('/api/webhooks', webhooks);
+  app.use('/webhooks', webhooks);
   app.use('/api/paystack', webhooks);
+  app.use('/paystack', webhooks);
+
+  // General storefront router
+  app.use('/api', storefront);
+  app.use('/', storefront);
 
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     logger.error('Unhandled error', { message: err?.message, stack: err?.stack });
