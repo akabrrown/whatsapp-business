@@ -1,6 +1,5 @@
-// Footer: warm off-white, denim text, WhatsApp invitation as the one green
-// accent on the site (ux.md §3.1).
 import { api } from '@/lib/api';
+import { normalizeWhatsAppNumber } from '@rose/shared';
 
 export async function Footer() {
   let whatsappNumber = '';
@@ -10,7 +9,7 @@ export async function Footer() {
   } catch {
     // API down, storefront still renders its shell (§13.3 browsing resilience).
   }
-  const WA_NUMBER = whatsappNumber;
+  const WA_NUMBER = normalizeWhatsAppNumber(whatsappNumber);
   return (
     <footer className="mt-24 border-t border-sand/40 bg-cream">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-[2fr_1fr_1fr_1fr] md:px-6">

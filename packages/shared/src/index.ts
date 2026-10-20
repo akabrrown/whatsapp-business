@@ -125,3 +125,38 @@ export function formatGHS(pesewas: number): string {
 export function pesewas(ghs: number): number {
   return Math.round(ghs * 100);
 }
+
+/**
+ * Normalizes any Ghana/international phone string to standard E.164 digits without '+' (for wa.me URL)
+ * e.g., "020 381 3606" -> "233203813606"
+ * e.g., "+233 20 381 3606" -> "233203813606"
+ */
+export function normalizeWhatsAppNumber(phone?: string | null): string {
+  if (!phone) return '233203813606';
+  let cleaned = phone.replace(/\D/g, '');
+  // Fix known historical typo
+  if (cleaned === '233238136060') {
+    return '233203813606';
+  }
+  // Convert local 020... to 23320...
+  if (cleaned.startsWith('0') && cleaned.length === 10) {
+    cleaned = '233' + cleaned.slice(1);
+  } else if (!cleaned.startsWith('233') && cleaned.length === 9) {
+    cleaned = '233' + cleaned;
+  }
+  return cleaned || '233203813606';
+}
+
+/**
+ * Formats a phone number for clean human display:
+ * e.g., "233203813606" -> "+233 20 381 3606"
+ */
+export function formatPhoneDisplay(phone?: string | null): string {
+  if (!phone) return '';
+  const norm = normalizeWhatsAppNumber(phone);
+  if (norm.startsWith('233') && norm.length === 12) {
+    return `+233 ${norm.slice(3, 5)} ${norm.slice(5, 8)} ${norm.slice(8)}`;
+  }
+  return phone;
+}
+

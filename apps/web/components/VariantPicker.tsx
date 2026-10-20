@@ -3,7 +3,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
-import { formatGHS } from '@rose/shared';
+import { formatGHS, normalizeWhatsAppNumber } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
 import { AddToBag } from './AddToBag';
 import { SizeGuide } from './SizeGuide';
@@ -78,7 +78,7 @@ export function VariantPicker({ product, whatsappNumber }: { product: CatalogPro
       {selected && <AddToBag product={product} variantId={selected.id} />}
 
       <a
-        href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi! Question about sizing for ${product.name}`)}`}
+        href={`https://wa.me/${normalizeWhatsAppNumber(whatsappNumber)}?text=${encodeURIComponent(`Hi! Question about sizing for ${product.name}`)}`}
         target="_blank"
         rel="noreferrer"
         className="flex items-center gap-1.5 text-sm text-charcoal/60 underline decoration-charcoal/30 hover:text-indigo"

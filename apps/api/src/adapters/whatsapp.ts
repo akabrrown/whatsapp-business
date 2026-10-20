@@ -2,6 +2,7 @@
 // Env switch: WHATSAPP_MODE=sim|real.
 import { config } from '../config.js';
 import { now } from '../clock.js';
+import { normalizeWhatsAppNumber } from '../shared.js';
 
 export interface OutboundMessage {
   to: string;
@@ -153,6 +154,6 @@ export const whatsapp: WhatsAppSender & Partial<SimSender> =
 
 /** Build the WhatsApp direct link used by the website handoff (§4.7). */
 export function waDeepLink(text: string, phoneNumber?: string): string {
-  const number = phoneNumber ?? config.whatsappNumber;
-  return `https://api.whatsapp.com/send/?phone=${number}&text=${encodeURIComponent(text)}`;
+  const cleanNumber = normalizeWhatsAppNumber(phoneNumber ?? config.whatsappNumber);
+  return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
 }

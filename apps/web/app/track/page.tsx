@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Package, CheckCircle2, Clock, Truck, Home, MessageSquare, ShoppingBag, AlertCircle, Store, MapPin } from 'lucide-react';
-import { formatGHS } from '@rose/shared';
+import { formatGHS, normalizeWhatsAppNumber } from '@rose/shared';
 import { LiveMap } from '@/components/LiveMap';
 import { getApiUrl } from '@/lib/config';
 
@@ -57,6 +57,18 @@ function TrackContent() {
   const [error, setError] = useState('');
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [ordersList, setOrdersList] = useState<TrackedOrder[]>([]);
+  const [whatsappNumber, setWhatsappNumber] = useState('233203813606');
+
+  useEffect(() => {
+    fetch(`${API}/api/settings/whatsapp`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.ok && d.whatsappNumber) {
+          setWhatsappNumber(normalizeWhatsAppNumber(d.whatsappNumber));
+        }
+      })
+      .catch(() => {});
+  }, [API]);
 
   const fetchTracking = async (q: string) => {
     if (!q.trim()) return;
@@ -191,7 +203,7 @@ function TrackContent() {
               <p className="mt-2 text-xs">
                 Need help?{' '}
                 <a
-                  href="https://wa.me/233238136060?text=Hello%20Tobi%2C%20I%20am%20checking%20on%20my%20order%20status."
+                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hello Tobi, I am checking on my order status.')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-wagreen underline"
@@ -397,7 +409,7 @@ function TrackContent() {
             {/* Quick Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
               <a
-                href={`https://wa.me/233238136060?text=Hello%20Tobi%2C%20I%20am%20inquiring%20about%20Order%20${order.number}.`}
+                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hello Tobi, I am inquiring about Order ${order.number}.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 rounded-xl bg-wagreen px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 flex items-center justify-center gap-2"

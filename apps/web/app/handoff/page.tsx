@@ -18,15 +18,27 @@ function HandoffContent() {
     const paramUrl = searchParams.get('url');
     const paramPayUrl = searchParams.get('payUrl');
 
+    const cleanUrl = (rawUrl: string) => {
+      let u = rawUrl.replace(/233238136060/g, '233203813606');
+      if (u.includes('api.whatsapp.com/send/?phone=')) {
+        u = u.replace('https://api.whatsapp.com/send/?phone=', 'https://wa.me/').replace('&text=', '?text=');
+      }
+      return u;
+    };
+
     if (paramCode && paramUrl) {
-      setState({ code: paramCode, url: paramUrl, paymentUrl: paramPayUrl });
+      setState({ code: paramCode, url: cleanUrl(paramUrl), paymentUrl: paramPayUrl });
       return;
     }
 
     // 2. Fallback to sessionStorage
     try {
       const raw = sessionStorage.getItem('rd-handoff');
-      if (raw) setState(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.url) parsed.url = cleanUrl(parsed.url);
+        setState(parsed);
+      }
     } catch {
       /* ignore */
     }

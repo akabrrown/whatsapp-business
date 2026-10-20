@@ -7,7 +7,7 @@ export default defineConfig({
       WHATSAPP_MODE: 'sim',
       IMAGES_MODE: 'sim',
       JWT_SECRET: 'test-secret',
-      WHATSAPP_NUMBER: '233238136060',
+      WHATSAPP_NUMBER: '233203813606',
     },
     globalSetup: './tests/globalSetup.ts',
     fileParallelism: false,

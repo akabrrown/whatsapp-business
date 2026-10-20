@@ -644,13 +644,13 @@ export default function SettingsPage() {
             <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-charcoal/50">
               <MessageCircle size={13} aria-hidden /> WhatsApp number
             </p>
-            <p className="mb-3 text-xs text-charcoal/60">The number customers see on the website. Use international format without + (e.g., 233238136060).</p>
+            <p className="mb-3 text-xs text-charcoal/60">The number customers see on the website. Use international format without + (e.g., 233203813606).</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={whatsappInput}
                 onChange={(e) => setWhatsappInput(e.target.value)}
-                placeholder="233238136060"
+                placeholder="233203813606"
                 className={inputStyle}
               />
               <button onClick={saveWhatsApp} disabled={whatsappInput === whatsappNumber} className="text-xs text-indigo underline disabled:text-charcoal/30">Save</button>

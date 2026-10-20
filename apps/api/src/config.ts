@@ -6,7 +6,7 @@ const ownerPassword = process.env.OWNER_PASSWORD || 'Option#5';
 export const config = {
   port: Number(process.env.PORT ?? 4000),
   jwtSecret,
-  whatsappNumber: process.env.WHATSAPP_NUMBER ?? '233238136060',
+  whatsappNumber: process.env.WHATSAPP_NUMBER ?? '233203813606',
   apiUrl: process.env.API_URL ?? 'http://localhost:4000',
   storefrontUrl: process.env.STOREFRONT_URL ?? 'http://localhost:3000',
 

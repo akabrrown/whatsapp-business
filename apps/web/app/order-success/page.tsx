@@ -17,7 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useCart } from '@/lib/cart';
-import { formatGHS } from '@rose/shared';
+import { formatGHS, normalizeWhatsAppNumber, formatPhoneDisplay } from '@rose/shared';
 import { LiveMap } from '@/components/LiveMap';
 import { getApiUrl } from '@/lib/config';
 
@@ -54,7 +54,7 @@ function OrderSuccessContent() {
   
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<SuccessOrder | null>(null);
-  const [whatsappNumber, setWhatsappNumber] = useState('233238136060');
+  const [whatsappNumber, setWhatsappNumber] = useState('233203813606');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -65,12 +65,12 @@ function OrderSuccessContent() {
     } catch {}
     clear().catch(() => {});
 
-    // Fetch store WhatsApp contact number
+    // Fetch store WhatsApp contact number and normalize to E.164 without leading 0
     fetch(`${API}/api/settings/whatsapp`)
       .then((r) => r.json())
       .then((d) => {
         if (d.ok && d.whatsappNumber) {
-          setWhatsappNumber(d.whatsappNumber.replace(/\D/g, ''));
+          setWhatsappNumber(normalizeWhatsAppNumber(d.whatsappNumber));
         }
       })
       .catch(() => {});
@@ -140,7 +140,7 @@ function OrderSuccessContent() {
 
     const text =
       `*ORDER CONFIRMATION — PAID ONLINE (#${order.number})*\n\n` +
-      `👤 *Customer Phone:* ${order.customer?.phone || order.phone || 'Customer'}\n` +
+      `👤 *Customer Phone:* ${formatPhoneDisplay(order.customer?.phone || order.phone) || 'Customer'}\n` +
       `🧾 *Payment Reference:* ${order.paymentReference || ref}\n` +
       `💳 *Payment Method:* Paystack MoMo / Card (PAID)\n` +
       `${fulfillmentText}${mapText}\n\n` +
@@ -161,7 +161,8 @@ function OrderSuccessContent() {
     }
   };
 
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${buildWhatsAppText()}`;
+  const cleanWaNumber = normalizeWhatsAppNumber(whatsappNumber);
+  const whatsappUrl = `https://wa.me/${cleanWaNumber}?text=${buildWhatsAppText()}`;
 
   return (
     <div className="min-h-[85vh] bg-[#FAF8F5] px-4 py-10 sm:px-6 lg:px-8 animate-in fade-in duration-300">

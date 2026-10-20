@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     name: 'TOBI CLOTHINGS',
     url: 'https://tobiclothings.com',
     description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra.',
-    telephone: '+233238136060',
+    telephone: '+233203813606',
     address: {
       '@type': 'PostalAddress',
       addressLocality: 'Accra',
