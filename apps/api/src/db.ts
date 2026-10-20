@@ -1,7 +1,33 @@
 import { PrismaClient } from '@prisma/client';
 
+function getDatabaseUrl(): string | undefined {
+  let url = process.env.DATABASE_URL;
+  if (!url) return undefined;
+
+  // Supabase pooler optimization:
+  // If using pooler.supabase.com, route from session mode (5432) to transaction mode (6543)
+  // and ensure pgbouncer=true to prevent prepared statement collisions and EMAXCONNSESSION.
+  if (url.includes('pooler.supabase.com')) {
+    if (url.includes(':5432')) {
+      url = url.replace(':5432', ':6543');
+    }
+    if (!url.includes('pgbouncer=true')) {
+      url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true';
+    }
+    // Set a lean connection limit suitable for serverless functions (default 1 per instance)
+    if (!url.includes('connection_limit=')) {
+      url += '&connection_limit=1';
+    } else {
+      url = url.replace(/connection_limit=\d+/, 'connection_limit=1');
+    }
+  }
+  return url;
+}
+
 function createPrismaClient() {
+  const dbUrl = getDatabaseUrl();
   const client = new PrismaClient({
+    ...(dbUrl ? { datasources: { db: { url: dbUrl } } } : {}),
     log: ['error'],
   });
 
@@ -27,13 +53,17 @@ function createPrismaClient() {
                 code === 'ECONNRESET' ||
                 code === 'EAI_AGAIN' ||
                 code === 'ENOTFOUND' ||
+                code === '42P05' ||
                 msg.includes('Server has closed the connection') ||
                 msg.includes('connection closed') ||
                 msg.includes('forcibly closed by the remote host') ||
                 msg.includes('Can\'t reach database server') ||
                 msg.includes('Connection terminated') ||
                 msg.includes('socket hang up') ||
-                msg.includes('pooler');
+                msg.includes('pooler') ||
+                msg.includes('EMAXCONNSESSION') ||
+                msg.includes('max clients reached') ||
+                msg.includes('prepared statement');
 
               if (isTransient && attempts < maxAttempts) {
                 const backoffMs = Math.min(800 * Math.pow(1.5, attempts), 4000);

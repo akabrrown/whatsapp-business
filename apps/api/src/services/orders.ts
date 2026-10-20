@@ -71,9 +71,11 @@ async function nextOrderNumber(): Promise<string> {
     orderSeqLock = orderSeqLock.then(resolve);
   });
   try {
-    if (orderSeq === null) {
-      const last = await db.order.findFirst({ orderBy: { id: 'desc' }, select: { number: true } });
-      orderSeq = last ? parseInt(last.number.replace('RD-', ''), 10) : 1000;
+    const last = await db.order.findFirst({ orderBy: { createdAt: 'desc' }, select: { number: true } });
+    const currentMax = last ? parseInt(last.number.replace(/\D/g, ''), 10) : 1000;
+    const baseSeq = isNaN(currentMax) ? 1000 : currentMax;
+    if (orderSeq === null || orderSeq < baseSeq) {
+      orderSeq = baseSeq;
     }
     orderSeq += 1;
     return `RD-${orderSeq}`;
@@ -114,28 +116,58 @@ export async function createOrder(input: CreateOrderInput & { paid: boolean }): 
   const totalP = subtotalP + feeP;
   const vip = totalP >= VIP_THRESHOLD_PESWAS; // §10.4
 
-  const number = await nextOrderNumber();
-  const order = await db.order.create({
-    data: {
-      number,
-      customerId: customer.id,
-      status: input.paid ? OrderStatus.PAID : OrderStatus.RESERVED,
-      source: input.source,
-      fulfillmentType: input.fulfillmentType ?? 'DELIVERY',
-      subtotalP,
-      deliveryFeeP: feeP,
-      totalP,
-      deliveryAddress: input.deliveryAddress ?? '',
-      zoneName: input.fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (input.zoneName ?? null),
-      latitude: input.latitude ?? null,
-      longitude: input.longitude ?? null,
-      vip,
-      needsAdminReview: input.needsAdminReview ?? false,
-      conversationId: input.conversationId ?? null,
-      items: { create: lines },
-    },
-    include: { items: true },
-  });
+  let number = await nextOrderNumber();
+  let order;
+  try {
+    order = await db.order.create({
+      data: {
+        number,
+        customerId: customer.id,
+        status: input.paid ? OrderStatus.PAID : OrderStatus.RESERVED,
+        source: input.source,
+        fulfillmentType: input.fulfillmentType ?? 'DELIVERY',
+        subtotalP,
+        deliveryFeeP: feeP,
+        totalP,
+        deliveryAddress: input.deliveryAddress ?? '',
+        zoneName: input.fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (input.zoneName ?? null),
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
+        vip,
+        needsAdminReview: input.needsAdminReview ?? false,
+        conversationId: input.conversationId ?? null,
+        items: { create: lines },
+      },
+      include: { items: true },
+    });
+  } catch (err: any) {
+    if (err?.code === 'P2002' && String(err?.meta?.target ?? '').includes('number')) {
+      number = await nextOrderNumber();
+      order = await db.order.create({
+        data: {
+          number,
+          customerId: customer.id,
+          status: input.paid ? OrderStatus.PAID : OrderStatus.RESERVED,
+          source: input.source,
+          fulfillmentType: input.fulfillmentType ?? 'DELIVERY',
+          subtotalP,
+          deliveryFeeP: feeP,
+          totalP,
+          deliveryAddress: input.deliveryAddress ?? '',
+          zoneName: input.fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu)' : (input.zoneName ?? null),
+          latitude: input.latitude ?? null,
+          longitude: input.longitude ?? null,
+          vip,
+          needsAdminReview: input.needsAdminReview ?? false,
+          conversationId: input.conversationId ?? null,
+          items: { create: lines },
+        },
+        include: { items: true },
+      });
+    } else {
+      throw err;
+    }
+  }
 
   if (input.paid) {
     // §6.1: hard-deduct at payment. If stock vanished (race, §6.4) flag shortfall.
