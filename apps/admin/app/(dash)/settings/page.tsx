@@ -293,14 +293,15 @@ export default function SettingsPage() {
     }
   };
 
-  const bulkDeleteCategories = async (moveProducts = false) => {
+  const bulkDeleteCategories = async (moveProducts = false, deleteProducts = false) => {
     if (selectedCategoryIds.length === 0) return;
     const selectedCats = categories.filter((c) => selectedCategoryIds.includes(c.id));
     const mainCount = selectedCats.filter((c) => !c.parentId).length;
     const subCount = selectedCats.filter((c) => !!c.parentId).length;
+    const targetsUncategorized = selectedCats.some((c) => c.slug === 'uncategorized' || c.name.toLowerCase() === 'uncategorized');
 
     const confirmMsg = `Permanently delete ${selectedCategoryIds.length} selected category/categories (${mainCount} main, ${subCount} sub/types)? Any nested subcategories will also be deleted. This cannot be undone.`;
-    if (!moveProducts && !confirm(confirmMsg)) return;
+    if (!moveProducts && !deleteProducts && !confirm(confirmMsg)) return;
 
     setBulkDeleting(true);
     setError('');
@@ -311,7 +312,11 @@ export default function SettingsPage() {
         '/api/admin/categories/bulk-delete',
         {
           method: 'POST',
-          body: JSON.stringify({ ids: selectedCategoryIds, moveProductsToUncategorized: moveProducts }),
+          body: JSON.stringify({
+            ids: selectedCategoryIds,
+            moveProductsToUncategorized: moveProducts,
+            deleteProducts,
+          }),
         }
       );
       setSelectedCategoryIds([]);
@@ -323,12 +328,22 @@ export default function SettingsPage() {
       await loadCategories();
     } catch (e: any) {
       if (e.message?.includes('product(s) are assigned') || e.message?.includes('Uncategorized')) {
-        const move = confirm(
-          `${e.message}\n\nClick OK to automatically move these products to an "Uncategorized" category and proceed with deleting the categories.`
-        );
-        if (move) {
-          await bulkDeleteCategories(true);
-          return;
+        if (targetsUncategorized) {
+          const del = confirm(
+            `${e.message}\n\nClick OK to permanently delete the category and delete these attached un-ordered products.`
+          );
+          if (del) {
+            await bulkDeleteCategories(false, true);
+            return;
+          }
+        } else {
+          const move = confirm(
+            `${e.message}\n\nClick OK to automatically move these products to an "Uncategorized" category and proceed with deleting the categories.`
+          );
+          if (move) {
+            await bulkDeleteCategories(true, false);
+            return;
+          }
         }
       }
       setCategoryError(e.message);
@@ -338,20 +353,21 @@ export default function SettingsPage() {
     }
   };
 
-  const deleteCategory = async (c: Category, moveProducts = false) => {
+  const deleteCategory = async (c: Category, moveProducts = false, deleteProducts = false) => {
     const subCats = categories.filter((sub) => sub.parentId === c.id);
+    const isUncategorized = c.slug === 'uncategorized' || c.name.toLowerCase() === 'uncategorized';
     const msg =
       subCats.length > 0
         ? `Delete "${c.name}" and its ${subCats.length} subcategories? This cannot be undone.`
         : `Are you sure you want to delete "${c.name}"?`;
-    if (!moveProducts && !confirm(msg)) return;
+    if (!moveProducts && !deleteProducts && !confirm(msg)) return;
     setError('');
     setCategoryError('');
     setCategorySuccess('');
     try {
-      const url = moveProducts
-        ? `/api/admin/categories/${c.id}?moveProductsToUncategorized=true`
-        : `/api/admin/categories/${c.id}`;
+      let url = `/api/admin/categories/${c.id}`;
+      if (moveProducts) url += '?moveProductsToUncategorized=true';
+      if (deleteProducts) url += '?deleteProducts=true';
       const res = await apiFetch<{ ok: boolean; deletedCount?: number; movedProductsCount?: number; error?: string }>(
         url,
         { method: 'DELETE' }
@@ -365,12 +381,22 @@ export default function SettingsPage() {
       await loadCategories();
     } catch (e: any) {
       if (e.message?.includes('product(s) are assigned') || e.message?.includes('Uncategorized')) {
-        const move = confirm(
-          `${e.message}\n\nClick OK to automatically move these products to an "Uncategorized" category and delete "${c.name}".`
-        );
-        if (move) {
-          await deleteCategory(c, true);
-          return;
+        if (isUncategorized) {
+          const del = confirm(
+            `"${c.name}" contains attached products (including "Test Jeans", "Test Bag").\n\nClick OK to permanently delete "${c.name}" along with its attached test products.`
+          );
+          if (del) {
+            await deleteCategory(c, false, true);
+            return;
+          }
+        } else {
+          const move = confirm(
+            `${e.message}\n\nClick OK to automatically move these products to an "Uncategorized" category and delete "${c.name}".`
+          );
+          if (move) {
+            await deleteCategory(c, true, false);
+            return;
+          }
         }
       }
       setCategoryError(e.message);

@@ -865,11 +865,27 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
       where: { categoryId: { in: allIds } },
     });
 
+    const uncategorizedCat = await db.category.findFirst({
+      where: { slug: 'uncategorized', parentId: null },
+      select: { id: true },
+    });
+    const targetsUncategorized = !!(uncategorizedCat && allIds.includes(uncategorizedCat.id));
+
     if (productCount > 0 && !moveProductsToUncategorized && !deleteProducts && !reassignToCategoryId) {
       const names = attachedProducts.map((p) => `"${p.name}" (${p.category.name})`).join(', ');
+      if (targetsUncategorized) {
+        return res.status(409).json({
+          ok: false,
+          hasProducts: true,
+          targetsUncategorized: true,
+          productCount,
+          error: `Cannot delete: ${productCount} product(s) are assigned to "Uncategorized" (including ${names}). Delete these products with the category to proceed.`,
+        });
+      }
       return res.status(409).json({
         ok: false,
         hasProducts: true,
+        targetsUncategorized: false,
         productCount,
         error: `Cannot delete: ${productCount} product(s) are assigned to the selected categories (including ${names}). Would you like to move them to "Uncategorized" and proceed?`,
       });
