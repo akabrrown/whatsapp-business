@@ -50,7 +50,7 @@ export async function Footer() {
         </div>
       </div>
       <div className="border-t border-sand/30 py-4 text-center text-xs text-charcoal/50">
-        © {new Date().getFullYear()} TOBI CLOTHINGS
+        <p>© {new Date().getFullYear()} TOBI CLOTHINGS · Developed by Codey Dev</p>
       </div>
     </footer>
   );
