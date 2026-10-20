@@ -818,63 +818,17 @@ admin.patch('/categories/:id', requireOwner, async (req, res) => {
     res.status(500).json({ ok: false, error: (e as Error).message });
   }
 });
-admin.delete('/categories/:id', requireOwner, async (req, res) => {
-  try {
-    const category = await db.category.findUnique({
-      where: { id: req.params.id },
-      include: { _count: { select: { products: true } } },
-    });
-    if (!category) return res.status(404).json({ ok: false, error: 'Category not found' });
-
-    // Recursively collect all descendant category IDs
-    async function collectDescendantIds(parentId: string): Promise<string[]> {
-      const subs = await db.category.findMany({ where: { parentId }, select: { id: true } });
-      const ids = subs.map((s) => s.id);
-      for (const id of ids) {
-        const nested = await collectDescendantIds(id);
-        ids.push(...nested);
-      }
-      return ids;
-    }
-
-    const descendantIds = await collectDescendantIds(req.params.id);
-    const allIds = [req.params.id, ...descendantIds];
-
-    // Check if any product is attached to this category or any of its subcategories
-    const productCount = await db.product.count({
-      where: { categoryId: { in: allIds } },
-    });
-
-    if (productCount > 0) {
-      return res.status(409).json({
-        ok: false,
-        error: `Cannot delete "${category.name}": contains ${productCount} product(s). Please reassign or delete products first.`,
-      });
-    }
-
-    // Safely delete all in a transaction by detaching parent references first
-    await db.$transaction(async (tx) => {
-      if (descendantIds.length > 0) {
-        await tx.category.updateMany({
-          where: { id: { in: descendantIds } },
-          data: { parentId: null },
-        });
-      }
-      await tx.category.deleteMany({
-        where: { id: { in: allIds } },
-      });
-    });
-
-    hub.broadcast('web', 'catalog_updated', { time: Date.now() });
-    res.json({ ok: true, deletedCount: allIds.length });
-  } catch (e) {
-    console.error('DELETE /categories/:id error:', e);
-    res.status(500).json({ ok: false, error: (e as Error).message });
-  }
-});
-
 const handleBulkDeleteCategories = async (req: any, res: any) => {
-  const { ids } = req.body as { ids?: string[] };
+  const ids: string[] = req.body?.ids || (req.params?.id ? [req.params.id] : []);
+  const moveProductsToUncategorized =
+    req.body?.moveProductsToUncategorized === true ||
+    req.query?.moveProductsToUncategorized === 'true';
+  const deleteProducts =
+    req.body?.deleteProducts === true ||
+    req.query?.deleteProducts === 'true';
+  const reassignToCategoryId =
+    req.body?.reassignToCategoryId || req.query?.reassignToCategoryId;
+
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ ok: false, error: 'Category ids array required' });
   }
@@ -904,22 +858,96 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
     const attachedProducts = await db.product.findMany({
       where: { categoryId: { in: allIds } },
       select: { id: true, name: true, category: { select: { name: true } } },
-      take: 3,
+      take: 5,
     });
 
-    if (attachedProducts.length > 0) {
-      const count = await db.product.count({
-        where: { categoryId: { in: allIds } },
-      });
+    const productCount = await db.product.count({
+      where: { categoryId: { in: allIds } },
+    });
+
+    if (productCount > 0 && !moveProductsToUncategorized && !deleteProducts && !reassignToCategoryId) {
       const names = attachedProducts.map((p) => `"${p.name}" (${p.category.name})`).join(', ');
       return res.status(409).json({
         ok: false,
-        error: `Cannot delete: ${count} product(s) are assigned to the selected categories (including ${names}). Please reassign or delete these products first.`,
+        hasProducts: true,
+        productCount,
+        error: `Cannot delete: ${productCount} product(s) are assigned to the selected categories (including ${names}). Would you like to move them to "Uncategorized" and proceed?`,
       });
     }
 
-    // Safely delete in a transaction: nullify parentId first to satisfy FK constraints
+    // Safely delete in a transaction
     await db.$transaction(async (tx) => {
+      // Helper to get or create fallback category
+      async function getOrCreateUncategorized() {
+        let uncategorized = await tx.category.findFirst({
+          where: { slug: 'uncategorized', parentId: null },
+        });
+        if (!uncategorized) {
+          uncategorized = await tx.category.create({
+            data: {
+              name: 'Uncategorized',
+              slug: 'uncategorized',
+              flagship: false,
+            },
+          });
+        }
+        return uncategorized;
+      }
+
+      if (productCount > 0) {
+        if (deleteProducts) {
+          // Delete variants and products without order history
+          const allAttached = await tx.product.findMany({
+            where: { categoryId: { in: allIds } },
+            select: { id: true },
+          });
+          const productIds = allAttached.map((p: any) => p.id);
+          const orderedItems = await tx.orderItem.findMany({
+            where: { productId: { in: productIds } },
+            select: { productId: true },
+          });
+          const orderedSet = new Set(orderedItems.map((o: any) => o.productId));
+          const safeToDelete = productIds.filter((id: string) => !orderedSet.has(id));
+
+          if (safeToDelete.length > 0) {
+            const variants = await tx.productVariant.findMany({
+              where: { productId: { in: safeToDelete } },
+              select: { id: true },
+            });
+            const vIds = variants.map((v: any) => v.id);
+            if (vIds.length > 0) {
+              await tx.tokenItem.deleteMany({ where: { variantId: { in: vIds } } });
+              await tx.inventoryLog.deleteMany({ where: { variantId: { in: vIds } } });
+              await tx.productVariant.deleteMany({ where: { id: { in: vIds } } });
+            }
+            await tx.product.deleteMany({ where: { id: { in: safeToDelete } } });
+          }
+
+          // Move any products that have historical orders to Uncategorized to preserve DB integrity
+          const remainingCount = await tx.product.count({ where: { categoryId: { in: allIds } } });
+          if (remainingCount > 0) {
+            const fallback = await getOrCreateUncategorized();
+            await tx.product.updateMany({
+              where: { categoryId: { in: allIds } },
+              data: { categoryId: fallback.id },
+            });
+          }
+        } else if (reassignToCategoryId && !allIds.includes(reassignToCategoryId)) {
+          await tx.product.updateMany({
+            where: { categoryId: { in: allIds } },
+            data: { categoryId: reassignToCategoryId },
+          });
+        } else {
+          // Default safe path: Move products to Uncategorized
+          const fallback = await getOrCreateUncategorized();
+          await tx.product.updateMany({
+            where: { categoryId: { in: allIds } },
+            data: { categoryId: fallback.id },
+          });
+        }
+      }
+
+      // Detach parentId on descendants first to prevent foreign key errors
       if (descendantIds.length > 0) {
         await tx.category.updateMany({
           where: { id: { in: descendantIds } },
@@ -932,15 +960,16 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
     });
 
     hub.broadcast('web', 'catalog_updated', { time: Date.now() });
-    res.json({ ok: true, deletedCount: allIds.length });
+    res.json({ ok: true, deletedCount: allIds.length, movedProductsCount: productCount });
   } catch (e) {
-    console.error('Bulk delete categories error:', e);
+    console.error('Delete categories error:', e);
     res.status(500).json({ ok: false, error: (e as Error).message });
   }
 };
 
 admin.post('/categories/bulk-delete', requireOwner, handleBulkDeleteCategories);
 admin.delete('/categories/bulk', requireOwner, handleBulkDeleteCategories);
+admin.delete('/categories/:id', requireOwner, handleBulkDeleteCategories);
 
 // ---- Customers / CRM (§9.3) ---------------------------------------------------
 admin.get('/customers', async (_req, res) => {

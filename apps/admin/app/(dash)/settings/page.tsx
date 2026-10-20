@@ -39,6 +39,8 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [categoryError, setCategoryError] = useState('');
+  const [categorySuccess, setCategorySuccess] = useState('');
   const [newCategory, setNewCategory] = useState({ name: '', slug: '', flagship: false, image: '', parentId: '' });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   
@@ -291,45 +293,88 @@ export default function SettingsPage() {
     }
   };
 
-  const bulkDeleteCategories = async () => {
+  const bulkDeleteCategories = async (moveProducts = false) => {
     if (selectedCategoryIds.length === 0) return;
     const selectedCats = categories.filter((c) => selectedCategoryIds.includes(c.id));
     const mainCount = selectedCats.filter((c) => !c.parentId).length;
     const subCount = selectedCats.filter((c) => !!c.parentId).length;
 
     const confirmMsg = `Permanently delete ${selectedCategoryIds.length} selected category/categories (${mainCount} main, ${subCount} sub/types)? Any nested subcategories will also be deleted. This cannot be undone.`;
-    if (!confirm(confirmMsg)) return;
+    if (!moveProducts && !confirm(confirmMsg)) return;
 
     setBulkDeleting(true);
     setError('');
+    setCategoryError('');
+    setCategorySuccess('');
     try {
-      await apiFetch('/api/admin/categories/bulk-delete', {
-        method: 'POST',
-        body: JSON.stringify({ ids: selectedCategoryIds }),
-      });
+      const res = await apiFetch<{ ok: boolean; deletedCount?: number; movedProductsCount?: number; error?: string }>(
+        '/api/admin/categories/bulk-delete',
+        {
+          method: 'POST',
+          body: JSON.stringify({ ids: selectedCategoryIds, moveProductsToUncategorized: moveProducts }),
+        }
+      );
       setSelectedCategoryIds([]);
+      setCategorySuccess(
+        `Deleted ${res.deletedCount ?? selectedCategoryIds.length} category/categories${
+          res.movedProductsCount ? ` (${res.movedProductsCount} product(s) moved to Uncategorized)` : ''
+        }.`
+      );
       await loadCategories();
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (e: any) {
+      if (e.message?.includes('product(s) are assigned') || e.message?.includes('Uncategorized')) {
+        const move = confirm(
+          `${e.message}\n\nClick OK to automatically move these products to an "Uncategorized" category and proceed with deleting the categories.`
+        );
+        if (move) {
+          await bulkDeleteCategories(true);
+          return;
+        }
+      }
+      setCategoryError(e.message);
+      setError(e.message);
     } finally {
       setBulkDeleting(false);
     }
   };
 
-  const deleteCategory = async (c: Category) => {
+  const deleteCategory = async (c: Category, moveProducts = false) => {
     const subCats = categories.filter((sub) => sub.parentId === c.id);
     const msg =
       subCats.length > 0
         ? `Delete "${c.name}" and its ${subCats.length} subcategories? This cannot be undone.`
         : `Are you sure you want to delete "${c.name}"?`;
-    if (!confirm(msg)) return;
+    if (!moveProducts && !confirm(msg)) return;
     setError('');
+    setCategoryError('');
+    setCategorySuccess('');
     try {
-      await apiFetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
+      const url = moveProducts
+        ? `/api/admin/categories/${c.id}?moveProductsToUncategorized=true`
+        : `/api/admin/categories/${c.id}`;
+      const res = await apiFetch<{ ok: boolean; deletedCount?: number; movedProductsCount?: number; error?: string }>(
+        url,
+        { method: 'DELETE' }
+      );
       setSelectedCategoryIds((prev) => prev.filter((id) => id !== c.id && !subCats.some((s) => s.id === id)));
+      setCategorySuccess(
+        `"${c.name}" deleted successfully${
+          res.movedProductsCount ? ` (${res.movedProductsCount} product(s) moved to Uncategorized)` : ''
+        }.`
+      );
       await loadCategories();
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (e: any) {
+      if (e.message?.includes('product(s) are assigned') || e.message?.includes('Uncategorized')) {
+        const move = confirm(
+          `${e.message}\n\nClick OK to automatically move these products to an "Uncategorized" category and delete "${c.name}".`
+        );
+        if (move) {
+          await deleteCategory(c, true);
+          return;
+        }
+      }
+      setCategoryError(e.message);
+      setError(e.message);
     }
   };
 
@@ -487,6 +532,31 @@ export default function SettingsPage() {
                 )}
               </div>
 
+              {categoryError && (
+                <div className="mb-3 flex items-start justify-between rounded border border-rose/40 bg-rose/10 p-3 text-xs text-rose animate-in fade-in">
+                  <span className="flex-1 leading-relaxed">{categoryError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryError('')}
+                    className="ml-2 font-bold text-rose hover:text-rose/80"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              {categorySuccess && (
+                <div className="mb-3 flex items-start justify-between rounded border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs text-emerald-800 animate-in fade-in">
+                  <span className="flex-1 leading-relaxed">{categorySuccess}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCategorySuccess('')}
+                    className="ml-2 font-bold text-emerald-800 hover:text-emerald-900"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               {/* Bulk actions banner */}
               {selectedCategoryIds.length > 0 && (
                 <div className="mb-3 flex items-center justify-between rounded border border-rose/30 bg-rose/10 px-3.5 py-2">
@@ -509,7 +579,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={bulkDeleteCategories}
+                      onClick={() => bulkDeleteCategories()}
                       disabled={bulkDeleting}
                       className="flex items-center gap-1.5 rounded bg-rose px-3 py-1 text-xs font-medium text-cream shadow-sm hover:bg-rose/90 disabled:opacity-50 transition-colors"
                     >
