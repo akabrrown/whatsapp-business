@@ -876,7 +876,10 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
     }
 
     // Safely delete in a transaction
+    let deletedCount = 0;
     await db.$transaction(async (tx) => {
+      let fallbackId: string | null = null;
+
       // Helper to get or create fallback category
       async function getOrCreateUncategorized() {
         let uncategorized = await tx.category.findFirst({
@@ -894,7 +897,7 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
         return uncategorized;
       }
 
-      if (productCount > 0) {
+      if (productCount > 0 || moveProductsToUncategorized) {
         if (deleteProducts) {
           // Delete variants and products without order history
           const allAttached = await tx.product.findMany({
@@ -927,6 +930,7 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
           const remainingCount = await tx.product.count({ where: { categoryId: { in: allIds } } });
           if (remainingCount > 0) {
             const fallback = await getOrCreateUncategorized();
+            fallbackId = fallback.id;
             await tx.product.updateMany({
               where: { categoryId: { in: allIds } },
               data: { categoryId: fallback.id },
@@ -940,6 +944,7 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
         } else {
           // Default safe path: Move products to Uncategorized
           const fallback = await getOrCreateUncategorized();
+          fallbackId = fallback.id;
           await tx.product.updateMany({
             where: { categoryId: { in: allIds } },
             data: { categoryId: fallback.id },
@@ -947,20 +952,27 @@ const handleBulkDeleteCategories = async (req: any, res: any) => {
         }
       }
 
+      // Safeguard: Never delete the fallback category that now holds the reassigned products
+      const idsToDelete = fallbackId ? allIds.filter((id) => id !== fallbackId) : allIds;
+      const descendantsToDelete = fallbackId ? descendantIds.filter((id) => id !== fallbackId) : descendantIds;
+
       // Detach parentId on descendants first to prevent foreign key errors
-      if (descendantIds.length > 0) {
+      if (descendantsToDelete.length > 0) {
         await tx.category.updateMany({
-          where: { id: { in: descendantIds } },
+          where: { id: { in: descendantsToDelete } },
           data: { parentId: null },
         });
       }
-      await tx.category.deleteMany({
-        where: { id: { in: allIds } },
-      });
+      if (idsToDelete.length > 0) {
+        const delRes = await tx.category.deleteMany({
+          where: { id: { in: idsToDelete } },
+        });
+        deletedCount = delRes.count;
+      }
     });
 
     hub.broadcast('web', 'catalog_updated', { time: Date.now() });
-    res.json({ ok: true, deletedCount: allIds.length, movedProductsCount: productCount });
+    res.json({ ok: true, deletedCount, movedProductsCount: productCount });
   } catch (e) {
     console.error('Delete categories error:', e);
     res.status(500).json({ ok: false, error: (e as Error).message });
