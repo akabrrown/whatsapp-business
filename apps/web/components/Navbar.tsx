@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Menu, ShoppingBag, X, Truck } from 'lucide-react';
+import { ChevronDown, ShoppingBag, X, Truck } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { SearchOverlay } from './SearchOverlay';
 import { PromoBanner } from './PromoBanner';
@@ -51,22 +51,24 @@ export function Navbar({ categories }: { categories: Category[] }) {
         {/* ─── Top Bar: Brand + Actions ─── */}
         <header className="relative bg-cream">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
-          {/* Mobile hamburger */}
-          <button
-            aria-label="Open navigation menu"
-            className="mr-3 text-charcoal/70 transition-colors hover:text-indigo md:hidden"
-            onClick={() => setMenuOpen(true)}
-          >
-            <Menu size={22} aria-hidden />
-          </button>
-
           {/* Brand */}
           <Link href="/" className="headline text-xl tracking-wide md:text-2xl">
             TOBI <span className="text-rose">CLOTHINGS</span>
           </Link>
 
-          {/* Actions: Track + Search + Cart */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Actions: WhatsApp + Track + Search + Cart */}
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            <a
+              href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'd%20like%20to%20order"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-2.5 py-1 text-xs font-semibold text-wagreen hover:bg-wagreen/20 transition-all active:scale-95"
+              title="Chat with Tobi on WhatsApp"
+            >
+              <span className="h-2 w-2 rounded-full bg-wagreen animate-pulse" />
+              <span className="hidden sm:inline">WhatsApp</span>
+            </a>
+
             <Link
               href="/track"
               className="flex items-center gap-1 text-xs font-medium text-charcoal/70 transition-colors hover:text-indigo"
@@ -85,7 +87,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
             >
               <ShoppingBag size={21} aria-hidden />
               {count > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose text-[10px] font-medium text-cream">
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose text-[10px] font-medium text-cream shadow-xs animate-in zoom-in-75">
                   {count}
                 </span>
               )}

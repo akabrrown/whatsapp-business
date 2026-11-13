@@ -1,10 +1,12 @@
 // Public storefront routes: catalog, cart sessions, handoff, token status.
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import * as catalog from '../services/catalog.js';
 import * as cart from '../services/cart.js';
 import * as handoff from '../services/handoff.js';
 import { findActiveToken } from '../services/handoff.js';
 import { initPaymentForToken, lastPaystackError } from '../services/payments.js';
+import * as orders from '../services/orders.js';
 import { matchZone, matchPin } from '../services/address.js';
 import { liveReverseGeocode, liveForwardGeocode } from '../services/geocode.js';
 import { InsufficientStock } from '../services/inventory.js';
@@ -224,6 +226,89 @@ storefront.post('/checkout/online', async (req, res) => {
   }
 });
 
+// ---- Direct Web Checkout (Payment on Delivery / Cash on Delivery) ----------
+storefront.post('/checkout/pod', async (req, res) => {
+  const { phone, address, items, sessionId, zoneName, deliveryFeeP, fulfillmentType, latitude, longitude } = req.body as {
+    phone?: string;
+    address?: string;
+    items?: { variantId: string; qty: number }[];
+    sessionId?: string;
+    zoneName?: string;
+    deliveryFeeP?: number;
+    fulfillmentType?: string;
+    latitude?: number;
+    longitude?: number;
+  };
+
+  const cleanPhone = (phone || '').replace(/[^\d+]/g, '').trim();
+  const digits = cleanPhone.replace(/\D/g, '');
+  if (!cleanPhone || digits.length < 8) {
+    return res.status(400).json({ ok: false, error: 'INVALID_PHONE', message: 'Valid recipient phone number is required.' });
+  }
+
+  const serverCart = sessionId ? await cart.get(sessionId) : null;
+  const cartItems = serverCart && serverCart.items.length > 0 ? serverCart.items : (items ?? []);
+
+  if (!cartItems.length) {
+    return res.status(400).json({ ok: false, error: 'EMPTY_CART', message: 'Cart is empty. Please add items.' });
+  }
+
+  try {
+    const isPickup = fulfillmentType === 'PICKUP';
+    const effectiveFeeP = isPickup ? 0 : (deliveryFeeP ?? 0);
+
+    // 1. Create order in database directly with paid = false
+    const orderResult = await orders.createOrder({
+      phone: cleanPhone,
+      source: OrderSource.WEBSITE,
+      fulfillmentType: isPickup ? 'PICKUP' : 'DELIVERY',
+      deliveryAddress: isPickup ? 'Store Pickup (Osu Flagship)' : (address || zoneName || 'Accra Area'),
+      zoneName: isPickup ? 'Store Pickup (Osu Flagship)' : (zoneName ?? 'Accra Delivery Zone'),
+      deliveryFeeP: effectiveFeeP,
+      latitude,
+      longitude,
+      items: cartItems,
+      paid: false,
+    });
+
+    const created = orderResult.order;
+    const podRef = `pod_${created.number}_${crypto.randomUUID().slice(0, 8)}`;
+
+    // 2. Record payment row for POD tracking
+    await db.payment.create({
+      data: {
+        orderId: created.id,
+        paystackRef: podRef,
+        amountP: created.totalP,
+        channel: 'cash_on_delivery',
+        status: 'pending',
+      },
+    }).catch(() => {});
+
+    // 3. Clear session cart
+    if (sessionId) await cart.clear(sessionId).catch(() => {});
+
+    // 4. Real-time alert to admin dashboard
+    hub.broadcastAdmin('order.new', {
+      id: created.id,
+      number: created.number,
+      totalP: created.totalP,
+      phone: cleanPhone,
+      paymentMethod: 'PAY_ON_DELIVERY',
+    });
+
+    res.json({
+      ok: true,
+      orderNumber: created.number,
+      reference: podRef,
+      totalP: created.totalP,
+      orderId: created.id,
+    });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: e?.message || 'Failed to place payment on delivery order.' });
+  }
+});
+
 storefront.post('/handoff/:code/cancel', async (req, res) => {
   const ok = await handoff.cancelToken(req.params.code);
   res.json({ ok, message: ok ? "No problem, your order has been cancelled. Let us know if you'd like to start a new one!" : 'Token not active' });
@@ -409,73 +494,146 @@ storefront.get('/orders/track/:query', handleTrack);
 storefront.get('/track/:query', handleTrack);
 
 // ---- Public token & order lookup for post-checkout receipt ----------------
+function formatOrderForReceipt(order: any, fallbackRef?: string) {
+  const p = order.payments?.[0];
+  const paymentChannel = p?.channel || (p?.paystackRef?.startsWith('pod_') ? 'cash_on_delivery' : 'card');
+  const isPOD = paymentChannel === 'cash_on_delivery' || order.status === 'RESERVED' || p?.paystackRef?.startsWith('pod_');
+
+  return {
+    number: order.number,
+    status: order.status,
+    fulfillmentType: order.fulfillmentType || 'DELIVERY',
+    subtotalP: order.subtotalP,
+    deliveryFeeP: order.deliveryFeeP,
+    totalP: order.totalP,
+    zoneName: order.zoneName,
+    deliveryAddress: order.deliveryAddress,
+    latitude: order.latitude,
+    longitude: order.longitude,
+    paymentReference: p?.paystackRef || p?.tokenCode || fallbackRef || order.number,
+    paymentMethod: isPOD ? 'PAY_ON_DELIVERY' : 'PAYSTACK_ONLINE',
+    createdAt: order.createdAt,
+    customer: {
+      phone: order.customer?.phone || '',
+      name: order.customer?.name || '',
+    },
+    items: (order.items || []).map((i: any) => {
+      const prod = i.product || i.variant?.product;
+      let img = '';
+      try {
+        const parsed = JSON.parse(prod?.images || '[]');
+        img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
+      } catch {}
+      const unitPrice = i.unitPriceP || i.variant?.priceP || 0;
+      return {
+        name: prod?.name || 'Product',
+        size: i.variant?.size || undefined,
+        color: i.variant?.color || undefined,
+        qty: i.qty,
+        priceP: unitPrice,
+        lineP: unitPrice * i.qty,
+        image: img,
+      };
+    }),
+  };
+}
+
+function formatTokenForReceipt(token: any, ref?: string) {
+  let subtotalP = 0;
+  const items = (token.items || []).map((ti: any) => {
+    const prod = ti.variant?.product;
+    let img = '';
+    try {
+      const parsed = JSON.parse(prod?.images || '[]');
+      img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
+    } catch {}
+    const unitPrice = ti.variant?.priceP || 0;
+    const lineP = unitPrice * ti.qty;
+    subtotalP += lineP;
+    return {
+      name: prod?.name || 'Product',
+      size: ti.variant?.size || undefined,
+      color: ti.variant?.color || undefined,
+      qty: ti.qty,
+      priceP: unitPrice,
+      lineP,
+      image: img,
+    };
+  });
+
+  const deliveryFeeP = token.deliveryFeeP || 0;
+  const totalP = subtotalP + deliveryFeeP;
+  const isPOD = ref?.startsWith('pod_') || false;
+
+  return {
+    number: token.code,
+    status: token.status === 'USED' ? 'PAID' : isPOD ? 'RESERVED' : 'CONFIRMED',
+    fulfillmentType: token.fulfillmentType || 'DELIVERY',
+    subtotalP,
+    deliveryFeeP,
+    totalP,
+    zoneName: token.zoneName || 'Accra Area',
+    deliveryAddress: token.zoneName || 'Accra Area',
+    latitude: token.latitude,
+    longitude: token.longitude,
+    paymentReference: ref || token.code,
+    paymentMethod: isPOD ? 'PAY_ON_DELIVERY' : 'PAYSTACK_ONLINE',
+    createdAt: token.createdAt || new Date(),
+    customer: {
+      phone: token.phone || '',
+      name: 'Customer',
+    },
+    items,
+  };
+}
+
 storefront.get('/orders/by-token/:code', async (req, res) => {
   const code = req.params.code;
-  const token = await findActiveToken(code);
-  if (!token) {
-    const used = await db.order.findFirst({
-      where: {
-        OR: [
-          { number: code },
-          { payments: { some: { OR: [{ tokenCode: code }, { paystackRef: code }] } } },
-        ],
-      },
-      include: {
-        items: { include: { product: true, variant: { include: { product: true } } } },
-        customer: true,
-        payments: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
 
-    if (used) {
-      const p = used.payments[0];
-      return res.json({
-        ok: true,
-        order: {
-          number: used.number,
-          status: used.status,
-          fulfillmentType: used.fulfillmentType,
-          subtotalP: used.subtotalP,
-          deliveryFeeP: used.deliveryFeeP,
-          totalP: used.totalP,
-          zoneName: used.zoneName,
-          deliveryAddress: used.deliveryAddress,
-          latitude: used.latitude,
-          longitude: used.longitude,
-          paymentReference: p?.paystackRef || p?.tokenCode || code,
-          customer: {
-            phone: used.customer?.phone || '',
-            name: used.customer?.name || '',
-          },
-          items: used.items.map((i) => {
-            const prod = i.product || i.variant?.product;
-            let img = '';
-            try {
-              const parsed = JSON.parse(prod?.images || '[]');
-              img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
-            } catch {}
-            const unitPrice = i.unitPriceP || i.variant?.priceP || 0;
-            return {
-              name: prod?.name || 'Product',
-              size: i.variant?.size || undefined,
-              color: i.variant?.color || undefined,
-              qty: i.qty,
-              priceP: unitPrice,
-              lineP: unitPrice * i.qty,
-              image: img,
-            };
-          }),
-        },
-      });
-    }
-    return res.status(404).json({ ok: false, message: 'Order not found.' });
+  // 1. Check if token was converted or exists in db.order
+  const used = await db.order.findFirst({
+    where: {
+      OR: [
+        { number: code },
+        { payments: { some: { OR: [{ tokenCode: code }, { paystackRef: code }] } } },
+      ],
+    },
+    include: {
+      items: { include: { product: true, variant: { include: { product: true } } } },
+      customer: true,
+      payments: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (used) {
+    return res.json({
+      ok: true,
+      order: formatOrderForReceipt(used, code),
+    });
   }
-  res.json({ ok: true, token: { code: token.code, status: token.status, expiresAt: token.expiresAt } });
+
+  // 2. Check active order token in db.orderToken
+  const token = await db.orderToken.findUnique({
+    where: { code },
+    include: { items: { include: { variant: { include: { product: true } } } } },
+  });
+
+  if (token) {
+    return res.json({
+      ok: true,
+      order: formatTokenForReceipt(token, code),
+      token: { code: token.code, status: token.status, expiresAt: token.expiresAt },
+    });
+  }
+
+  return res.status(404).json({ ok: false, message: 'Order not found.' });
 });
 
 storefront.get('/orders/by-reference/:ref', async (req, res) => {
   const ref = req.params.ref;
+
+  // 1. Query db.order directly
   const order = await db.order.findFirst({
     where: {
       OR: [
@@ -491,49 +649,61 @@ storefront.get('/orders/by-reference/:ref', async (req, res) => {
     orderBy: { createdAt: 'desc' },
   });
 
-  if (!order) {
-    return res.status(404).json({ ok: false, message: 'Order not found for this reference.' });
+  if (order) {
+    return res.json({
+      ok: true,
+      order: formatOrderForReceipt(order, ref),
+    });
   }
 
-  const p = order.payments[0];
-  res.json({
-    ok: true,
-    order: {
-      number: order.number,
-      status: order.status,
-      fulfillmentType: order.fulfillmentType,
-      subtotalP: order.subtotalP,
-      deliveryFeeP: order.deliveryFeeP,
-      totalP: order.totalP,
-      zoneName: order.zoneName,
-      deliveryAddress: order.deliveryAddress,
-      latitude: order.latitude,
-      longitude: order.longitude,
-      paymentReference: p?.paystackRef || p?.tokenCode || ref,
-      customer: {
-        phone: order.customer?.phone || '',
-        name: order.customer?.name || '',
+  // 2. Query db.payment
+  const payment = await db.payment.findFirst({
+    where: {
+      OR: [
+        { paystackRef: ref },
+        { tokenCode: ref },
+      ],
+    },
+    include: {
+      order: {
+        include: {
+          items: { include: { product: true, variant: { include: { product: true } } } },
+          customer: true,
+          payments: true,
+        },
       },
-      items: order.items.map((i) => {
-        const prod = i.product || i.variant?.product;
-        let img = '';
-        try {
-          const parsed = JSON.parse(prod?.images || '[]');
-          img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : '';
-        } catch {}
-        const unitPrice = i.unitPriceP || i.variant?.priceP || 0;
-        return {
-          name: prod?.name || 'Product',
-          size: i.variant?.size || undefined,
-          color: i.variant?.color || undefined,
-          qty: i.qty,
-          priceP: unitPrice,
-          lineP: unitPrice * i.qty,
-          image: img,
-        };
-      }),
     },
   });
+
+  if (payment?.order) {
+    return res.json({
+      ok: true,
+      order: formatOrderForReceipt(payment.order, ref),
+    });
+  }
+
+  // 3. Fallback: Query OrderToken (if order creation or webhook is pending)
+  const tokenCode = payment?.tokenCode || ref;
+  const token = await db.orderToken.findFirst({
+    where: {
+      OR: [
+        { code: tokenCode },
+        { code: ref },
+      ],
+    },
+    include: {
+      items: { include: { variant: { include: { product: true } } } },
+    },
+  });
+
+  if (token) {
+    return res.json({
+      ok: true,
+      order: formatTokenForReceipt(token, ref),
+    });
+  }
+
+  return res.status(404).json({ ok: false, message: 'Order not found for this reference.' });
 });
 
 // ---- Public settings (for storefront) --------------------------------------

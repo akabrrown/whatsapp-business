@@ -22,6 +22,7 @@ import {
   Sparkles,
   ChevronRight,
   Lock,
+  Banknote,
 } from 'lucide-react';
 import { SmartLocationSelector } from '@/components/SmartLocationSelector';
 import { useCart } from '@/lib/cart';
@@ -45,6 +46,7 @@ export default function CartPage() {
   const [confirmDup, setConfirmDup] = useState(false);
   const [busy, setBusy] = useState(false);
   const [onlineBusy, setOnlineBusy] = useState(false);
+  const [podBusy, setPodBusy] = useState(false);
 
   // Dynamic Free Delivery Configuration
   const [freeDeliveryConfig, setFreeDeliveryConfig] = useState<{ enabled: boolean; thresholdP: number }>({
@@ -301,6 +303,52 @@ export default function CartPage() {
     } catch {
       setOnlineBusy(false);
       setError('Network error starting payment. Please try again or order on WhatsApp.');
+    }
+  };
+
+  const completePaymentOnDelivery = async () => {
+    setError('');
+    const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
+    const digits = cleanPhone.replace(/\D/g, '');
+    if (!cleanPhone || digits.length < 9) {
+      return setError('Please enter a valid phone number (at least 9–10 digits).');
+    }
+    if (fulfillmentType === 'DELIVERY' && !coords && !zone) {
+      return setError('Please pin your live GPS location or select your delivery neighborhood.');
+    }
+    setPodBusy(true);
+    try {
+      const res = await fetch(`${API}/api/checkout/pod`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          address: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (addressText || zone?.name || 'Accra Delivery Location'),
+          sessionId,
+          items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
+          fulfillmentType,
+          zoneName: fulfillmentType === 'PICKUP' ? 'Store Pickup (Osu Flagship)' : (zone?.name || 'Accra Delivery Zone'),
+          deliveryFeeP: effectiveDeliveryFee,
+          latitude: coords?.lat,
+          longitude: coords?.lng,
+        }),
+      });
+      const body = await res.json();
+      setPodBusy(false);
+      if (!res.ok || !body.ok || !body.orderNumber) {
+        return setError(body?.message || 'Unable to place order for Payment on Delivery. Please order via WhatsApp or try again.');
+      }
+
+      try {
+        localStorage.setItem('rd-cart-backup', JSON.stringify(lines));
+        localStorage.setItem('rd-in-flight-token', body.orderNumber);
+      } catch {}
+
+      await clear();
+      router.push(`/order-success?ref=${encodeURIComponent(body.orderNumber)}&method=pod`);
+    } catch {
+      setPodBusy(false);
+      setError('Network connection error. Please try again.');
     }
   };
 
@@ -614,19 +662,43 @@ export default function CartPage() {
 
             {error && <p className="rounded-xl bg-rose/10 px-3 py-2 text-xs text-rose font-medium">{error}</p>}
 
-            {/* Primary Checkout CTA */}
+            {/* Checkout Action Options */}
             <div className="space-y-2.5 pt-2">
+              {/* Option 1: Pay Online */}
               <button
                 type="button"
                 onClick={completeOnline}
-                disabled={busy || onlineBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-4 text-xs sm:text-sm font-bold text-white shadow-lg hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
+                disabled={busy || onlineBusy || podBusy}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
               >
-                <CreditCard size={18} />
-                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online Now (MTN / Telecel MoMo & Card)'}</span>
+                <CreditCard size={17} />
+                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online (MoMo & Card via Paystack)'}</span>
               </button>
-              <p className="text-[11px] text-center text-charcoal/60 font-medium">
-                💡 Instant MoMo/Card payment → Then send complete order to WhatsApp on completion
+
+              {/* Option 2: Payment on Delivery */}
+              <button
+                type="button"
+                onClick={completePaymentOnDelivery}
+                disabled={busy || onlineBusy || podBusy}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-indigo/20 bg-emerald-50/70 hover:bg-emerald-50 px-5 py-3.5 text-xs sm:text-sm font-bold text-emerald-950 transition active:scale-[0.99] disabled:opacity-50"
+              >
+                <Banknote size={17} className="text-emerald-700" />
+                <span>{podBusy ? 'Placing Order…' : 'Payment on Delivery (Cash / MoMo to Courier)'}</span>
+              </button>
+
+              {/* Option 3: WhatsApp direct handoff */}
+              <button
+                type="button"
+                onClick={completeWhatsApp}
+                disabled={busy || onlineBusy || podBusy}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-sand/70 bg-cream/80 hover:bg-sand/30 px-4 py-2.5 text-xs font-semibold text-charcoal/80 transition active:scale-[0.99] disabled:opacity-50"
+              >
+                <MessageSquare size={15} className="text-emerald-700" />
+                <span>{busy ? 'Preparing WhatsApp…' : 'Or Complete Order via WhatsApp'}</span>
+              </button>
+
+              <p className="text-[10px] text-center text-charcoal/60 font-medium">
+                🔒 Instant verified order receipt generated immediately after checkout
               </p>
             </div>
 

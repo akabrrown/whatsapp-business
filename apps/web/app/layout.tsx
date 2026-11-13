@@ -5,6 +5,7 @@ import { CartProvider } from '@/lib/cart';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MiniCart } from '@/components/MiniCart';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { api } from '@/lib/api';
 import { RealtimePushToast } from '@/components/RealtimePushToast';
 import { PushNotificationManager } from '@/components/PushNotificationManager';
@@ -103,9 +104,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <CartProvider>
           <Navbar categories={categories} />
-          <main id="main-content" className="mx-auto max-w-6xl px-4 md:px-6 pt-24 md:pt-32 min-h-[75vh]">{children}</main>
+          <main id="main-content" className="mx-auto max-w-6xl px-4 md:px-6 pt-20 md:pt-32 pb-24 md:pb-12 min-h-[75vh]">
+            {children}
+          </main>
           <Footer />
           <MiniCart />
+          <MobileBottomNav />
         </CartProvider>
         <RealtimePushToast />
         <PushNotificationManager />

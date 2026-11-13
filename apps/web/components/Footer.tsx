@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { normalizeWhatsAppNumber } from '@rose/shared';
+import { Truck, MessageCircle, ShieldCheck } from 'lucide-react';
 
 export async function Footer() {
   let whatsappNumber = '';
@@ -9,46 +10,73 @@ export async function Footer() {
   } catch {
     // API down, storefront still renders its shell (§13.3 browsing resilience).
   }
-  const WA_NUMBER = normalizeWhatsAppNumber(whatsappNumber);
+  const WA_NUMBER = normalizeWhatsAppNumber(whatsappNumber || '233203813606');
+
   return (
-    <footer className="mt-24 border-t border-sand/40 bg-cream">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-[2fr_1fr_1fr_1fr] md:px-6">
+    <footer className="mt-20 border-t border-sand/40 bg-cream pb-24 md:pb-8">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:px-6">
+        {/* Brand Info */}
         <div>
-          <p className="headline text-2xl">TOBI CLOTHINGS</p>
-          <p className="mt-2 max-w-sm text-sm text-charcoal/70">
-            By Tobi: Accra, Ghana. Tops, footwears, buttoms, bags, eyewears and the little things,
-            ordered the way you already chat.
+          <p className="headline text-2xl font-bold tracking-tight">TOBI CLOTHINGS</p>
+          <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/70">
+            Premium tops, footwears, bottoms, bags, eyewears and streetwear in Accra, Ghana.
+            Shop online with door-to-door delivery across all Accra zones.
           </p>
+
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-charcoal/60">
+            <span className="rounded bg-sand/20 px-2.5 py-1">East Legon</span>
+            <span className="rounded bg-sand/20 px-2.5 py-1">Osu</span>
+            <span className="rounded bg-sand/20 px-2.5 py-1">Cantonments</span>
+            <span className="rounded bg-sand/20 px-2.5 py-1">Spintex</span>
+            <span className="rounded bg-sand/20 px-2.5 py-1">Airport</span>
+            <span className="rounded bg-sand/20 px-2.5 py-1">Tema</span>
+          </div>
         </div>
-        <div className="text-sm">
-          <p className="mb-3 font-medium text-indigo">Shop & Service</p>
+
+        {/* Collections */}
+        <div className="text-xs">
+          <p className="mb-3 font-bold uppercase tracking-wider text-indigo">Collections</p>
           <ul className="space-y-2 text-charcoal/70">
-            <li><a className="hover:text-indigo" href="/shop">All Collections</a></li>
-            <li><a className="hover:text-indigo" href="/shop">New Arrivals</a></li>
-            <li><a className="hover:text-indigo font-medium text-indigo" href="/track">Track Your Order</a></li>
+            <li><a className="hover:text-indigo transition-colors" href="/shop">All Items</a></li>
+            <li><a className="hover:text-indigo transition-colors" href="/shop/mens-fashion">Men&apos;s Streetwear</a></li>
+            <li><a className="hover:text-indigo transition-colors" href="/shop/womens-fashion">Women&apos;s Chic</a></li>
+            <li><a className="hover:text-indigo transition-colors" href="/shop/mens-fashion-footwears">Footwear &amp; Sneakers</a></li>
+            <li><a className="hover:text-indigo transition-colors" href="/track">Track Your Order</a></li>
           </ul>
         </div>
-        <div className="text-sm">
-          <p className="mb-3 font-medium text-indigo">Talk to us</p>
+
+        {/* Customer Care */}
+        <div className="text-xs">
+          <p className="mb-3 font-bold uppercase tracking-wider text-indigo">Talk to Tobi</p>
           <a
             href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Hi TOBI CLOTHINGS! I have a question.')}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 border border-wagreen/60 px-4 py-2 text-charcoal hover:bg-wagreen/10"
+            className="inline-flex items-center gap-2 rounded-xl border border-wagreen bg-wagreen/10 px-3.5 py-2 text-xs font-semibold text-charcoal hover:bg-wagreen/20 transition-all active:scale-95"
           >
-            <span className="h-2 w-2 rounded-full bg-wagreen" aria-hidden />
-            Chat with Tobi on WhatsApp
+            <span className="h-2 w-2 rounded-full bg-wagreen animate-pulse" aria-hidden />
+            WhatsApp Concierge
           </a>
-          <p className="mt-3 text-xs text-charcoal/50">We reply fast: promise.</p>
+          <p className="mt-2 text-[11px] text-charcoal/50">Fast replies: sizing, advice &amp; custom drops.</p>
         </div>
-        <div className="text-sm">
-          <p className="mb-3 font-medium text-indigo">Legal</p>
-          <ul className="space-y-2 text-charcoal/70">
-            <li><a className="hover:text-indigo" href="/privacy">Privacy Policy</a></li>
-            <li><a className="hover:text-indigo" href="/terms">Terms of Service</a></li>
-          </ul>
+
+        {/* Trust & Payments */}
+        <div className="text-xs">
+          <p className="mb-3 font-bold uppercase tracking-wider text-indigo">Accepted Payments</p>
+          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-charcoal/70">
+            <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">MTN MoMo</span>
+            <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">Telecel Cash</span>
+            <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">Visa / Card</span>
+            <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">Pay on Delivery</span>
+          </div>
+
+          <div className="mt-4 space-y-1 text-charcoal/60">
+            <p><a className="hover:text-indigo" href="/privacy">Privacy Policy</a></p>
+            <p><a className="hover:text-indigo" href="/terms">Terms of Service</a></p>
+          </div>
         </div>
       </div>
+
       <div className="border-t border-sand/30 py-4 text-center text-xs text-charcoal/50">
         <p>© {new Date().getFullYear()} TOBI CLOTHINGS · Developed by Codey Dev</p>
       </div>

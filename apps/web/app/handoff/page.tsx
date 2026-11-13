@@ -92,6 +92,14 @@ function HandoffContent() {
               </a>
             )}
 
+            <Link
+              href={`/order-success?ref=${encodeURIComponent(state.code)}&method=whatsapp`}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-sand/70 bg-cream/60 px-4 py-2.5 text-xs font-semibold text-charcoal hover:bg-sand/30 transition"
+            >
+              <ShoppingBag size={14} className="text-indigo" />
+              <span>View Full Itemized Order Receipt</span>
+            </Link>
+
             <button
               onClick={() => {
                 restoreBackup();
