@@ -57,23 +57,24 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
 
   return (
     <div className="space-y-10 sm:space-y-14 md:space-y-18">
-      {/* ─── 1. CURATED DEPARTMENTS CAROUSEL (Awwwards-Tier Mobile App & Desktop Strip) ─── */}
+      {/* ─── 1. TOP DISCOVERY BAR: EXPLORE STORIES & CATEGORIES (Mobile App & Desktop) ─── */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between px-1">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-sand">
-              Curated Departments
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-sand flex items-center gap-1.5">
+              <Sparkles size={11} className="text-amber-500" />
+              Live Highlights &amp; Drops
             </span>
             <h2 className="headline text-xl sm:text-2xl font-normal mt-0.5">
-              Shop by Department
+              Explore Stories &amp; Categories
             </h2>
           </div>
           <Link
             href="/shop"
-            className="text-xs font-semibold text-indigo hover:text-rose transition-colors flex items-center gap-1"
+            className="text-xs font-semibold text-indigo hover:text-rose transition-colors flex items-center gap-1 group"
           >
-            <span>Explore All</span>
-            <ArrowRight size={13} />
+            <span>View All</span>
+            <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
         <StoryCategoryBar categories={categories} />

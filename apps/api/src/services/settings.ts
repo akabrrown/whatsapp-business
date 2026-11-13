@@ -9,21 +9,29 @@ export async function getSetting(key: string): Promise<string | null> {
   const cached = cache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-  const row = await db.setting.findUnique({ where: { key } });
-  if (row) {
-    cache.set(key, { value: row.value, expiresAt: Date.now() + CACHE_TTL });
-    return row.value;
+  try {
+    const row = await db.setting.findUnique({ where: { key } });
+    if (row) {
+      cache.set(key, { value: row.value, expiresAt: Date.now() + CACHE_TTL });
+      return row.value;
+    }
+  } catch (err) {
+    console.warn(`[settings] Warning: Could not query setting '${key}' from database:`, (err as any)?.message || err);
   }
   return null;
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
-  await db.setting.upsert({
-    where: { key },
-    update: { value, updatedAt: new Date() },
-    create: { key, value },
-  });
-  cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL });
+  try {
+    await db.setting.upsert({
+      where: { key },
+      update: { value, updatedAt: new Date() },
+      create: { key, value },
+    });
+    cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL });
+  } catch (err) {
+    console.error(`[settings] Error saving setting '${key}':`, (err as any)?.message || err);
+  }
 }
 
 export async function getWhatsAppNumber(): Promise<string> {
@@ -58,11 +66,29 @@ export interface ProductPromotion {
 
 export async function getPromoBanner(): Promise<PromoBanner> {
   const raw = await getSetting('promo_banner');
-  if (!raw) return { enabled: false, text: '' };
+  if (!raw) {
+    return {
+      enabled: true,
+      text: 'Free Doorstep Delivery in Accra on orders over GH₵400 · Order on WhatsApp or Pay Online',
+      badge: 'SPECIAL OFFER',
+      link: '/shop',
+    };
+  }
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return {
+      enabled: parsed.enabled ?? true,
+      text: parsed.text || 'Free Doorstep Delivery in Accra on orders over GH₵400 · Order on WhatsApp or Pay Online',
+      link: parsed.link || '/shop',
+      badge: parsed.badge || 'SPECIAL OFFER',
+    };
   } catch {
-    return { enabled: false, text: '' };
+    return {
+      enabled: true,
+      text: 'Free Doorstep Delivery in Accra on orders over GH₵400 · Order on WhatsApp or Pay Online',
+      badge: 'SPECIAL OFFER',
+      link: '/shop',
+    };
   }
 }
 

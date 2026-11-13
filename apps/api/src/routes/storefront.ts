@@ -61,21 +61,52 @@ storefront.get('/products/:slug/image', async (req, res) => {
   }
   return res.status(404).send('Not found');
 });
+const FALLBACK_ZONES = [
+  { id: 'zone-1', name: 'East Legon / Shiashie', feeP: 2500, lat: 5.636, lng: -0.184 },
+  { id: 'zone-2', name: 'Osu / Ring Road', feeP: 2000, lat: 5.556, lng: -0.181 },
+  { id: 'zone-3', name: 'Airport Residential / Dzorwulu', feeP: 2500, lat: 5.605, lng: -0.171 },
+  { id: 'zone-4', name: 'Cantonments / Labone', feeP: 2000, lat: 5.577, lng: -0.173 },
+  { id: 'zone-5', name: 'Spintex / Sakumono', feeP: 3000, lat: 5.631, lng: -0.129 },
+  { id: 'zone-6', name: 'Dansoman / Korle Bu', feeP: 3000, lat: 5.558, lng: -0.254 },
+  { id: 'zone-7', name: 'Madina / Legon / Adenta', feeP: 3000, lat: 5.683, lng: -0.166 },
+  { id: 'zone-8', name: 'Achimota / Dome', feeP: 3500, lat: 5.618, lng: -0.231 },
+  { id: 'zone-9', name: 'Tema (Comm 1–25)', feeP: 4000, lat: 5.669, lng: -0.017 },
+  { id: 'zone-10', name: 'Kasoa / Weija', feeP: 4500, lat: 5.532, lng: -0.324 },
+];
+
 storefront.get('/zones', async (_req, res) => {
-  const zones = await db.deliveryZone.findMany({ orderBy: { name: 'asc' } });
-  res.json({ ok: true, zones });
+  try {
+    const zones = await db.deliveryZone.findMany({ orderBy: { name: 'asc' } });
+    if (zones && zones.length > 0) {
+      return res.json({ ok: true, zones });
+    }
+    return res.json({ ok: true, zones: FALLBACK_ZONES });
+  } catch (err) {
+    console.warn('[storefront] /zones DB query failed, using fallback zones:', (err as any)?.message || err);
+    return res.json({ ok: true, zones: FALLBACK_ZONES });
+  }
 });
 storefront.get('/zones/match', async (req, res) => {
-  const text = typeof req.query.text === 'string' ? req.query.text : '';
-  res.json({ ok: true, match: await matchZone(text) });
+  try {
+    const text = typeof req.query.text === 'string' ? req.query.text : '';
+    res.json({ ok: true, match: await matchZone(text) });
+  } catch (err) {
+    console.warn('[storefront] /zones/match failed:', (err as any)?.message || err);
+    res.json({ ok: true, match: null });
+  }
 });
 storefront.get('/zones/match-pin', async (req, res) => {
-  const lat = parseFloat(String(req.query.lat ?? ''));
-  const lng = parseFloat(String(req.query.lng ?? ''));
-  if (isNaN(lat) || isNaN(lng)) {
-    return res.status(400).json({ ok: false, error: 'valid lat and lng required' });
+  try {
+    const lat = parseFloat(String(req.query.lat ?? ''));
+    const lng = parseFloat(String(req.query.lng ?? ''));
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ ok: false, error: 'valid lat and lng required' });
+    }
+    res.json({ ok: true, match: await matchPin(lat, lng) });
+  } catch (err) {
+    console.warn('[storefront] /zones/match-pin failed:', (err as any)?.message || err);
+    res.json({ ok: true, match: null });
   }
-  res.json({ ok: true, match: await matchPin(lat, lng) });
 });
 
 // ---- Live Geocoding API ----------------------------------------------------
@@ -588,159 +619,193 @@ function formatTokenForReceipt(token: any, ref?: string) {
 }
 
 storefront.get('/orders/by-token/:code', async (req, res) => {
-  const code = req.params.code;
+  try {
+    const code = req.params.code;
 
-  // 1. Check if token was converted or exists in db.order
-  const used = await db.order.findFirst({
-    where: {
-      OR: [
-        { number: code },
-        { payments: { some: { OR: [{ tokenCode: code }, { paystackRef: code }] } } },
-      ],
-    },
-    include: {
-      items: { include: { product: true, variant: { include: { product: true } } } },
-      customer: true,
-      payments: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (used) {
-    return res.json({
-      ok: true,
-      order: formatOrderForReceipt(used, code),
+    // 1. Check if token was converted or exists in db.order
+    const used = await db.order.findFirst({
+      where: {
+        OR: [
+          { number: code },
+          { payments: { some: { OR: [{ tokenCode: code }, { paystackRef: code }] } } },
+        ],
+      },
+      include: {
+        items: { include: { product: true, variant: { include: { product: true } } } },
+        customer: true,
+        payments: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
-  }
 
-  // 2. Check active order token in db.orderToken
-  const token = await db.orderToken.findUnique({
-    where: { code },
-    include: { items: { include: { variant: { include: { product: true } } } } },
-  });
+    if (used) {
+      return res.json({
+        ok: true,
+        order: formatOrderForReceipt(used, code),
+      });
+    }
 
-  if (token) {
-    return res.json({
-      ok: true,
-      order: formatTokenForReceipt(token, code),
-      token: { code: token.code, status: token.status, expiresAt: token.expiresAt },
+    // 2. Check active order token in db.orderToken
+    const token = await db.orderToken.findUnique({
+      where: { code },
+      include: { items: { include: { variant: { include: { product: true } } } } },
     });
-  }
 
-  return res.status(404).json({ ok: false, message: 'Order not found.' });
+    if (token) {
+      return res.json({
+        ok: true,
+        order: formatTokenForReceipt(token, code),
+        token: { code: token.code, status: token.status, expiresAt: token.expiresAt },
+      });
+    }
+
+    return res.status(404).json({ ok: false, message: 'Order not found.' });
+  } catch (err) {
+    console.warn('[storefront] /orders/by-token error:', (err as any)?.message || err);
+    return res.status(404).json({ ok: false, message: 'Order lookup failed.' });
+  }
 });
 
 storefront.get('/orders/by-reference/:ref', async (req, res) => {
-  const ref = req.params.ref;
+  try {
+    const ref = req.params.ref;
 
-  // 1. Query db.order directly
-  const order = await db.order.findFirst({
-    where: {
-      OR: [
-        { number: ref },
-        { payments: { some: { OR: [{ paystackRef: ref }, { tokenCode: ref }] } } },
-      ],
-    },
-    include: {
-      items: { include: { product: true, variant: { include: { product: true } } } },
-      customer: true,
-      payments: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (order) {
-    return res.json({
-      ok: true,
-      order: formatOrderForReceipt(order, ref),
+    // 1. Query db.order directly
+    const order = await db.order.findFirst({
+      where: {
+        OR: [
+          { number: ref },
+          { payments: { some: { OR: [{ paystackRef: ref }, { tokenCode: ref }] } } },
+        ],
+      },
+      include: {
+        items: { include: { product: true, variant: { include: { product: true } } } },
+        customer: true,
+        payments: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
-  }
 
-  // 2. Query db.payment
-  const payment = await db.payment.findFirst({
-    where: {
-      OR: [
-        { paystackRef: ref },
-        { tokenCode: ref },
-      ],
-    },
-    include: {
-      order: {
-        include: {
-          items: { include: { product: true, variant: { include: { product: true } } } },
-          customer: true,
-          payments: true,
+    if (order) {
+      return res.json({
+        ok: true,
+        order: formatOrderForReceipt(order, ref),
+      });
+    }
+
+    // 2. Query db.payment
+    const payment = await db.payment.findFirst({
+      where: {
+        OR: [
+          { paystackRef: ref },
+          { tokenCode: ref },
+        ],
+      },
+      include: {
+        order: {
+          include: {
+            items: { include: { product: true, variant: { include: { product: true } } } },
+            customer: true,
+            payments: true,
+          },
         },
       },
-    },
-  });
-
-  if (payment?.order) {
-    return res.json({
-      ok: true,
-      order: formatOrderForReceipt(payment.order, ref),
     });
-  }
 
-  // 3. Fallback: Query OrderToken (if order creation or webhook is pending)
-  const tokenCode = payment?.tokenCode || ref;
-  const token = await db.orderToken.findFirst({
-    where: {
-      OR: [
-        { code: tokenCode },
-        { code: ref },
-      ],
-    },
-    include: {
-      items: { include: { variant: { include: { product: true } } } },
-    },
-  });
+    if (payment?.order) {
+      return res.json({
+        ok: true,
+        order: formatOrderForReceipt(payment.order, ref),
+      });
+    }
 
-  if (token) {
-    return res.json({
-      ok: true,
-      order: formatTokenForReceipt(token, ref),
+    // 3. Fallback: Query OrderToken (if order creation or webhook is pending)
+    const tokenCode = payment?.tokenCode || ref;
+    const token = await db.orderToken.findFirst({
+      where: {
+        OR: [
+          { code: tokenCode },
+          { code: ref },
+        ],
+      },
+      include: {
+        items: { include: { variant: { include: { product: true } } } },
+      },
     });
-  }
 
-  return res.status(404).json({ ok: false, message: 'Order not found for this reference.' });
+    if (token) {
+      return res.json({
+        ok: true,
+        order: formatTokenForReceipt(token, ref),
+      });
+    }
+
+    return res.status(404).json({ ok: false, message: 'Order not found for this reference.' });
+  } catch (err) {
+    console.warn('[storefront] /orders/by-reference error:', (err as any)?.message || err);
+    return res.status(404).json({ ok: false, message: 'Order reference lookup failed.' });
+  }
 });
 
 // ---- Public settings (for storefront) --------------------------------------
 import { getWhatsAppNumber, getPromoBanner, getCoupons, getFreeDeliveryConfig } from '../services/settings.js';
 
 storefront.get('/settings/whatsapp', async (_req, res) => {
-  const whatsappNumber = await getWhatsAppNumber();
-  res.json({ ok: true, whatsappNumber });
+  try {
+    const whatsappNumber = await getWhatsAppNumber();
+    res.json({ ok: true, whatsappNumber });
+  } catch (err) {
+    console.warn('[storefront] /settings/whatsapp failed:', (err as any)?.message || err);
+    res.json({ ok: true, whatsappNumber: '+233240000000' });
+  }
 });
 
 storefront.get('/settings/free-delivery', async (_req, res) => {
-  const config = await getFreeDeliveryConfig();
-  res.json({ ok: true, config });
+  try {
+    const config = await getFreeDeliveryConfig();
+    res.json({ ok: true, config });
+  } catch (err) {
+    console.warn('[storefront] /settings/free-delivery failed:', (err as any)?.message || err);
+    res.json({ ok: true, config: { enabled: true, thresholdP: 40000, bannerText: 'Free Doorstep Delivery in Accra on orders over GH₵400' } });
+  }
 });
 
 // ---- Public Promo Banner ----------------------------------------------------
 storefront.get('/promotions/banner', async (_req, res) => {
-  const banner = await getPromoBanner();
-  res.json({ ok: true, banner });
+  try {
+    const banner = await getPromoBanner();
+    res.json({ ok: true, banner });
+  } catch (err) {
+    console.warn('[storefront] /promotions/banner failed:', (err as any)?.message || err);
+    res.json({
+      ok: true,
+      banner: {
+        enabled: true,
+        text: 'Free Doorstep Delivery in Accra on orders over GH₵400 · Order on WhatsApp or Pay Online',
+        badge: 'SPECIAL OFFER',
+        link: '/shop',
+      },
+    });
+  }
 });
 
 // ---- Public Coupon Validation (for MiniCart / Checkout) ---------------------
 storefront.post('/promotions/validate-coupon', async (req, res) => {
-  const { code, subtotalP = 0 } = req.body as { code?: string; subtotalP?: number };
-  if (!code || !code.trim()) return res.status(400).json({ ok: false, message: 'Please enter a coupon code.' });
+  try {
+    const { code, subtotalP = 0 } = req.body as { code?: string; subtotalP?: number };
+    if (!code || !code.trim()) return res.status(400).json({ ok: false, message: 'Please enter a coupon code.' });
 
-  const clean = code.trim().toUpperCase();
-  const coupons = await getCoupons();
-  const found = coupons.find((c) => c.code === clean && c.active);
+    const clean = code.trim().toUpperCase();
+    const coupons = await getCoupons();
+    const found = coupons.find((c) => c.code === clean && c.active);
 
-  if (!found) {
-    return res.status(404).json({ ok: false, message: 'Invalid or expired coupon code.' });
-  }
+    if (!found) {
+      return res.status(404).json({ ok: false, message: 'Invalid or expired coupon code.' });
+    }
 
-  if (found.expiresAt && new Date(found.expiresAt).getTime() < Date.now()) {
-    return res.status(400).json({ ok: false, message: 'This coupon code has expired.' });
-  }
+    if (found.expiresAt && new Date(found.expiresAt).getTime() < Date.now()) {
+      return res.status(400).json({ ok: false, message: 'This coupon code has expired.' });
+    }
 
   if (found.usageLimit && found.usedCount >= found.usageLimit) {
     return res.status(400).json({ ok: false, message: 'This coupon has reached its maximum usage limit.' });
@@ -771,6 +836,10 @@ storefront.post('/promotions/validate-coupon', async (req, res) => {
       discountP,
     },
   });
+  } catch (err) {
+    console.error('[storefront] /promotions/validate-coupon error:', (err as any)?.message || err);
+    res.status(500).json({ ok: false, message: 'Could not validate coupon at this time.' });
+  }
 });
 
 // In-memory cache for recent products to avoid hammering Supabase on every poll

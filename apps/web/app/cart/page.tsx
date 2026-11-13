@@ -78,7 +78,9 @@ export default function CartPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setFreeDeliveryConfig({ enabled: true, thresholdP: 40000 });
+      });
 
     fetch(`${API}/api/zones`)
       .then((r) => r.json())
@@ -100,7 +102,20 @@ export default function CartPage() {
           ]);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setZonesList([
+          { id: '1', name: 'Osu / Ring Road', feeP: 2000 },
+          { id: '2', name: 'Cantonments / Labone', feeP: 2000 },
+          { id: '3', name: 'East Legon / Shiashie', feeP: 2500 },
+          { id: '4', name: 'Airport Residential / Dzorwulu', feeP: 2500 },
+          { id: '5', name: 'Spintex / Sakumono', feeP: 3000 },
+          { id: '6', name: 'Madina / Legon / Adenta', feeP: 3000 },
+          { id: '7', name: 'Dansoman / Korle Bu', feeP: 3000 },
+          { id: '8', name: 'Achimota / Dome', feeP: 3500 },
+          { id: '9', name: 'Tema (Comm 1–25)', feeP: 4000 },
+          { id: '10', name: 'Kasoa / Weija', feeP: 4500 },
+        ]);
+      });
   }, []);
 
   const handleSelectNeighborhood = (e: React.ChangeEvent<HTMLSelectElement>) => {
