@@ -19,47 +19,77 @@ export const storefront = Router();
 
 // ---- Discovery (§3) -----------------------------------------------------
 storefront.get('/catalog', async (req, res) => {
-  const category = typeof req.query.category === 'string' ? req.query.category : undefined;
-  res.json({ ok: true, products: await catalog.listActive(category) });
+  try {
+    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+    res.json({ ok: true, products: await catalog.listActive(category) });
+  } catch (err) {
+    console.error('[storefront] /catalog failed:', (err as any)?.message || err);
+    res.json({ ok: true, products: [] });
+  }
 });
 storefront.get('/catalog/search', async (req, res) => {
-  const q = typeof req.query.q === 'string' ? req.query.q : '';
-  const c = typeof req.query.category === 'string' ? req.query.category : undefined;
-  res.json({ ok: true, products: await catalog.search(q, c) }); // §3.6: may be empty
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const c = typeof req.query.category === 'string' ? req.query.category : undefined;
+    res.json({ ok: true, products: await catalog.search(q, c) });
+  } catch (err) {
+    console.error('[storefront] /catalog/search failed:', (err as any)?.message || err);
+    res.json({ ok: true, products: [] });
+  }
 });
 storefront.get('/categories', async (_req, res) => {
-  res.json({ ok: true, categories: await catalog.categories() });
+  try {
+    res.json({ ok: true, categories: await catalog.categories() });
+  } catch (err) {
+    console.error('[storefront] /categories failed:', (err as any)?.message || err);
+    res.json({ ok: true, categories: [] });
+  }
 });
 storefront.get('/products/:slug', async (req, res) => {
-  const p = await catalog.bySlug(req.params.slug); // §3.5: direct SKU links
-  if (!p) return res.status(404).json({ ok: false, error: 'not_found' });
-  res.json({ ok: true, product: p });
+  try {
+    const p = await catalog.bySlug(req.params.slug);
+    if (!p) return res.status(404).json({ ok: false, error: 'not_found' });
+    res.json({ ok: true, product: p });
+  } catch (err) {
+    console.error('[storefront] /products/:slug failed:', (err as any)?.message || err);
+    res.status(500).json({ ok: false, error: 'product_load_failed' });
+  }
 });
 storefront.get('/products/:slug/related', async (req, res) => {
-  const limit = parseInt(String(req.query.limit ?? '4'), 10) || 4;
-  const products = await catalog.relatedProducts(req.params.slug, limit);
-  res.json({ ok: true, products });
+  try {
+    const limit = parseInt(String(req.query.limit ?? '4'), 10) || 4;
+    const products = await catalog.relatedProducts(req.params.slug, limit);
+    res.json({ ok: true, products });
+  } catch (err) {
+    console.error('[storefront] /products/:slug/related failed:', (err as any)?.message || err);
+    res.json({ ok: true, products: [] });
+  }
 });
 storefront.get('/products/:slug/image', async (req, res) => {
-  const p = await catalog.bySlug(req.params.slug);
-  if (!p || !p.images || p.images.length === 0) {
-    return res.status(404).send('Not found');
-  }
-  const first = p.images[0];
-  if (first.startsWith('http://') || first.startsWith('https://')) {
-    return res.redirect(first);
-  }
-  if (first.startsWith('data:image/')) {
-    const matches = first.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    if (matches && matches.length === 3) {
-      const type = matches[1];
-      const buffer = Buffer.from(matches[2], 'base64');
-      res.setHeader('Content-Type', type);
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return res.send(buffer);
+  try {
+    const p = await catalog.bySlug(req.params.slug);
+    if (!p || !p.images || p.images.length === 0) {
+      return res.status(404).send('Not found');
     }
+    const first = p.images[0];
+    if (first.startsWith('http://') || first.startsWith('https://')) {
+      return res.redirect(first);
+    }
+    if (first.startsWith('data:image/')) {
+      const matches = first.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const type = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', type);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(buffer);
+      }
+    }
+    return res.status(404).send('Not found');
+  } catch (err) {
+    console.error('[storefront] /products/:slug/image failed:', (err as any)?.message || err);
+    res.status(404).send('Not found');
   }
-  return res.status(404).send('Not found');
 });
 const FALLBACK_ZONES = [
   { id: 'zone-1', name: 'East Legon / Shiashie', feeP: 2500, lat: 5.636, lng: -0.184 },

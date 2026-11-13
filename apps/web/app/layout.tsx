@@ -29,6 +29,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://mystore-web.vercel.app'),
   title: 'TOBI CLOTHINGS: SHOP & WEAR BY TOBI: Tops, footwears, buttoms, bags & eyewears in ACCRA',
   description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra. Shop the collection online or chat with us directly.',
   keywords: ['tops', 'footwears', 'buttoms', 'bags', 'eyewears', 'fashion', 'Accra', 'Ghana', 'WhatsApp shopping', 'tobi clothings'],
