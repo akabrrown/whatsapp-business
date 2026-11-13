@@ -10,8 +10,16 @@ import { api } from '@/lib/api';
 import { RealtimePushToast } from '@/components/RealtimePushToast';
 import { PushNotificationManager } from '@/components/PushNotificationManager';
 
-const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces',
+  display: 'swap',
+});
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
