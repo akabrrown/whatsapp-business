@@ -2,14 +2,11 @@ import { api } from '@/lib/api';
 import { HomeClientView } from '@/components/HomeClientView';
 
 export default async function HomePage() {
-  let products: Awaited<ReturnType<typeof api.catalog>> = [];
-  let categories: Awaited<ReturnType<typeof api.categories>> = [];
-  try {
-    [products, categories] = await Promise.all([api.catalog(), api.categories()]);
-  } catch {
-    // render the brand shell even if the API is momentarily down
-  }
+  let products = await api.catalog().catch(() => []);
+  let categories = await api.categories().catch(() => []);
 
-  return <HomeClientView products={products} categories={categories} />;
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
+  return <HomeClientView products={safeProducts} categories={safeCategories} />;
 }
-

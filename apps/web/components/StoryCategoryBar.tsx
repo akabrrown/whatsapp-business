@@ -38,7 +38,8 @@ const CATEGORY_VISUALS: Record<string, { image: string; tag: string; subtitle: s
   },
 };
 
-export function StoryCategoryBar({ categories }: { categories: Category[] }) {
+export function StoryCategoryBar({ categories = [] }: { categories?: Category[] }) {
+  const safeCategories = Array.isArray(categories) ? categories : [];
   // Built curated department cards list
   const departments = [
     {

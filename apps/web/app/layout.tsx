@@ -56,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } catch {
     // API down, storefront still renders its shell (§13.3 browsing resilience).
   }
+  const safeCategories = Array.isArray(categories) ? categories : [];
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FashionStore',
@@ -103,7 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Skip to content
         </a>
         <CartProvider>
-          <Navbar categories={categories} />
+          <Navbar categories={safeCategories} />
           <main id="main-content" className="mx-auto max-w-6xl px-4 md:px-6 pt-20 md:pt-32 pb-24 md:pb-12 min-h-[75vh]">
             {children}
           </main>

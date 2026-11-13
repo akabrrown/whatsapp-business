@@ -44,11 +44,14 @@ const COLOR_HEX: Record<string, string> = {
 };
 
 export function ShopCatalogView({
-  initialProducts,
-  categories,
+  initialProducts = [],
+  categories = [],
   activeCategorySlug,
   categoryName,
 }: ShopCatalogViewProps) {
+  const safeProducts = useMemo(() => Array.isArray(initialProducts) ? initialProducts : [], [initialProducts]);
+  const safeCategories = useMemo(() => Array.isArray(categories) ? categories : [], [categories]);
+
   const [selectedSort, setSelectedSort] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -60,9 +63,9 @@ export function ShopCatalogView({
   // Extract sizes with item counts (Image 4 FORMA Inspiration)
   const sizeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    initialProducts.forEach((p) => {
+    safeProducts.forEach((p) => {
       const pSizes = new Set<string>();
-      p.variants.forEach((v) => {
+      (p.variants || []).forEach((v) => {
         if (v.size && v.available > 0) pSizes.add(v.size);
       });
       pSizes.forEach((s) => {
@@ -70,14 +73,14 @@ export function ShopCatalogView({
       });
     });
     return counts;
-  }, [initialProducts]);
+  }, [safeProducts]);
 
   // Extract colors with item counts
   const colorCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    initialProducts.forEach((p) => {
+    safeProducts.forEach((p) => {
       const pColors = new Set<string>();
-      p.variants.forEach((v) => {
+      (p.variants || []).forEach((v) => {
         if (v.color && v.available > 0) pColors.add(v.color.toLowerCase());
       });
       pColors.forEach((c) => {
@@ -85,23 +88,23 @@ export function ShopCatalogView({
       });
     });
     return counts;
-  }, [initialProducts]);
+  }, [safeProducts]);
 
   // Filter & sort logic
   const displayedProducts = useMemo(() => {
-    let list = [...initialProducts];
+    let list = [...safeProducts];
 
     // Filter by size
     if (selectedSize) {
       list = list.filter((p) =>
-        p.variants.some((v) => v.size === selectedSize && v.available > 0),
+        (p.variants || []).some((v) => v.size === selectedSize && v.available > 0),
       );
     }
 
     // Filter by color
     if (selectedColor) {
       list = list.filter((p) =>
-        p.variants.some(
+        (p.variants || []).some(
           (v) =>
             v.color?.toLowerCase() === selectedColor.toLowerCase() &&
             v.available > 0,
@@ -120,7 +123,7 @@ export function ShopCatalogView({
     }
 
     return list;
-  }, [initialProducts, selectedSize, selectedColor, maxPriceGHS, selectedSort]);
+  }, [safeProducts, selectedSize, selectedColor, maxPriceGHS, selectedSort]);
 
   const activeFilterCount =
     (selectedSize ? 1 : 0) + (selectedColor ? 1 : 0) + (maxPriceGHS < 1000 ? 1 : 0);
@@ -392,9 +395,9 @@ export function ShopCatalogView({
                   }`}
                 >
                   <span>All Collection</span>
-                  <span className="text-[10px] opacity-70">({initialProducts.length})</span>
+                  <span className="text-[10px] opacity-70">({safeProducts.length})</span>
                 </Link>
-                {categories.map((cat) => (
+                {safeCategories.map((cat) => (
                   <Link
                     key={cat.slug}
                     href={`/shop/${cat.slug}`}

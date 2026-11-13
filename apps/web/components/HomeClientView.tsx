@@ -26,11 +26,13 @@ interface HomeClientViewProps {
   categories: Category[];
 }
 
-export function HomeClientView({ products, categories }: HomeClientViewProps) {
+export function HomeClientView({ products = [], categories = [] }: HomeClientViewProps) {
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
   const [activeTab, setActiveTab] = useState<'all' | 'men' | 'women' | 'footwear'>('all');
 
   // Filter products based on selected tab
-  const filteredProducts = products.filter((p) => {
+  const filteredProducts = safeProducts.filter((p) => {
     if (activeTab === 'all') return true;
     const cat = p.category?.slug?.toLowerCase() || '';
     if (activeTab === 'men') return cat.includes('men') && !cat.includes('women');
@@ -40,7 +42,7 @@ export function HomeClientView({ products, categories }: HomeClientViewProps) {
   });
 
   const featuredList = filteredProducts.slice(0, 8);
-  const newArrivals = products.slice(0, 4);
+  const newArrivals = safeProducts.slice(0, 4);
 
   // Quick category pills (FORMA & Guza inspiration)
   const quickCategories = [

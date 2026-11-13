@@ -7,7 +7,8 @@ import { SearchOverlay } from './SearchOverlay';
 import { PromoBanner } from './PromoBanner';
 import type { Category } from '@/lib/api';
 
-export function Navbar({ categories }: { categories: Category[] }) {
+export function Navbar({ categories = [] }: { categories?: Category[] }) {
+  const safeCategories = Array.isArray(categories) ? categories : [];
   const { count, setDrawerOpen } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -105,7 +106,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
               Home
             </Link>
 
-            {categories.map((cat) => {
+            {safeCategories.map((cat) => {
               const hasChildren = cat.children && cat.children.length > 0;
 
               if (!hasChildren) {
@@ -252,7 +253,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
             Home
           </Link>
 
-          {categories.map((cat) => {
+          {safeCategories.map((cat) => {
             const hasChildren = cat.children && cat.children.length > 0;
             const isExpanded = expandedMobile === cat.slug;
 

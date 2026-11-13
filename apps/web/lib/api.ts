@@ -46,39 +46,72 @@ export interface Category {
   children?: Category[];
 }
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`api ${res.status} for ${path}`);
-  return (await res.json()) as T;
+async function get<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
 export const api = {
-  catalog: (category?: string) =>
-    get<{ ok: boolean; products: CatalogProduct[] }>(`/api/catalog${category ? `?category=${encodeURIComponent(category)}` : ''}`).then((r) => r.products),
-  search: (q: string, category?: string) =>
-    get<{ ok: boolean; products: CatalogProduct[] }>(`/api/catalog/search?q=${encodeURIComponent(q)}${category ? `&category=${encodeURIComponent(category)}` : ''}`).then((r) => r.products),
-  categories: () => get<{ ok: boolean; categories: Category[] }>('/api/categories').then((r) => r.categories),
-  product: async (slug: string) => {
+  catalog: async (category?: string): Promise<CatalogProduct[]> => {
     try {
-      const r = await get<{ ok: boolean; product: CatalogProduct }>(`/api/products/${slug}`);
-      return r.product;
-    } catch {
-      return null;
-    }
-  },
-  related: async (slug: string, limit: number = 4) => {
-    try {
-      const r = await get<{ ok: boolean; products: CatalogProduct[] }>(`/api/products/${encodeURIComponent(slug)}/related?limit=${limit}`);
-      return r.products || [];
+      const r = await get<{ ok: boolean; products: CatalogProduct[] }>(
+        `/api/catalog${category ? `?category=${encodeURIComponent(category)}` : ''}`
+      );
+      return Array.isArray(r?.products) ? r!.products : [];
     } catch {
       return [];
     }
   },
-  settings: async () => {
+  search: async (q: string, category?: string): Promise<CatalogProduct[]> => {
     try {
-      return await get<{ ok: boolean; whatsappNumber: string }>('/api/settings/whatsapp');
+      const r = await get<{ ok: boolean; products: CatalogProduct[] }>(
+        `/api/catalog/search?q=${encodeURIComponent(q)}${category ? `&category=${encodeURIComponent(category)}` : ''}`
+      );
+      return Array.isArray(r?.products) ? r!.products : [];
     } catch {
-      return { ok: false, whatsappNumber: '' };
+      return [];
+    }
+  },
+  categories: async (): Promise<Category[]> => {
+    try {
+      const r = await get<{ ok: boolean; categories: Category[] }>('/api/categories');
+      return Array.isArray(r?.categories) ? r!.categories : [];
+    } catch {
+      return [];
+    }
+  },
+  product: async (slug: string): Promise<CatalogProduct | null> => {
+    try {
+      const r = await get<{ ok: boolean; product: CatalogProduct }>(`/api/products/${encodeURIComponent(slug)}`);
+      return r?.product || null;
+    } catch {
+      return null;
+    }
+  },
+  related: async (slug: string, limit: number = 4): Promise<CatalogProduct[]> => {
+    try {
+      const r = await get<{ ok: boolean; products: CatalogProduct[] }>(
+        `/api/products/${encodeURIComponent(slug)}/related?limit=${limit}`
+      );
+      return Array.isArray(r?.products) ? r!.products : [];
+    } catch {
+      return [];
+    }
+  },
+  settings: async (): Promise<{ ok: boolean; whatsappNumber: string }> => {
+    try {
+      const r = await get<{ ok: boolean; whatsappNumber: string }>('/api/settings/whatsapp');
+      return { ok: true, whatsappNumber: r?.whatsappNumber || '233203813606' };
+    } catch {
+      return { ok: false, whatsappNumber: '233203813606' };
     }
   },
 };
