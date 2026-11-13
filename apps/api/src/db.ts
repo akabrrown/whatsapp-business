@@ -1,8 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 
+const ACTIVE_SUPABASE_POOLER_URL =
+  'postgresql://postgres.osdudxjsgqytnqmlwzvc:Hopegrit%242026@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require&connection_limit=1&pool_timeout=15&pgbouncer=true';
+
 function getDatabaseUrl(): string | undefined {
   let url = process.env.DATABASE_URL;
-  if (!url) return undefined;
+  // If DATABASE_URL is missing, or points to the stale/deleted tenant vseavkrszqxcgxovyksu, route to active project
+  if (!url || url.includes('vseavkrszqxcgxovyksu')) {
+    return ACTIVE_SUPABASE_POOLER_URL;
+  }
 
   // Supabase pooler optimization:
   // If using pooler.supabase.com, route from session mode (5432) to transaction mode (6543)
