@@ -55,14 +55,26 @@ export function createApp() {
     let redisStatus = 'disconnected';
     let redisLatencyMs = 0;
 
+    let dbError: string | null = null;
+    let dbHost = 'unknown';
+
     try {
+      const dbUrl = process.env.DATABASE_URL || '';
+      try {
+        const parsed = new URL(dbUrl);
+        dbHost = `${parsed.username.split('.')[1] || parsed.username}@${parsed.host}`;
+      } catch {
+        dbHost = dbUrl.length > 0 ? 'invalid-url' : 'missing';
+      }
+
       const dbStart = Date.now();
       const { db } = await import('./db.js');
       await db.$queryRaw`SELECT 1`;
       dbLatencyMs = Date.now() - dbStart;
       dbStatus = 'healthy';
-    } catch {
+    } catch (err: any) {
       dbStatus = 'unhealthy';
+      dbError = err?.message || String(err);
     }
 
     try {
@@ -86,7 +98,7 @@ export function createApp() {
       timestamp: new Date().toISOString(),
       latencyMs: Date.now() - startTime,
       dependencies: {
-        database: { status: dbStatus, latencyMs: dbLatencyMs },
+        database: { status: dbStatus, latencyMs: dbLatencyMs, host: dbHost, error: dbError },
         cache: { status: redisStatus, latencyMs: redisLatencyMs },
       },
       memory: {
