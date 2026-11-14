@@ -486,7 +486,7 @@ admin.post('/products', async (req, res) => {
 
   hub.broadcast('web', 'new_product_drop', {
     type: 'new_product',
-    title: '🔥 New Arrival Just Dropped!',
+    title: 'New Arrival Just Dropped',
     product: {
       id: product.id,
       name: product.name,
@@ -499,7 +499,7 @@ admin.post('/products', async (req, res) => {
 
   // Dispatch background OS Lock-Screen Push Notification to all subscribed customer devices
   broadcastPushToAllDevices({
-    title: `🔥 New Drop: ${product.name}`,
+    title: `New Drop: ${product.name}`,
     body: `Now live on TOBI CLOTHINGS • GH₵ ${(minPriceP / 100).toFixed(2)} • Tap to view piece`,
     image: firstImage || undefined,
     url: `/product/${product.slug}`,

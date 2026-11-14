@@ -10,7 +10,7 @@ import {
   Truck,
   ShieldCheck,
   RotateCcw,
-  Sparkles,
+  CheckCircle2,
   Flame,
 } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
@@ -137,7 +137,7 @@ export function ProductDetailView({
               )}
               {selectedColor && (
                 <div className="rounded-full bg-charcoal/80 backdrop-blur-md px-3 py-1 text-xs font-medium text-white shadow-xs flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-rose animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-rose" />
                   <span>{selectedColor}</span>
                 </div>
               )}
@@ -363,7 +363,7 @@ export function ProductDetailView({
               <span>MoMo &amp; Cash Accepted</span>
             </div>
             <div className="flex items-center gap-2 text-charcoal/80">
-              <Sparkles size={17} className="text-sand shrink-0" />
+              <CheckCircle2 size={17} className="text-sand shrink-0" />
               <span>Hand-Inspected Quality</span>
             </div>
             <div className="flex items-center gap-2 text-charcoal/80">

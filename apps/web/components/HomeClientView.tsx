@@ -7,7 +7,6 @@ import {
   Truck,
   ShieldCheck,
   MessageCircle,
-  Sparkles,
   ShoppingBag,
   Flame,
   CheckCircle,
@@ -62,7 +61,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
         <div className="flex items-baseline justify-between px-1">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-sand flex items-center gap-1.5">
-              <Sparkles size={11} className="text-amber-500" />
+              <span className="h-1.5 w-1.5 rounded-full bg-rose shrink-0" />
               Live Highlights &amp; Drops
             </span>
             <h2 className="headline text-xl sm:text-2xl font-normal mt-0.5">
@@ -92,7 +91,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
 
               <div className="mb-3 flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-indigo">
-                  <Sparkles size={12} className="text-sand" /> Season Drop &apos;26
+                  <span className="h-1.5 w-1.5 rounded-full bg-sand shrink-0" /> Season Drop &apos;26
                 </span>
                 <span className="text-xs font-semibold text-charcoal/60 hidden sm:inline">
                   Accra, Ghana

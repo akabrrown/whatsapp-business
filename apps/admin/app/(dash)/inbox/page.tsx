@@ -16,7 +16,6 @@ import {
   MapPin,
   Clock,
   ChevronRight,
-  Sparkles,
   Info,
   Calendar,
 } from 'lucide-react';

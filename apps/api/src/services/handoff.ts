@@ -207,7 +207,7 @@ export async function createToken(input: {
     totalText +
     paySection +
     `\n----------------------------------------\n` +
-    `👉 *Press Send to complete your order!* ✨`;
+    `👉 *Press Send to complete your order!*`;
 
   const whatsappNumber = await getWhatsAppNumber();
   hub.broadcastAdmin('token.created', { code, phone, totalP });

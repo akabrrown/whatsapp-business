@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, X, Sparkles, Check } from 'lucide-react';
+import { Bell, X, Check } from 'lucide-react';
 import { getApiUrl } from '@/lib/config';
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -133,11 +133,10 @@ export function PushNotificationManager() {
           </div>
 
           <div className="flex-1 pr-3">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-rose">
                 Drop Alerts
               </span>
-              <Sparkles size={11} className="text-amber-500" />
             </div>
 
             <h4 className="mt-0.5 text-xs sm:text-sm font-bold text-charcoal">

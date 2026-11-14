@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, X, ArrowRight } from 'lucide-react';
+import { Bell, X, ArrowRight } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 import { getApiUrl } from '@/lib/config';
 
@@ -104,7 +104,7 @@ export function RealtimePushToast() {
       triggerToast({
         id: eventId,
         type: 'new_product',
-        title: payload.title || '🔥 New Arrival Just Dropped!',
+        title: payload.title || 'New Arrival Just Dropped',
         product: payload.product,
         timestamp: eventObj.timestamp || Date.now(),
       });
@@ -112,7 +112,7 @@ export function RealtimePushToast() {
       triggerToast({
         id: eventId,
         type: 'restock',
-        title: '⚡ Item Restocked!',
+        title: 'Item Restocked',
         message: payload.message || 'Popular sizes are back in stock.',
         product: payload.product,
         timestamp: eventObj.timestamp || Date.now(),
@@ -121,7 +121,7 @@ export function RealtimePushToast() {
       triggerToast({
         id: eventId,
         type: 'promotion',
-        title: payload.title || '✨ Store Announcement',
+        title: payload.title || 'Store Announcement',
         message: payload.text || 'New promotion banner published.',
         link: payload.link || '/shop',
         timestamp: eventObj.timestamp || Date.now(),
@@ -242,14 +242,14 @@ export function RealtimePushToast() {
             />
           ) : (
             <div className="h-12 w-12 rounded-xl bg-indigo/10 text-indigo flex items-center justify-center shrink-0 shadow-inner">
-              <Sparkles size={20} className="animate-pulse" />
+              <Bell size={20} />
             </div>
           )}
 
           <div className="flex-1 min-w-0 pr-4">
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full bg-rose/10 px-2 py-0.5 text-[10px] font-bold text-rose uppercase tracking-wider">
-                <Sparkles size={10} /> Live Drop
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose/10 px-2 py-0.5 text-[10px] font-bold text-rose uppercase tracking-wider">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose" /> Live Drop
               </span>
               <span className="text-[10px] text-charcoal/40 font-mono">Just now</span>
             </div>

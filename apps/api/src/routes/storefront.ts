@@ -918,7 +918,7 @@ storefront.get('/events/poll', async (req, res) => {
             channel: 'web',
             payload: {
               type: 'new_product',
-              title: '🔥 New Arrival Just Dropped!',
+              title: 'New Arrival Just Dropped',
               product: {
                 id: p.id,
                 name: p.name,

@@ -20,7 +20,6 @@ import {
   ShieldCheck,
   ArrowRight,
   ShoppingBag,
-  Sparkles,
   Banknote,
 } from 'lucide-react';
 import { SmartLocationSelector } from './SmartLocationSelector';

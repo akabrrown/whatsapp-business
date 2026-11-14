@@ -20,7 +20,6 @@ import {
   Phone,
   Banknote,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatGHS, normalizeWhatsAppNumber, formatPhoneDisplay } from '@rose/shared';

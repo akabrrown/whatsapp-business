@@ -46,7 +46,7 @@ const STATUS_MESSAGES: Record<string, (o: { number: string; riderName?: string |
   DELIVERED: (o) =>
     `*Order Delivered! — TOBI CLOTHINGS*\n` +
     `----------------------------------------\n` +
-    `Your order *${o.number}* has been delivered. Thank you for shopping with TOBI CLOTHINGS! ✨`,
+    `Your order *${o.number}* has been delivered. Thank you for shopping with TOBI CLOTHINGS!`,
   CANCELLED: (o) =>
     `Your order ${o.number} has been cancelled${o.totalP ? ` and a refund of ${formatGHS(o.totalP)} is being processed` : ''}.`,
   REFUNDED: (o) =>

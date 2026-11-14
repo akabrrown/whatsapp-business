@@ -19,7 +19,6 @@ import {
   MessageSquare,
   ShieldCheck,
   Tag,
-  Sparkles,
   ChevronRight,
   Lock,
   Banknote,

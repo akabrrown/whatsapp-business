@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Flame, Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { Flame, ArrowRight, Zap } from 'lucide-react';
 import type { Category } from '@/lib/api';
 
 // Curated high-res editorial imagery matching Accra streetwear & luxury fashion
@@ -96,14 +96,14 @@ export function StoryCategoryBar({ categories = [] }: { categories?: Category[] 
               href={`/${story.slug}`}
               className="group flex flex-col items-center shrink-0 snap-start active:scale-95 transition-transform"
             >
-              {/* Instagram / TikTok Style Gradient Story Ring */}
+              {/* High-End Editorial Story Ring */}
               <div
-                className={`relative rounded-full p-[2.5px] transition-all duration-300 ${
+                className={`relative rounded-full p-[2px] transition-all duration-300 ${
                   story.isSale
-                    ? 'bg-gradient-to-tr from-amber-500 via-rose-500 to-red-600 animate-pulse'
+                    ? 'ring-2 ring-rose ring-offset-2 ring-offset-cream'
                     : story.isLive
-                    ? 'bg-gradient-to-tr from-rose-500 via-purple-500 to-indigo-600'
-                    : 'bg-gradient-to-tr from-sand-dark via-indigo/40 to-rose/50 group-hover:from-rose group-hover:to-indigo'
+                    ? 'ring-2 ring-indigo ring-offset-2 ring-offset-cream'
+                    : 'ring-1 ring-sand/40 group-hover:ring-indigo transition-all ring-offset-1 ring-offset-cream'
                 }`}
               >
                 {/* White/Cream Gap */}

@@ -10,7 +10,6 @@ import {
   Compass,
   AlertCircle,
   Loader2,
-  Sparkles,
   ChevronDown,
   Info,
 } from 'lucide-react';
