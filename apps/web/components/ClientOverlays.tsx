@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const MiniCart = dynamic(() => import('@/components/MiniCart').then((mod) => mod.MiniCart), {
@@ -15,6 +16,14 @@ const PushNotificationManager = dynamic(
 );
 
 export function ClientOverlays() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <>
       <MiniCart />

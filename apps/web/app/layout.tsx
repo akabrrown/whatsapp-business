@@ -84,7 +84,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
-      <head>
+      <body suppressHydrationWarning>
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
@@ -110,8 +110,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             `,
           }}
         />
-      </head>
-      <body suppressHydrationWarning>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-indigo focus:px-4 focus:py-2 focus:text-cream">
           Skip to content
         </a>

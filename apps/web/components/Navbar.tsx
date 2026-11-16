@@ -10,11 +10,16 @@ import type { Category } from '@/lib/api';
 export function Navbar({ categories = [] }: { categories?: Category[] }) {
   const safeCategories = Array.isArray(categories) ? categories : [];
   const { count, setDrawerOpen } = useCart();
+  const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState('');
   const [expandedMobile, setExpandedMobile] = useState<string | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const dropdownTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -87,7 +92,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               className="relative text-charcoal/70 transition-colors hover:text-indigo"
             >
               <ShoppingBag size={21} aria-hidden />
-              {count > 0 && (
+              {mounted && count > 0 && (
                 <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose text-[10px] font-medium text-cream shadow-xs animate-in zoom-in-75">
                   {count}
                 </span>
@@ -339,7 +344,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
             className="flex w-full items-center justify-center gap-2 rounded-full bg-indigo py-2.5 text-sm font-medium text-cream transition-colors hover:bg-indigo-deep"
           >
             <ShoppingBag size={16} aria-hidden />
-            View Bag{count > 0 ? ` (${count})` : ''}
+            View Bag{mounted && count > 0 ? ` (${count})` : ''}
           </button>
         </div>
       </div>
