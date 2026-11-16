@@ -103,10 +103,8 @@ export function LiveSearchBar({ categories = [] }: LiveSearchBarProps) {
     setOpen(false);
   };
 
-  if (!mounted) return null;
-
   return (
-    <div ref={containerRef} className="relative z-50 mb-10 w-full max-w-lg">
+    <div ref={containerRef} className="relative z-50 mb-2 w-full max-w-lg min-h-[46px]">
       <form onSubmit={handleSubmit} className="relative group flex items-center border-b-2 border-charcoal/15 focus-within:border-indigo transition-colors">
         <div className="flex items-center text-charcoal/30 group-focus-within:text-indigo transition-colors pl-2">
           <Search size={22} strokeWidth={1.5} />
@@ -117,6 +115,8 @@ export function LiveSearchBar({ categories = [] }: LiveSearchBarProps) {
             <button
               type="button"
               onClick={() => setCatDropdownOpen(!catDropdownOpen)}
+              aria-label="Filter by category"
+              aria-expanded={catDropdownOpen}
               className="flex items-center gap-1.5 text-sm font-medium tracking-wide text-charcoal/70 hover:text-indigo transition-colors cursor-pointer"
             >
               {category ? categories.find(c => c.slug === category)?.name : "All Categories"}
@@ -153,12 +153,14 @@ export function LiveSearchBar({ categories = [] }: LiveSearchBarProps) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => { if (query.trim()) setOpen(true); }}
           placeholder="Search..."
+          aria-label="Search collection"
           className="flex-1 bg-transparent py-3 pl-3 pr-10 text-lg md:text-xl text-charcoal placeholder:text-charcoal/30 placeholder:font-light focus:outline-none rounded-none"
         />
         {query && (
           <button
             type="button"
             onClick={clearSearch}
+            aria-label="Clear search query"
             className="absolute inset-y-0 right-0 flex items-center pr-2 text-charcoal/40 hover:text-charcoal/80 transition-colors"
           >
             {loading ? <Loader2 size={20} className="animate-spin text-indigo" /> : <X size={20} strokeWidth={1.5} />}

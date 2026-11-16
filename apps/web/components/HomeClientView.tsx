@@ -82,11 +82,11 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
 
       {/* ─── 2. HERO SECTION (Double-Bezel Architecture & Button-in-Button CTA) ─── */}
       <section className="double-bezel">
-        <div className="double-bezel-inner relative overflow-hidden bg-linear-to-br from-indigo/5 via-cream to-sand/15 p-5 sm:p-8 md:p-12 lg:p-14">
+        <div className="double-bezel-inner relative overflow-hidden bg-gradient-to-br from-indigo/5 via-cream to-sand/15 p-5 sm:p-8 md:p-12 lg:p-14">
           <div className="grid items-center gap-8 md:grid-cols-[1.15fr_0.85fr]">
             <div className="flex flex-col justify-center">
               {/* Live Search Bar directly accessible on mobile and desktop */}
-              <div className="mb-4 max-w-md">
+              <div className="mb-4 max-w-md min-h-[46px]">
                 <LiveSearchBar categories={categories} />
               </div>
 
@@ -123,6 +123,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                   href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'm%20browsing%20the%20store%20and%20would%20like%20to%20order"
                   target="_blank"
                   rel="noreferrer"
+                  aria-label="Chat with WhatsApp Concierge to browse and order"
                   className="group inline-flex items-center gap-2.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-5 py-2.5 text-xs sm:text-sm font-semibold text-wagreen-dark hover:bg-wagreen/20 transition-spring active:scale-95"
                 >
                   <MessageCircle size={16} />
@@ -132,7 +133,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
             </div>
 
             {/* Hero Visual Imagery */}
-            <div className="relative aspect-4/3 sm:aspect-16/10 md:aspect-square w-full min-h-[260px] sm:min-h-[340px] overflow-hidden rounded-2xl shadow-md border border-sand/30 bg-sand/10">
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] md:aspect-square w-full min-h-[260px] sm:min-h-[340px] overflow-hidden rounded-2xl shadow-md border border-sand/30 bg-sand/10">
               {products[0]?.images[0] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -143,6 +144,8 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                   decoding="async"
                   width={700}
                   height={700}
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                 />
               ) : (
@@ -239,7 +242,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
         <div className="flex items-baseline justify-between">
           <div>
             <h2 className="headline text-2xl sm:text-3xl">Featured Collections</h2>
-            <p className="text-xs sm:text-sm text-charcoal/60 mt-1">Curated drops for Accra&apos;s tropical lifestyle</p>
+            <p className="text-xs sm:text-sm text-charcoal/85 mt-1 font-medium">Curated drops for Accra&apos;s tropical lifestyle</p>
           </div>
           <Link href="/shop" className="text-xs sm:text-sm font-semibold text-indigo hover:text-rose transition-colors">
             View All &rarr;
@@ -252,14 +255,14 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
             href="/shop/mens-fashion"
             className="group relative h-64 sm:h-76 overflow-hidden rounded-2xl bg-indigo p-6 flex flex-col justify-end text-cream transition-spring hover:shadow-xl"
           >
-            <div className="absolute inset-0 bg-linear-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
             <img
-              src={optimizeImageUrl('https://images.unsplash.com/photo-1617137984095-74e4e5e3613f', { width: 600, quality: 75 })}
+              src={optimizeImageUrl('https://images.unsplash.com/photo-1617137984095-74e4e5e3613f', { width: 500, quality: 75 })}
               alt="Men's Fashion"
               loading="lazy"
               decoding="async"
-              width={600}
-              height={400}
+              width={500}
+              height={333}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="relative z-20">
@@ -281,14 +284,14 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
             href="/shop/womens-fashion"
             className="group relative h-64 sm:h-76 overflow-hidden rounded-2xl bg-sand p-6 flex flex-col justify-end text-cream transition-spring hover:shadow-xl"
           >
-            <div className="absolute inset-0 bg-linear-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
             <img
-              src={optimizeImageUrl('https://images.unsplash.com/photo-1483985988355-763728e1935b', { width: 600, quality: 75 })}
+              src={optimizeImageUrl('https://images.unsplash.com/photo-1483985988355-763728e1935b', { width: 500, quality: 75 })}
               alt="Women's Fashion"
               loading="lazy"
               decoding="async"
-              width={600}
-              height={400}
+              width={500}
+              height={333}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="relative z-20">
@@ -310,14 +313,14 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
             href="/shop/mens-fashion-footwears"
             className="group relative h-64 sm:h-76 sm:col-span-2 lg:col-span-1 overflow-hidden rounded-2xl bg-charcoal p-6 flex flex-col justify-end text-cream transition-spring hover:shadow-xl"
           >
-            <div className="absolute inset-0 bg-linear-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
             <img
-              src={optimizeImageUrl('https://images.unsplash.com/photo-1549298916-b41d501d3772', { width: 600, quality: 75 })}
+              src={optimizeImageUrl('https://images.unsplash.com/photo-1549298916-b41d501d3772', { width: 500, quality: 75 })}
               alt="Footwear and Accessories"
               loading="lazy"
               decoding="async"
-              width={600}
-              height={400}
+              width={500}
+              height={333}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="relative z-20">
@@ -342,51 +345,51 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
           <div>
             <div className="flex items-center gap-2">
               <h2 className="headline text-2xl sm:text-3xl">Trending Pieces</h2>
-              <span className="rounded-full bg-sand/30 px-2 py-0.5 text-[11px] font-bold text-charcoal/70">
+              <span className="rounded-full bg-sand/30 px-2.5 py-0.5 text-[11px] font-bold text-charcoal">
                 {filteredProducts.length} drops
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-charcoal/60 mt-0.5">Explore the latest styles in stock</p>
+            <p className="text-xs sm:text-sm text-charcoal/85 mt-0.5 font-medium">Explore the latest styles in stock</p>
           </div>
 
           {/* Interactive filter tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             <button
               onClick={() => setActiveTab('all')}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-spring ${
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-spring ${
                 activeTab === 'all'
                   ? 'bg-indigo text-cream shadow-xs'
-                  : 'bg-sand/15 text-charcoal/70 hover:bg-sand/30'
+                  : 'bg-sand/20 text-charcoal/90 hover:bg-sand/35'
               }`}
             >
               All Pieces
             </button>
             <button
               onClick={() => setActiveTab('men')}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-spring ${
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-spring ${
                 activeTab === 'men'
                   ? 'bg-indigo text-cream shadow-xs'
-                  : 'bg-sand/15 text-charcoal/70 hover:bg-sand/30'
+                  : 'bg-sand/20 text-charcoal/90 hover:bg-sand/35'
               }`}
             >
               Men&apos;s
             </button>
             <button
               onClick={() => setActiveTab('women')}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-spring ${
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-spring ${
                 activeTab === 'women'
                   ? 'bg-indigo text-cream shadow-xs'
-                  : 'bg-sand/15 text-charcoal/70 hover:bg-sand/30'
+                  : 'bg-sand/20 text-charcoal/90 hover:bg-sand/35'
               }`}
             >
               Women&apos;s
             </button>
             <button
               onClick={() => setActiveTab('footwear')}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-spring ${
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-spring ${
                 activeTab === 'footwear'
                   ? 'bg-indigo text-cream shadow-xs'
-                  : 'bg-sand/15 text-charcoal/70 hover:bg-sand/30'
+                  : 'bg-sand/20 text-charcoal/90 hover:bg-sand/35'
               }`}
             >
               Footwear

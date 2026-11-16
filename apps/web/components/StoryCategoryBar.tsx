@@ -165,9 +165,11 @@ export function StoryCategoryBar({ categories = [] }: { categories?: Category[] 
                   decoding="async"
                   width={150}
                   height={150}
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-charcoal/80 via-charcoal/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-charcoal/20 to-transparent" />
 
                 {item.isSale ? (
                   <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-rose px-1.5 py-0.5 text-[8px] font-bold text-white shadow-xs uppercase">

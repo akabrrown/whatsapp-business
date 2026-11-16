@@ -68,6 +68,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'd%20like%20to%20order"
               target="_blank"
               rel="noreferrer"
+              aria-label="Chat with Tobi on WhatsApp"
               className="flex items-center gap-1.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-2.5 py-1 text-xs font-semibold text-wagreen-dark hover:bg-wagreen/20 transition-all active:scale-95"
               title="Chat with Tobi on WhatsApp"
             >

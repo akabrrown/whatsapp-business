@@ -52,6 +52,7 @@ export async function Footer() {
             href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Hi TOBI CLOTHINGS! I have a question.')}`}
             target="_blank"
             rel="noreferrer"
+            aria-label="Chat with WhatsApp Concierge for customer support and sizing advice"
             className="inline-flex items-center gap-2 rounded-xl border border-wagreen bg-wagreen/10 px-3.5 py-2 text-xs font-semibold text-charcoal hover:bg-wagreen/20 transition-all active:scale-95"
           >
             <span className="h-2 w-2 rounded-full bg-wagreen animate-pulse" aria-hidden />

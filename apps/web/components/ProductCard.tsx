@@ -89,6 +89,8 @@ export function ProductCard({
             decoding="async"
             width={300}
             height={400}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

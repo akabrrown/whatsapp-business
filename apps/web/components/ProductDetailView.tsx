@@ -262,7 +262,7 @@ export function ProductDetailView({
                 </div>
                 <div className="h-2 w-full rounded-full bg-amber-200 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-amber-500 to-rose"
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose"
                     style={{ width: `${Math.max(15, (available / 8) * 100)}%` }}
                   />
                 </div>
