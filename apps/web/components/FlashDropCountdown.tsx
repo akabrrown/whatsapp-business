@@ -43,11 +43,11 @@ export function FlashDropCountdown() {
               <span className="rounded bg-rose px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
                 Limited Drop
               </span>
-              <p className="text-xs font-semibold text-sand-pale">Weekend Flash Deals</p>
+              <p className="text-xs font-semibold text-cream">Weekend Flash Deals</p>
             </div>
-            <h4 className="font-serif text-base sm:text-lg font-bold text-cream mt-0.5">
+            <h2 className="font-serif text-base sm:text-lg font-bold text-cream mt-0.5">
               Up to 40% Off Selected Tops &amp; Footwears
-            </h4>
+            </h2>
           </div>
         </div>
 
@@ -59,25 +59,25 @@ export function FlashDropCountdown() {
                 {format2(timeLeft.hours)}
               </span>
             </div>
-            <span className="text-[9px] uppercase tracking-wider text-cream/60 mt-1">Hrs</span>
+            <span className="text-[9px] uppercase tracking-wider text-cream/90 mt-1 font-medium">Hrs</span>
           </div>
-          <span className="font-bold text-sand-pale -mt-3">:</span>
+          <span className="font-bold text-cream -mt-3">:</span>
           <div className="flex flex-col items-center">
             <div className="rounded-lg bg-black/40 border border-white/10 px-2.5 py-1.5 min-w-[38px] text-center">
               <span className="font-mono text-sm sm:text-base font-bold text-cream">
                 {format2(timeLeft.minutes)}
               </span>
             </div>
-            <span className="text-[9px] uppercase tracking-wider text-cream/60 mt-1">Min</span>
+            <span className="text-[9px] uppercase tracking-wider text-cream/90 mt-1 font-medium">Min</span>
           </div>
-          <span className="font-bold text-sand-pale -mt-3">:</span>
+          <span className="font-bold text-cream -mt-3">:</span>
           <div className="flex flex-col items-center">
             <div className="rounded-lg bg-black/40 border border-white/10 px-2.5 py-1.5 min-w-[38px] text-center">
-              <span className="font-mono text-sm sm:text-base font-bold text-rose">
+              <span className="font-mono text-sm sm:text-base font-bold text-rose-light">
                 {format2(timeLeft.seconds)}
               </span>
             </div>
-            <span className="text-[9px] uppercase tracking-wider text-cream/60 mt-1">Sec</span>
+            <span className="text-[9px] uppercase tracking-wider text-cream/90 mt-1 font-medium">Sec</span>
           </div>
 
           <Link

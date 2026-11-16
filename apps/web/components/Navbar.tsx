@@ -63,7 +63,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'd%20like%20to%20order"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-2.5 py-1 text-xs font-semibold text-wagreen hover:bg-wagreen/20 transition-all active:scale-95"
+              className="flex items-center gap-1.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-2.5 py-1 text-xs font-semibold text-wagreen-dark hover:bg-wagreen/20 transition-all active:scale-95"
               title="Chat with Tobi on WhatsApp"
             >
               <span className="h-2 w-2 rounded-full bg-wagreen animate-pulse" />
@@ -179,6 +179,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                           <Link
                             key={child.slug}
                             href={`/shop/${child.slug}`}
+                            aria-label={`${cat.name}: ${child.name}`}
                             className="group flex items-center justify-between rounded-xl p-2.5 text-xs font-medium text-charcoal/80 transition-all hover:bg-sand/20 hover:text-indigo hover:translate-x-0.5"
                             onClick={() => setActiveDropdown(null)}
                           >
@@ -302,8 +303,9 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                     <Link
                       key={child.slug}
                       href={`/shop/${child.slug}`}
+                      aria-label={`${cat.name}: ${child.name}`}
                       onClick={() => setMenuOpen(false)}
-                      className="block py-2 pl-4 text-sm text-charcoal/65 transition-colors hover:text-indigo"
+                      className="block py-2.5 pl-4 text-sm font-medium text-charcoal/85 transition-colors hover:text-indigo"
                     >
                       {child.name}
                     </Link>

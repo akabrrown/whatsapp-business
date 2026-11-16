@@ -156,7 +156,7 @@ export function ProductCard({
                 );
               })}
               {colors.length > 4 && (
-                <span className="text-[10px] text-charcoal/50">
+                <span className="text-[10px] font-medium text-charcoal/75">
                   +{colors.length - 4}
                 </span>
               )}
@@ -170,11 +170,11 @@ export function ProductCard({
                 <Star
                   key={i}
                   size={11}
-                  className="fill-current text-amber-400"
+                  className="fill-current text-amber-500"
                 />
               ))}
             </div>
-            <span className="text-[10px] font-medium text-charcoal/50">
+            <span className="text-[10px] font-semibold text-charcoal/75">
               5.0
             </span>
           </div>
@@ -194,7 +194,7 @@ export function ProductCard({
             </span>
             {product.compareAtPriceP &&
               product.compareAtPriceP > product.minPriceP && (
-                <span className="text-xs text-charcoal/40 line-through">
+                <span className="text-xs text-charcoal/60 line-through">
                   {formatGHS(product.compareAtPriceP)}
                 </span>
               )}
@@ -202,7 +202,7 @@ export function ProductCard({
 
           {/* Urgency indicator if low stock */}
           {product.lowStock && !product.soldOut && (
-            <p className="mt-1 text-[10px] font-semibold text-rose flex items-center gap-1">
+            <p className="mt-1 text-[10px] font-bold text-rose flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-rose animate-pulse" />
               Only {product.totalAvailable} left
             </p>
@@ -214,7 +214,7 @@ export function ProductCard({
           {!product.soldOut ? (
             <AddToBag product={product} compact />
           ) : (
-            <span className="block text-center text-[11px] font-medium text-charcoal/40 py-1">
+            <span className="block text-center text-[11px] font-medium text-charcoal/70 py-1">
               Out of stock
             </span>
           )}

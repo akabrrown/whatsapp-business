@@ -23,13 +23,13 @@ export async function Footer() {
             Shop online with door-to-door delivery across all Accra zones.
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-charcoal/60">
-            <span className="rounded bg-sand/20 px-2.5 py-1">East Legon</span>
-            <span className="rounded bg-sand/20 px-2.5 py-1">Osu</span>
-            <span className="rounded bg-sand/20 px-2.5 py-1">Cantonments</span>
-            <span className="rounded bg-sand/20 px-2.5 py-1">Spintex</span>
-            <span className="rounded bg-sand/20 px-2.5 py-1">Airport</span>
-            <span className="rounded bg-sand/20 px-2.5 py-1">Tema</span>
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px]">
+            <span className="rounded-md border border-sand/40 bg-white/90 px-2.5 py-1 font-medium text-charcoal">East Legon</span>
+            <span className="rounded-md border border-sand/40 bg-white/90 px-2.5 py-1 font-medium text-charcoal">Osu</span>
+            <span className="rounded-md border border-sand/40 bg-white/90 px-2.5 py-1 font-medium text-charcoal">Cantonments</span>
+            <span className="rounded-md border border-sand/40 bg-white/90 px-2.5 py-1 font-medium text-charcoal">Spintex</span>
+            <span className="rounded-md border border-sand/40 bg-white/90 px-2.5 py-1 font-medium text-charcoal">Airport</span>
+            <span className="rounded-md border border-sand/40 bg-white/90 px-2.5 py-1 font-medium text-charcoal">Tema</span>
           </div>
         </div>
 
@@ -57,27 +57,31 @@ export async function Footer() {
             <span className="h-2 w-2 rounded-full bg-wagreen animate-pulse" aria-hidden />
             WhatsApp Concierge
           </a>
-          <p className="mt-2 text-[11px] text-charcoal/50">Fast replies: sizing, advice &amp; custom drops.</p>
+          <p className="mt-2 text-[11px] font-medium text-charcoal/75">Fast replies: sizing, advice &amp; custom drops.</p>
         </div>
 
         {/* Trust & Payments */}
         <div className="text-xs">
           <p className="mb-3 font-bold uppercase tracking-wider text-indigo">Accepted Payments</p>
-          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-charcoal/70">
+          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-charcoal/80">
             <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">MTN MoMo</span>
             <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">Telecel Cash</span>
             <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">Visa / Card</span>
             <span className="rounded border border-sand/40 bg-white px-2 py-1 shadow-2xs">Pay on Delivery</span>
           </div>
 
-          <div className="mt-4 space-y-1 text-charcoal/60">
-            <p><a className="hover:text-indigo" href="/privacy">Privacy Policy</a></p>
-            <p><a className="hover:text-indigo" href="/terms">Terms of Service</a></p>
+          <div className="mt-4 flex flex-col gap-0.5 text-xs text-charcoal/80">
+            <a className="inline-flex items-center min-h-[44px] py-2 hover:text-indigo transition-colors" href="/privacy">
+              Privacy Policy
+            </a>
+            <a className="inline-flex items-center min-h-[44px] py-2 hover:text-indigo transition-colors" href="/terms">
+              Terms of Service
+            </a>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-sand/30 py-4 text-center text-xs text-charcoal/50">
+      <div className="border-t border-sand/30 py-4 text-center text-xs text-charcoal/70">
         <p>© {new Date().getFullYear()} TOBI CLOTHINGS · Developed by Codey Dev</p>
       </div>
     </footer>

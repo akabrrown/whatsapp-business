@@ -25,8 +25,6 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export const metadata: Metadata = {
@@ -85,7 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   };
 
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
@@ -113,7 +111,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-indigo focus:px-4 focus:py-2 focus:text-cream">
           Skip to content
         </a>

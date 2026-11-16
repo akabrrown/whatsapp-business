@@ -61,7 +61,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
       <section className="space-y-3">
         <div className="flex items-baseline justify-between px-1">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-sand flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-rose shrink-0" />
               Live Highlights &amp; Drops
             </span>
@@ -94,7 +94,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-indigo">
                   <span className="h-1.5 w-1.5 rounded-full bg-sand shrink-0" /> Season Drop &apos;26
                 </span>
-                <span className="text-xs font-semibold text-charcoal/60 hidden sm:inline">
+                <span className="text-xs font-semibold text-charcoal/80 hidden sm:inline">
                   Accra, Ghana
                 </span>
               </div>
@@ -103,7 +103,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                 Tops, Footwears &amp; Everyday Luxury.
               </h1>
 
-              <p className="mt-4 max-w-lg text-xs sm:text-sm md:text-base leading-relaxed text-charcoal/75">
+              <p className="mt-4 max-w-lg text-xs sm:text-sm md:text-base leading-relaxed text-charcoal/80">
                 Hand-picked collections delivered to your doorstep in East Legon, Osu, Cantonments, Spintex &amp; across Accra. Browse online or finish instantly on WhatsApp with Tobi.
               </p>
 
@@ -123,7 +123,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                   href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'm%20browsing%20the%20store%20and%20would%20like%20to%20order"
                   target="_blank"
                   rel="noreferrer"
-                  className="group inline-flex items-center gap-2.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-5 py-2.5 text-xs sm:text-sm font-semibold text-wagreen hover:bg-wagreen/20 transition-spring active:scale-95"
+                  className="group inline-flex items-center gap-2.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-5 py-2.5 text-xs sm:text-sm font-semibold text-wagreen-dark hover:bg-wagreen/20 transition-spring active:scale-95"
                 >
                   <MessageCircle size={16} />
                   <span>WhatsApp Concierge</span>
@@ -132,7 +132,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
             </div>
 
             {/* Hero Visual Imagery */}
-            <div className="relative aspect-4/3 sm:aspect-16/10 md:aspect-square w-full overflow-hidden rounded-2xl shadow-md border border-sand/30">
+            <div className="relative aspect-4/3 sm:aspect-16/10 md:aspect-square w-full min-h-[260px] sm:min-h-[340px] overflow-hidden rounded-2xl shadow-md border border-sand/30 bg-sand/10">
               {products[0]?.images[0] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -146,7 +146,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                   className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-indigo text-cream text-5xl font-serif">
+                <div className="flex h-full w-full min-h-[260px] items-center justify-center bg-indigo text-cream text-5xl font-serif">
                   TOBI
                 </div>
               )}
@@ -186,49 +186,49 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
       {/* ─── 5. 4-PILLAR VALUE PROPOSITION STRIP (PressMart & Mykart Inspiration) ─── */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
         <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/80 p-3.5 sm:p-4">
+          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
             <div className="rounded-xl bg-indigo/10 p-2 text-indigo shrink-0">
               <Truck size={18} />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-charcoal">Accra Delivery</h4>
-              <p className="text-[11px] text-charcoal/60 leading-tight mt-0.5">East Legon, Osu, Spintex &amp; all zones</p>
+              <h3 className="text-xs sm:text-sm font-bold text-charcoal">Accra Delivery</h3>
+              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">East Legon, Osu, Spintex &amp; all zones</p>
             </div>
           </div>
         </div>
 
         <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/80 p-3.5 sm:p-4">
-            <div className="rounded-xl bg-wagreen/10 p-2 text-wagreen shrink-0">
+          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
+            <div className="rounded-xl bg-wagreen/10 p-2 text-wagreen-dark shrink-0">
               <MessageCircle size={18} />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-charcoal">WhatsApp Order</h4>
-              <p className="text-[11px] text-charcoal/60 leading-tight mt-0.5">Direct concierge &amp; live fit check</p>
+              <h3 className="text-xs sm:text-sm font-bold text-charcoal">WhatsApp Order</h3>
+              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">Direct concierge &amp; live fit check</p>
             </div>
           </div>
         </div>
 
         <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/80 p-3.5 sm:p-4">
+          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
             <div className="rounded-xl bg-rose/10 p-2 text-rose shrink-0">
               <Tag size={18} />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-charcoal">Flexible Pay</h4>
-              <p className="text-[11px] text-charcoal/60 leading-tight mt-0.5">MoMo, Card &amp; Pay on Delivery</p>
+              <h3 className="text-xs sm:text-sm font-bold text-charcoal">Flexible Pay</h3>
+              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">MoMo, Card &amp; Pay on Delivery</p>
             </div>
           </div>
         </div>
 
         <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/80 p-3.5 sm:p-4">
+          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
             <div className="rounded-xl bg-sand/20 p-2 text-charcoal shrink-0">
               <ShieldCheck size={18} />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-charcoal">100% Verified</h4>
-              <p className="text-[11px] text-charcoal/60 leading-tight mt-0.5">Quality fabrics &amp; inspected sizes</p>
+              <h3 className="text-xs sm:text-sm font-bold text-charcoal">100% Verified</h3>
+              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">Quality fabrics &amp; inspected sizes</p>
             </div>
           </div>
         </div>
@@ -429,13 +429,13 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
       <section className="double-bezel">
         <div className="double-bezel-inner rounded-2xl bg-charcoal text-cream p-6 sm:p-10 text-center sm:text-left relative overflow-hidden">
           <div className="relative z-10 max-w-xl">
-            <span className="rounded bg-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cream">
+            <span className="rounded bg-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
               VIP ACCESS
             </span>
             <h3 className="font-serif text-2xl sm:text-3xl text-cream font-bold mt-2">
               Never miss a weekend drop.
             </h3>
-            <p className="text-xs sm:text-sm text-cream/70 mt-1">
+            <p className="text-xs sm:text-sm text-cream/90 mt-1">
               Get instant alerts when new sneakers, tops, and luxury bags land in Accra.
             </p>
             <form
@@ -448,12 +448,13 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
               <input
                 type="email"
                 required
+                aria-label="Email address or phone number"
                 placeholder="Enter your email or phone"
-                className="rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-xs text-cream placeholder:text-cream/50 focus:outline-none focus:border-rose flex-1"
+                className="rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-xs text-cream placeholder:text-cream/60 focus:outline-none focus:border-rose flex-1"
               />
               <button
                 type="submit"
-                className="rounded-xl bg-rose px-5 py-2.5 text-xs font-bold text-cream hover:bg-rose/90 transition-spring shrink-0"
+                className="rounded-xl bg-rose px-5 py-2.5 text-xs font-bold text-white hover:bg-rose/90 transition-spring shrink-0 min-h-[44px]"
               >
                 Get Notified
               </button>
