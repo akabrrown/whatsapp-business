@@ -46,12 +46,27 @@ export interface Category {
   children?: Category[];
 }
 
-async function get<T>(path: string): Promise<T | null> {
+async function get<T>(
+  path: string,
+  options?: { revalidate?: number | false; tags?: string[] }
+): Promise<T | null> {
   try {
-    const res = await fetch(`${API_URL}${path}`, {
-      cache: 'no-store',
+    const fetchOptions: RequestInit & { next?: { revalidate?: number | false; tags?: string[] } } = {
       headers: { Accept: 'application/json' },
-    });
+    };
+
+    if (options?.revalidate !== undefined) {
+      if (options.revalidate === false) {
+        fetchOptions.cache = 'no-store';
+      } else {
+        fetchOptions.next = { revalidate: options.revalidate, tags: options.tags };
+      }
+    } else {
+      // Default: ISR 60s for high performance storefront edge caching
+      fetchOptions.next = { revalidate: 60 };
+    }
+
+    const res = await fetch(`${API_URL}${path}`, fetchOptions);
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -63,7 +78,8 @@ export const api = {
   catalog: async (category?: string): Promise<CatalogProduct[]> => {
     try {
       const r = await get<{ ok: boolean; products: CatalogProduct[] }>(
-        `/api/catalog${category ? `?category=${encodeURIComponent(category)}` : ''}`
+        `/api/catalog${category ? `?category=${encodeURIComponent(category)}` : ''}`,
+        { revalidate: 60, tags: ['catalog'] }
       );
       return Array.isArray(r?.products) ? r!.products : [];
     } catch {
@@ -73,7 +89,8 @@ export const api = {
   search: async (q: string, category?: string): Promise<CatalogProduct[]> => {
     try {
       const r = await get<{ ok: boolean; products: CatalogProduct[] }>(
-        `/api/catalog/search?q=${encodeURIComponent(q)}${category ? `&category=${encodeURIComponent(category)}` : ''}`
+        `/api/catalog/search?q=${encodeURIComponent(q)}${category ? `&category=${encodeURIComponent(category)}` : ''}`,
+        { revalidate: false }
       );
       return Array.isArray(r?.products) ? r!.products : [];
     } catch {
@@ -82,7 +99,10 @@ export const api = {
   },
   categories: async (): Promise<Category[]> => {
     try {
-      const r = await get<{ ok: boolean; categories: Category[] }>('/api/categories');
+      const r = await get<{ ok: boolean; categories: Category[] }>('/api/categories', {
+        revalidate: 60,
+        tags: ['categories'],
+      });
       return Array.isArray(r?.categories) ? r!.categories : [];
     } catch {
       return [];
@@ -90,7 +110,10 @@ export const api = {
   },
   product: async (slug: string): Promise<CatalogProduct | null> => {
     try {
-      const r = await get<{ ok: boolean; product: CatalogProduct }>(`/api/products/${encodeURIComponent(slug)}`);
+      const r = await get<{ ok: boolean; product: CatalogProduct }>(
+        `/api/products/${encodeURIComponent(slug)}`,
+        { revalidate: 60, tags: ['product'] }
+      );
       return r?.product || null;
     } catch {
       return null;

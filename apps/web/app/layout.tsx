@@ -4,21 +4,22 @@ import './globals.css';
 import { CartProvider } from '@/lib/cart';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { MiniCart } from '@/components/MiniCart';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { ClientOverlays } from '@/components/ClientOverlays';
 import { api } from '@/lib/api';
-import { RealtimePushToast } from '@/components/RealtimePushToast';
-import { PushNotificationManager } from '@/components/PushNotificationManager';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
   variable: '--font-fraunces',
   display: 'swap',
+  style: ['normal'],
+  preload: true,
 });
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+  preload: true,
 });
 
 export const viewport: Viewport = {
@@ -86,6 +87,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <head>
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -118,11 +123,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
           </main>
           <Footer />
-          <MiniCart />
           <MobileBottomNav />
+          <ClientOverlays />
         </CartProvider>
-        <RealtimePushToast />
-        <PushNotificationManager />
       </body>
     </html>
   );

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
+import { optimizeImageUrl } from '@/lib/images';
 import { AddToBag } from './AddToBag';
 import { SizeGuide } from './SizeGuide';
 import { ShareButton } from './ShareButton';
@@ -118,8 +119,13 @@ export function ProductDetailView({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={activeImage}
-                src={activeImage}
+                src={optimizeImageUrl(activeImage, { width: 900, quality: 'auto' })}
                 alt={`${product.name} — ${selectedColor || 'View'}`}
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
+                width={800}
+                height={1000}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
@@ -192,7 +198,15 @@ export function ProductDetailView({
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={optimizeImageUrl(src, { width: 140, quality: 75 })}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      width={64}
+                      height={80}
+                      className="h-full w-full object-cover"
+                    />
                     {matchingColor && (
                       <span className="absolute inset-x-0 bottom-0 bg-charcoal/80 py-0.5 text-center text-[9px] text-white truncate px-1">
                         {matchingColor}

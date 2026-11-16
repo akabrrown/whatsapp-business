@@ -15,6 +15,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import type { CatalogProduct, Category } from '@/lib/api';
+import { optimizeImageUrl } from '@/lib/images';
 import { ProductCard } from './ProductCard';
 import { LiveSearchBar } from './LiveSearchBar';
 import { StoryCategoryBar } from './StoryCategoryBar';
@@ -135,8 +136,13 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
               {products[0]?.images[0] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={products[0].images[0]}
+                  src={optimizeImageUrl(products[0].images[0], { width: 800, quality: 'auto' })}
                   alt={products[0].name}
+                  fetchPriority="high"
+                  loading="eager"
+                  decoding="async"
+                  width={700}
+                  height={700}
                   className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                 />
               ) : (
@@ -248,8 +254,12 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
           >
             <div className="absolute inset-0 bg-linear-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
             <img
-              src="https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80"
+              src={optimizeImageUrl('https://images.unsplash.com/photo-1617137984095-74e4e5e3613f', { width: 600, quality: 75 })}
               alt="Men's Fashion"
+              loading="lazy"
+              decoding="async"
+              width={600}
+              height={400}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="relative z-20">
@@ -273,8 +283,12 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
           >
             <div className="absolute inset-0 bg-linear-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
             <img
-              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80"
+              src={optimizeImageUrl('https://images.unsplash.com/photo-1483985988355-763728e1935b', { width: 600, quality: 75 })}
               alt="Women's Fashion"
+              loading="lazy"
+              decoding="async"
+              width={600}
+              height={400}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="relative z-20">
@@ -298,8 +312,12 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
           >
             <div className="absolute inset-0 bg-linear-to-t from-charcoal/90 via-charcoal/40 to-transparent z-10" />
             <img
-              src="https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&q=80"
+              src={optimizeImageUrl('https://images.unsplash.com/photo-1549298916-b41d501d3772', { width: 600, quality: 75 })}
               alt="Footwear and Accessories"
+              loading="lazy"
+              decoding="async"
+              width={600}
+              height={400}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="relative z-20">

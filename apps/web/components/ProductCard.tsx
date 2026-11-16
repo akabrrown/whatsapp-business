@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Heart, Star } from 'lucide-react';
 import { formatGHS } from '@rose/shared';
 import type { CatalogProduct } from '@/lib/api';
+import { optimizeImageUrl } from '@/lib/images';
 import { AddToBag } from './AddToBag';
 
 // Map common color names to CSS colors for swatch preview
@@ -82,9 +83,12 @@ export function ProductCard({
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={src}
+            src={optimizeImageUrl(src, { width: 450, quality: 'auto' })}
             alt={product.name}
             loading="lazy"
+            decoding="async"
+            width={300}
+            height={400}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

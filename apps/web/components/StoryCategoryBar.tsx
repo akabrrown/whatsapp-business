@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Flame, ArrowRight, Zap } from 'lucide-react';
 import type { Category } from '@/lib/api';
+import { optimizeImageUrl } from '@/lib/images';
 
 // Curated high-res editorial imagery matching Accra streetwear & luxury fashion
 const STORIES_DATA = [
@@ -10,7 +11,7 @@ const STORIES_DATA = [
     id: 'new-in',
     name: 'New Drops',
     slug: 'shop?sort=newest',
-    image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e',
     badge: 'NEW',
     isLive: true,
     tag: 'Season 26',
@@ -20,7 +21,7 @@ const STORIES_DATA = [
     id: 'mens',
     name: "Men's Fits",
     slug: 'shop/mens-fashion',
-    image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f',
     badge: 'DROP',
     tag: 'Streetwear',
     subtitle: 'Streetwear & Fits',
@@ -30,7 +31,7 @@ const STORIES_DATA = [
     id: 'womens',
     name: "Women's Chic",
     slug: 'shop/womens-fashion',
-    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b',
     badge: 'CHIC',
     tag: 'Chic Edit',
     subtitle: 'Dresses & Sets',
@@ -40,7 +41,7 @@ const STORIES_DATA = [
     id: 'kicks',
     name: 'Footwear',
     slug: 'shop/mens-fashion-footwears',
-    image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772',
     badge: 'HOT',
     tag: 'Trending',
     subtitle: 'Sneakers & Slides',
@@ -49,7 +50,7 @@ const STORIES_DATA = [
     id: 'tops',
     name: 'Tops & Tees',
     slug: 'shop/mens-fashion-tops',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518',
     badge: 'FIT',
     tag: 'Essentials',
     subtitle: 'Tees & Shirts',
@@ -58,7 +59,7 @@ const STORIES_DATA = [
     id: 'bottoms',
     name: 'Denim & Pants',
     slug: 'shop/mens-fashion-bottoms',
-    image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246',
     badge: 'DENIM',
     tag: 'Cargos',
     subtitle: 'Jeans & Cargo',
@@ -67,7 +68,7 @@ const STORIES_DATA = [
     id: 'accessories',
     name: 'Shades & Bags',
     slug: 'shop/mens-fashion-accessories',
-    image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083',
     badge: 'LUXE',
     tag: 'Accessories',
     subtitle: 'Eyewear & Leather',
@@ -76,7 +77,7 @@ const STORIES_DATA = [
     id: 'sale',
     name: 'Flash Sale',
     slug: 'shop?sale=1',
-    image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa',
     badge: '40% OFF',
     isSale: true,
     tag: 'Sale Drop',
@@ -112,9 +113,12 @@ export function StoryCategoryBar({ categories = [] }: { categories?: Category[] 
                   <div className="relative h-16 w-16 sm:h-18 sm:w-18 overflow-hidden rounded-full bg-charcoal/10 shadow-xs">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={story.image}
+                      src={optimizeImageUrl(story.image, { width: 140, quality: 75 })}
                       alt={story.name}
                       loading="lazy"
+                      decoding="async"
+                      width={64}
+                      height={64}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   </div>
@@ -155,9 +159,12 @@ export function StoryCategoryBar({ categories = [] }: { categories?: Category[] 
               <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-charcoal/5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.image}
+                  src={optimizeImageUrl(item.image, { width: 320, quality: 75 })}
                   alt={item.name}
                   loading="lazy"
+                  decoding="async"
+                  width={150}
+                  height={150}
                   className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-charcoal/80 via-charcoal/20 to-transparent" />

@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { api, type CatalogProduct, type Category } from '@/lib/api';
 import { ShopCatalogView } from '@/components/ShopCatalogView';
 
+export const revalidate = 60;
+
 export async function generateMetadata({
   params,
 }: {

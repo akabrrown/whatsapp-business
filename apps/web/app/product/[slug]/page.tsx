@@ -6,6 +6,8 @@ import { api, type CatalogProduct } from '@/lib/api';
 import { ProductDetailView } from '@/components/ProductDetailView';
 import { ProductCard } from '@/components/ProductCard';
 
+export const revalidate = 60;
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const product = await api.product(slug);
