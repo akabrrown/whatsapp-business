@@ -234,18 +234,18 @@ export function ProductDetailView({
             <h1 className="headline mt-1.5 text-3xl sm:text-4xl">{product.name}</h1>
 
             {/* Price Row */}
-            <div className="mt-3 flex items-center gap-3">
-              <p className="headline text-2xl sm:text-3xl font-bold text-indigo">
+            <div className="mt-3 flex items-baseline gap-3">
+              <p className="font-mono text-2xl sm:text-3xl font-semibold text-neutral-950">
                 {formatGHS(price)}
               </p>
               {product.compareAtPriceP && product.compareAtPriceP > price && (
-                <p className="text-lg text-charcoal/40 line-through">
+                <p className="font-mono text-base text-neutral-400 line-through">
                   {formatGHS(product.compareAtPriceP)}
                 </p>
               )}
-              {product.badge && (
-                <span className="rounded-full bg-rose/10 text-rose font-bold px-3 py-0.5 text-xs uppercase tracking-wider">
-                  {product.badge}
+              {discountPercent !== null && discountPercent > 0 && (
+                <span className="rounded bg-neutral-900 text-white font-bold px-2 py-0.5 text-[11px] font-mono">
+                  -{discountPercent}%
                 </span>
               )}
             </div>
@@ -366,23 +366,19 @@ export function ProductDetailView({
             </a>
           </div>
 
-          {/* Value Badges Block (Image 1 Mykart Inspiration) */}
-          <div className="rounded-xl border border-sand/30 bg-white/70 p-4 grid grid-cols-2 gap-3 text-xs">
-            <div className="flex items-center gap-2 text-charcoal/80">
-              <Truck size={17} className="text-indigo shrink-0" />
-              <span>Accra Express Delivery</span>
+          {/* Editorial Shipping & Guarantee Specifications */}
+          <div className="border-t border-neutral-200 pt-4 space-y-2 text-xs text-neutral-600 font-light">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-neutral-900" />
+              <span>Same-day dispatch available across Accra (Osu, East Legon, Cantonments, Spintex)</span>
             </div>
-            <div className="flex items-center gap-2 text-charcoal/80">
-              <ShieldCheck size={17} className="text-wagreen shrink-0" />
-              <span>MoMo &amp; Cash Accepted</span>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-neutral-900" />
+              <span>Payment options: Mobile Money (MTN/Telecel), Visa/Mastercard, or Cash on Delivery</span>
             </div>
-            <div className="flex items-center gap-2 text-charcoal/80">
-              <CheckCircle2 size={17} className="text-sand shrink-0" />
-              <span>Hand-Inspected Quality</span>
-            </div>
-            <div className="flex items-center gap-2 text-charcoal/80">
-              <RotateCcw size={17} className="text-rose shrink-0" />
-              <span>Hassle-Free Fit Exchange</span>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-neutral-900" />
+              <span>Complimentary size exchange assistance via WhatsApp concierge</span>
             </div>
           </div>
 

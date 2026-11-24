@@ -104,13 +104,13 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
       </div>
 
       {/* ─── Runway Stage: Multi-Plane Depth Viewport ─── */}
-      <div className="grid lg:grid-cols-[1.1fr_0.9fr] items-stretch min-h-[460px] sm:min-h-[520px]">
-        {/* Left Column: Editorial Product Information & Actions */}
-        <div className="flex flex-col justify-between p-6 sm:p-10 md:p-12 z-10">
+      <div className="flex flex-col-reverse lg:grid lg:grid-cols-[1.1fr_0.9fr] items-stretch min-h-[440px] sm:min-h-[500px]">
+        {/* Editorial Product Information & Actions */}
+        <div className="flex flex-col justify-between p-4 sm:p-8 md:p-12 z-10 border-t lg:border-t-0 border-neutral-800/80">
           <div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
               {activeProduct.category && (
-                <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 bg-neutral-800/60 px-2.5 py-0.5 rounded">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 bg-neutral-800/80 px-2 py-0.5 rounded">
                   {activeProduct.category.name}
                 </span>
               )}
@@ -121,38 +121,38 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
               )}
             </div>
 
-            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal leading-[1.08] tracking-tight text-white">
+            <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-normal leading-[1.12] tracking-tight text-white">
               {activeProduct.name}
             </h1>
 
-            <p className="mt-4 max-w-md text-xs sm:text-sm text-neutral-300 font-light leading-relaxed line-clamp-2">
+            <p className="mt-2.5 sm:mt-4 max-w-md text-xs sm:text-sm text-neutral-300 font-light leading-relaxed line-clamp-2">
               {activeProduct.description ||
                 'Curated piece from our latest season drop. Tailored silhouette, precision cut, and available for immediate dispatch across Accra.'}
             </p>
 
             {/* Price & Availability Indicator */}
-            <div className="mt-6 flex items-baseline gap-3">
-              <span className="font-mono text-2xl sm:text-3xl font-semibold text-white">
+            <div className="mt-4 sm:mt-6 flex items-baseline gap-2.5 sm:gap-3 flex-wrap">
+              <span className="font-mono text-xl sm:text-3xl font-semibold text-white">
                 {formatGHS(activeProduct.minPriceP)}
               </span>
               {activeProduct.compareAtPriceP && activeProduct.compareAtPriceP > activeProduct.minPriceP && (
-                <span className="font-mono text-sm text-neutral-400 line-through">
+                <span className="font-mono text-xs sm:text-sm text-neutral-400 line-through">
                   {formatGHS(activeProduct.compareAtPriceP)}
                 </span>
               )}
-              <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5 ml-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-[10px] sm:text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
                 In Stock &bull; Accra Fast Delivery
               </span>
             </div>
           </div>
 
           {/* Action CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="mt-5 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
             <button
               onClick={() => handleQuickAdd(activeProduct)}
               disabled={activeProduct.soldOut}
-              className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg font-semibold text-xs sm:text-sm tracking-wide transition-all ${
+              className={`inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-3.5 rounded-lg font-semibold text-xs sm:text-sm tracking-wide transition-all ${
                 addedId === activeProduct.id
                   ? 'bg-emerald-600 text-white'
                   : 'bg-white text-neutral-950 hover:bg-neutral-200 active:scale-98'
@@ -173,7 +173,7 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
 
             <Link
               href={`/product/${activeProduct.slug}`}
-              className="inline-flex items-center justify-center gap-2 border border-neutral-700 bg-neutral-900/60 text-neutral-200 hover:text-white hover:border-neutral-500 font-medium px-5 py-3.5 rounded-lg transition-all text-xs sm:text-sm"
+              className="inline-flex items-center justify-center gap-2 border border-neutral-700 bg-neutral-900/60 text-neutral-200 hover:text-white hover:border-neutral-500 font-medium px-4 py-3 sm:py-3.5 rounded-lg transition-all text-xs sm:text-sm"
             >
               <span>View Piece Details</span>
               <ArrowRight size={14} />
@@ -184,7 +184,7 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
               target="_blank"
               rel="noreferrer"
               aria-label="Order via WhatsApp with Tobi"
-              className="inline-flex items-center justify-center gap-2 border border-neutral-800 bg-neutral-950/80 text-neutral-400 hover:text-neutral-200 font-medium px-4 py-3.5 rounded-lg transition-all text-xs"
+              className="inline-flex items-center justify-center gap-2 border border-neutral-800 bg-neutral-950/80 text-neutral-400 hover:text-neutral-200 font-medium px-4 py-2.5 sm:py-3.5 rounded-lg transition-all text-xs"
             >
               <MessageCircle size={15} className="text-[#25D366]" />
               <span>WhatsApp Concierge</span>
@@ -192,21 +192,20 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
           </div>
         </div>
 
-        {/* Right Column: Multi-Plane Depth Model Stage (TJ'S Fashion Style) */}
-        <div className="relative min-h-[340px] sm:min-h-[420px] lg:min-h-full w-full bg-gradient-to-b from-[#16181D] to-[#0A0B0D] flex items-center justify-center overflow-hidden border-t lg:border-t-0 lg:border-l border-neutral-800/80">
+        {/* Visual Stage Column: Multi-Plane Depth Model Stage (Catchy Front & Center on Mobile) */}
+        <div className="relative min-h-[260px] sm:min-h-[360px] lg:min-h-full w-full bg-gradient-to-b from-[#16181D] to-[#0A0B0D] flex items-center justify-center overflow-hidden lg:border-l border-neutral-800/80">
           {/* Subtle Ambient Runway Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-            <span className="font-serif text-[110px] sm:text-[160px] font-normal text-white/[0.03] tracking-tighter uppercase whitespace-nowrap">
+            <span className="font-serif text-[80px] sm:text-[140px] lg:text-[160px] font-normal text-white/[0.04] tracking-tighter uppercase whitespace-nowrap">
               LOOK {String(activeIndex + 1).padStart(2, '0')}
             </span>
           </div>
 
-          {/* Staged Models Layer with Simulated Z-Axis Depth */}
-          <div className="relative w-full h-[360px] sm:h-[460px] flex items-center justify-center">
+          {/* Staged Models Layer with Mobile-Optimized Translate Offsets */}
+          <div className="relative w-full h-[250px] sm:h-[360px] lg:h-[460px] flex items-center justify-center">
             {displayItems.map((prod, idx) => {
               const offset = idx - activeIndex;
               const isCurrent = offset === 0;
-              const isNear = Math.abs(offset) === 1;
 
               // Hide far away models for clean performance
               if (Math.abs(offset) > 1 && displayItems.length > 3) return null;
@@ -219,7 +218,7 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
                     isCurrent ? 'z-20 pointer-events-auto' : 'z-10 opacity-30 hover:opacity-50'
                   }`}
                   style={{
-                    transform: `translate3d(${offset * 140}px, 0, 0) scale(${isCurrent ? 1 : 0.78})`,
+                    transform: `translate3d(${offset * 105}px, 0, 0) scale(${isCurrent ? 1 : 0.72})`,
                     filter: isCurrent ? 'none' : 'blur(4px) grayscale(40%)',
                   }}
                 >
@@ -232,10 +231,10 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
                       decoding="async"
                       width={440}
                       height={580}
-                      className="h-[320px] sm:h-[420px] w-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] transition-transform duration-500"
+                      className="h-[230px] sm:h-[330px] lg:h-[420px] w-auto object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.85)] transition-transform duration-500"
                     />
                   ) : (
-                    <div className="h-[320px] sm:h-[420px] w-[260px] flex items-center justify-center bg-neutral-900 text-neutral-600 font-serif text-3xl">
+                    <div className="h-[230px] sm:h-[330px] lg:h-[420px] w-[200px] flex items-center justify-center bg-neutral-900 text-neutral-600 font-serif text-3xl">
                       TOBI
                     </div>
                   )}
@@ -244,12 +243,26 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
             })}
           </div>
 
+          {/* Quick Floating Switcher Dots for Mobile */}
+          <div className="absolute bottom-2.5 sm:bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 lg:hidden">
+            {displayItems.map((_, dotIdx) => (
+              <button
+                key={dotIdx}
+                onClick={() => setActiveIndex(dotIdx)}
+                aria-label={`Jump to look ${dotIdx + 1}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  dotIdx === activeIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/40'
+                }`}
+              />
+            ))}
+          </div>
+
           {/* Lookbook Badge */}
-          <div className="absolute bottom-4 right-4 z-30 bg-neutral-900/80 backdrop-blur-md border border-neutral-700/60 rounded px-3 py-1.5 text-right">
-            <p className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
-              Editorial Collection
+          <div className="absolute top-3 right-3 sm:top-auto sm:bottom-4 sm:right-4 z-30 bg-neutral-900/80 backdrop-blur-md border border-neutral-700/60 rounded px-2.5 py-1 text-right">
+            <p className="text-[9px] sm:text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
+              Featured Piece
             </p>
-            <p className="text-xs font-semibold text-white font-serif">
+            <p className="text-[11px] sm:text-xs font-semibold text-white font-serif truncate max-w-[120px] sm:max-w-[180px]">
               {activeProduct.name}
             </p>
           </div>
