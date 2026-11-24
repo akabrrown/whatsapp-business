@@ -497,7 +497,7 @@ export function MiniCart() {
         )}
 
         {/* Cart Item List / Empty State */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-4 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 scrollbar-thin">
           {lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center py-16">
               <div className="h-16 w-16 rounded-full bg-sand/30 flex items-center justify-center text-charcoal/30 mb-4">
@@ -517,179 +517,180 @@ export function MiniCart() {
               </Link>
             </div>
           ) : (
-            <div className="divide-y divide-sand/30">
-              {lines.map((l) => (
-                <div key={l.variantId} className="flex gap-4 py-4 first:pt-0 last:pb-0 group">
-                  {l.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={l.image}
-                      alt={l.name}
-                      className="h-24 w-20 shrink-0 rounded-xl object-cover border border-sand/60 bg-sand/10 shadow-2xs"
-                    />
-                  ) : (
-                    <div className="h-24 w-20 shrink-0 rounded-xl bg-sand/20 flex items-center justify-center text-charcoal/30 border border-sand/60">
-                      <ShoppingBag size={20} />
-                    </div>
-                  )}
+            <div className="space-y-4">
+              {/* Items Card */}
+              <div className="divide-y divide-sand/30 rounded-2xl border border-sand/50 bg-white p-3.5 sm:p-4 shadow-2xs">
+                {lines.map((l) => (
+                  <div key={l.variantId} className="flex gap-3 sm:gap-4 py-3.5 first:pt-0 last:pb-0 group">
+                    {l.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={l.image}
+                        alt={l.name}
+                        className="h-20 w-16 sm:h-22 sm:w-18 shrink-0 rounded-xl object-cover border border-sand/60 bg-sand/10 shadow-2xs"
+                      />
+                    ) : (
+                      <div className="h-20 w-16 sm:h-22 sm:w-18 shrink-0 rounded-xl bg-sand/20 flex items-center justify-center text-charcoal/30 border border-sand/60">
+                        <ShoppingBag size={18} />
+                      </div>
+                    )}
 
-                  <div className="flex flex-1 flex-col justify-between min-w-0">
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <Link
-                          href={`/product/${l.slug}`}
-                          onClick={() => setDrawerOpen(false)}
-                          className="text-xs font-bold text-charcoal hover:text-indigo transition line-clamp-1"
-                        >
-                          {l.name}
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setQty(l.variantId, 0)}
-                          className="text-charcoal/40 hover:text-rose p-0.5 transition"
-                          title="Remove item"
-                          aria-label={`Remove ${l.name} from bag`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                    <div className="flex flex-1 flex-col justify-between min-w-0">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <Link
+                            href={`/product/${l.slug}`}
+                            onClick={() => setDrawerOpen(false)}
+                            className="text-xs font-bold text-charcoal hover:text-indigo transition line-clamp-1"
+                          >
+                            {l.name}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setQty(l.variantId, 0)}
+                            className="text-charcoal/40 hover:text-rose p-1 rounded-md transition"
+                            title="Remove item"
+                            aria-label={`Remove ${l.name} from bag`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        <p className="mt-0.5 text-[11px] font-medium text-charcoal/50">
+                          {[l.size, l.color].filter(Boolean).join(' · ') || 'Standard Size'}
+                        </p>
                       </div>
 
-                      <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-charcoal/50">
-                        {[l.size, l.color].filter(Boolean).join(' · ') || 'Standard Size'}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-3">
-                      {/* Quantity Stepper */}
-                      <div className="flex items-center rounded-lg border border-sand/80 bg-white p-0.5 shadow-2xs">
-                        <button
-                          type="button"
-                          aria-label="Decrease quantity"
-                          className="h-6 w-6 flex items-center justify-center rounded text-charcoal/70 hover:bg-sand/20 hover:text-charcoal transition"
-                          onClick={() => setQty(l.variantId, l.qty - 1)}
-                        >
-                          <Minus size={12} />
-                        </button>
-                        <span className="min-w-[1.5rem] text-center text-xs font-bold font-mono">
-                          {l.qty}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Increase quantity"
-                          className="h-6 w-6 flex items-center justify-center rounded text-charcoal/70 hover:bg-sand/20 hover:text-charcoal transition disabled:opacity-30"
-                          disabled={l.maxQty !== undefined && l.qty >= l.maxQty}
-                          onClick={() => setQty(l.variantId, l.qty + 1)}
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="headline text-sm font-bold text-indigo">
-                          {formatGHS(l.priceP * l.qty)}
-                        </span>
-                        {l.qty > 1 && (
-                          <span className="block text-[10px] text-charcoal/40 font-mono">
-                            {formatGHS(l.priceP)} each
+                      <div className="flex items-center justify-between mt-2.5">
+                        {/* Quantity Stepper */}
+                        <div className="flex items-center rounded-lg border border-sand/80 bg-sand/5 p-0.5">
+                          <button
+                            type="button"
+                            aria-label="Decrease quantity"
+                            className="h-6 w-6 flex items-center justify-center rounded text-charcoal/70 hover:bg-white hover:text-charcoal transition"
+                            onClick={() => setQty(l.variantId, l.qty - 1)}
+                          >
+                            <Minus size={11} />
+                          </button>
+                          <span className="min-w-[1.5rem] text-center text-xs font-bold font-mono">
+                            {l.qty}
                           </span>
-                        )}
+                          <button
+                            type="button"
+                            aria-label="Increase quantity"
+                            className="h-6 w-6 flex items-center justify-center rounded text-charcoal/70 hover:bg-white hover:text-charcoal transition disabled:opacity-30"
+                            disabled={l.maxQty !== undefined && l.qty >= l.maxQty}
+                            onClick={() => setQty(l.variantId, l.qty + 1)}
+                          >
+                            <Plus size={11} />
+                          </button>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="headline text-sm font-bold text-indigo">
+                            {formatGHS(l.priceP * l.qty)}
+                          </span>
+                          {l.qty > 1 && (
+                            <span className="block text-[10px] text-charcoal/40 font-mono">
+                              {formatGHS(l.priceP)} each
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Delivery & Checkout Preferences Form */}
-          {lines.length > 0 && (
-            <div className="mt-6 space-y-4 border-t border-sand/40 pt-5">
-              {/* Fulfillment Type Switcher */}
-              <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-charcoal/70">
-                  Fulfillment Method
-                </p>
-                <div className="grid grid-cols-2 gap-2 rounded-xl bg-sand/30 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setFulfillmentType('DELIVERY')}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
-                      fulfillmentType === 'DELIVERY'
-                        ? 'bg-white text-indigo shadow-xs'
-                        : 'text-charcoal/60 hover:text-charcoal'
-                    }`}
-                  >
-                    <Truck size={14} />
-                    <span>Doorstep Delivery</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFulfillmentType('PICKUP');
-                      setZone(null);
-                    }}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
-                      fulfillmentType === 'PICKUP'
-                        ? 'bg-white text-indigo shadow-xs'
-                        : 'text-charcoal/60 hover:text-charcoal'
-                    }`}
-                  >
-                    <Store size={14} />
-                    <span>Store Pickup (Free)</span>
-                  </button>
-                </div>
+                ))}
               </div>
 
-              {/* Delivery Details */}
-              {fulfillmentType === 'PICKUP' ? (
-                <div className="rounded-xl border border-amber-600/20 bg-amber-50/70 p-3.5 text-xs text-amber-900">
-                  <div className="flex items-center gap-1.5 font-bold text-amber-800">
-                    <Store size={15} />
-                    <span>Accra Flagship Store Pickup</span>
+              {/* Delivery & Checkout Preferences Form */}
+              <div className="rounded-2xl border border-sand/50 bg-white p-3.5 sm:p-4 shadow-2xs space-y-4">
+                {/* Fulfillment Type Switcher */}
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-charcoal/60">
+                    Fulfillment Method
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-sand/20 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentType('DELIVERY')}
+                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
+                        fulfillmentType === 'DELIVERY'
+                          ? 'bg-white text-indigo font-bold shadow-xs'
+                          : 'text-charcoal/60 hover:text-charcoal'
+                      }`}
+                    >
+                      <Truck size={14} />
+                      <span>Doorstep Delivery</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFulfillmentType('PICKUP');
+                        setZone(null);
+                      }}
+                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
+                        fulfillmentType === 'PICKUP'
+                          ? 'bg-white text-indigo font-bold shadow-xs'
+                          : 'text-charcoal/60 hover:text-charcoal'
+                      }`}
+                    >
+                      <Store size={14} />
+                      <span>Store Pickup (Free)</span>
+                    </button>
                   </div>
-                  <p className="mt-1 text-amber-900/80 leading-relaxed text-[11px]">
-                    Ring Road Central, Osu, Accra. Ready for pickup within 2 hours after payment (Mon–Sat, 9am–6pm).
-                  </p>
-                  <p className="mt-1.5 font-bold text-emerald-700 inline-flex items-center gap-1 text-[11px]">
-                    <Check size={13} />
-                    <span>Free of charge (GH₵0.00)</span>
-                  </p>
                 </div>
-              ) : (
-                <div className="space-y-3 rounded-2xl border border-sand/60 bg-white p-4 shadow-xs">
-                  <SmartLocationSelector
-                    selectedZone={zone}
-                    coords={coords}
-                    addressText={zoneText}
-                    onLocationSelect={(loc) => {
-                      setZone({ name: loc.zoneName, feeP: loc.feeP });
-                      if (loc.lat && loc.lng) {
-                        setCoords({ lat: loc.lat, lng: loc.lng });
-                      }
-                      if (loc.address) {
-                        setZoneText(loc.address);
-                      }
-                      setError('');
-                    }}
-                  />
-                </div>
-              )}
 
-              {/* Phone Number Input */}
-              <div className="rounded-2xl border border-sand/60 bg-white p-4 shadow-xs">
-                <label className="text-xs font-bold text-charcoal block mb-1">
-                  Recipient Phone Number <span className="text-rose">*</span>
-                </label>
-                <input
-                  value={phone}
-                  onChange={handlePhoneChange}
-                  placeholder="e.g. 0592722997 or 0241234567"
-                  inputMode="numeric"
-                  className="w-full rounded-xl border border-sand/80 bg-sand/10 px-3.5 py-2 text-xs font-mono text-charcoal outline-none focus:border-indigo"
-                />
-                <p className="mt-1 text-[10px] text-charcoal/50">
-                  Used for order tracking updates and delivery rider phone coordination.
-                </p>
+                {/* Delivery Details */}
+                {fulfillmentType === 'PICKUP' ? (
+                  <div className="rounded-xl border border-amber-600/20 bg-amber-50/70 p-3 text-xs text-amber-900">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-800">
+                      <Store size={14} />
+                      <span>Accra Flagship Store Pickup</span>
+                    </div>
+                    <p className="mt-1 text-amber-900/80 leading-relaxed text-[11px]">
+                      Ring Road Central, Osu, Accra. Ready for pickup within 2 hours after payment (Mon–Sat, 9am–6pm).
+                    </p>
+                    <p className="mt-1.5 font-bold text-emerald-700 inline-flex items-center gap-1 text-[11px]">
+                      <Check size={13} />
+                      <span>Free of charge (GH₵0.00)</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="pt-1">
+                    <SmartLocationSelector
+                      selectedZone={zone}
+                      coords={coords}
+                      addressText={zoneText}
+                      onLocationSelect={(loc) => {
+                        setZone({ name: loc.zoneName, feeP: loc.feeP });
+                        if (loc.lat && loc.lng) {
+                          setCoords({ lat: loc.lat, lng: loc.lng });
+                        }
+                        if (loc.address) {
+                          setZoneText(loc.address);
+                        }
+                        setError('');
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Phone Number Input */}
+                <div className="pt-2 border-t border-sand/30">
+                  <label className="text-xs font-bold text-charcoal block mb-1">
+                    Recipient Phone Number <span className="text-rose">*</span>
+                  </label>
+                  <input
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    placeholder="e.g. 0592722997 or 0241234567"
+                    inputMode="numeric"
+                    className="w-full rounded-xl border border-sand/80 bg-sand/10 px-3.5 py-2 text-xs font-mono text-charcoal outline-none focus:border-indigo"
+                  />
+                  <p className="mt-1 text-[10px] text-charcoal/50">
+                    Used for order dispatch and live rider coordination.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -788,30 +789,30 @@ export function MiniCart() {
                 type="button"
                 onClick={completeOnline}
                 disabled={busy || onlineBusy || podBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
               >
                 <CreditCard size={15} />
-                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online (MoMo & Card via Paystack)'}</span>
+                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online (MoMo & Card)'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={completePaymentOnDelivery}
                 disabled={busy || onlineBusy || podBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-indigo/20 bg-emerald-50/70 hover:bg-emerald-50 px-5 py-3 text-xs font-bold text-emerald-950 transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-indigo/20 bg-emerald-50/70 hover:bg-emerald-50 px-5 py-2.5 text-xs font-bold text-emerald-950 transition active:scale-[0.99] disabled:opacity-50"
               >
                 <Banknote size={15} className="text-emerald-700" />
-                <span>{podBusy ? 'Placing Order…' : 'Payment on Delivery (Cash / MoMo to Courier)'}</span>
+                <span>{podBusy ? 'Placing Order…' : 'Payment on Delivery (Cash / MoMo)'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={complete}
                 disabled={busy || onlineBusy || podBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-sand/70 bg-sand/15 hover:bg-sand/30 px-4 py-2 text-[11px] font-semibold text-charcoal/80 transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-sand/70 bg-sand/15 hover:bg-sand/30 px-4 py-2 text-xs font-semibold text-charcoal/80 transition active:scale-[0.99] disabled:opacity-50"
               >
                 <MessageSquare size={14} className="text-emerald-700" />
-                <span>{busy ? 'Preparing WhatsApp…' : 'Or Complete via WhatsApp'}</span>
+                <span>{busy ? 'Preparing WhatsApp…' : 'Order via WhatsApp'}</span>
               </button>
             </div>
 

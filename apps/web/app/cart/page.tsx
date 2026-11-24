@@ -689,7 +689,7 @@ export default function CartPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-indigo-deep transition active:scale-[0.99] disabled:opacity-50"
               >
                 <CreditCard size={17} />
-                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online (MoMo & Card via Paystack)'}</span>
+                <span>{onlineBusy ? 'Connecting to Paystack…' : 'Pay Online (MoMo & Card)'}</span>
               </button>
 
               {/* Option 2: Payment on Delivery */}
@@ -697,10 +697,10 @@ export default function CartPage() {
                 type="button"
                 onClick={completePaymentOnDelivery}
                 disabled={busy || onlineBusy || podBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-indigo/20 bg-emerald-50/70 hover:bg-emerald-50 px-5 py-3.5 text-xs sm:text-sm font-bold text-emerald-950 transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50/70 hover:bg-emerald-50 px-5 py-3 text-xs sm:text-sm font-bold text-emerald-950 transition active:scale-[0.99] disabled:opacity-50"
               >
                 <Banknote size={17} className="text-emerald-700" />
-                <span>{podBusy ? 'Placing Order…' : 'Payment on Delivery (Cash / MoMo to Courier)'}</span>
+                <span>{podBusy ? 'Placing Order…' : 'Payment on Delivery (Cash / MoMo)'}</span>
               </button>
 
               {/* Option 3: WhatsApp direct handoff */}
@@ -708,10 +708,10 @@ export default function CartPage() {
                 type="button"
                 onClick={completeWhatsApp}
                 disabled={busy || onlineBusy || podBusy}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-sand/70 bg-cream/80 hover:bg-sand/30 px-4 py-2.5 text-xs font-semibold text-charcoal/80 transition active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-sand/70 bg-sand/15 hover:bg-sand/30 px-4 py-2.5 text-xs font-semibold text-charcoal/80 transition active:scale-[0.99] disabled:opacity-50"
               >
                 <MessageSquare size={15} className="text-emerald-700" />
-                <span>{busy ? 'Preparing WhatsApp…' : 'Or Complete Order via WhatsApp'}</span>
+                <span>{busy ? 'Preparing WhatsApp…' : 'Order via WhatsApp'}</span>
               </button>
 
               <p className="text-[10px] text-center text-charcoal/60 font-medium">
