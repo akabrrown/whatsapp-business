@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
-const MiniCart = dynamic(() => import('@/components/MiniCart').then((mod) => mod.MiniCart), {
-  ssr: false,
-});
+const RunwayCartDrawer = dynamic(
+  () => import('@/components/RunwayCartDrawer').then((mod) => mod.RunwayCartDrawer),
+  { ssr: false }
+);
 const RealtimePushToast = dynamic(
   () => import('@/components/RealtimePushToast').then((mod) => mod.RealtimePushToast),
   { ssr: false }
@@ -26,7 +27,7 @@ export function ClientOverlays() {
 
   return (
     <>
-      <MiniCart />
+      <RunwayCartDrawer />
       <RealtimePushToast />
       <PushNotificationManager />
     </>
