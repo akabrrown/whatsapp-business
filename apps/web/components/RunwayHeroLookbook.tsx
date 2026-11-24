@@ -32,12 +32,17 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
     return () => clearInterval(timer);
   }, [displayItems.length]);
 
-  // Scroll active item thumbnail into view
+  // Scroll active item thumbnail within its horizontal container ONLY (never jump page viewport)
   useEffect(() => {
-    if (carouselRef.current) {
-      const activeEl = carouselRef.current.children[activeIndex] as HTMLElement;
+    const container = carouselRef.current;
+    if (container) {
+      const activeEl = container.children[activeIndex] as HTMLElement;
       if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        // Calculate offset relative to the scroll container to avoid window/page vertical jumping
+        const containerLeft = container.getBoundingClientRect().left;
+        const elLeft = activeEl.getBoundingClientRect().left;
+        const offset = elLeft - containerLeft - (container.clientWidth / 2) + (activeEl.clientWidth / 2);
+        container.scrollBy({ left: offset, behavior: 'smooth' });
       }
     }
   }, [activeIndex]);
