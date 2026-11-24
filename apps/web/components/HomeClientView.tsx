@@ -20,6 +20,7 @@ import { ProductCard } from './ProductCard';
 import { LiveSearchBar } from './LiveSearchBar';
 import { StoryCategoryBar } from './StoryCategoryBar';
 import { FlashDropCountdown } from './FlashDropCountdown';
+import { RunwayHeroLookbook } from './RunwayHeroLookbook';
 
 interface HomeClientViewProps {
   products: CatalogProduct[];
@@ -80,79 +81,8 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
         <StoryCategoryBar categories={categories} />
       </section>
 
-      {/* ─── 2. HERO SECTION (Editorial Architecture) ─── */}
-      <section className="relative overflow-hidden rounded-2xl bg-[#121316] text-[#FAF8F5] border border-neutral-800 shadow-xl">
-        <div className="grid items-stretch md:grid-cols-[1.1fr_0.9fr] min-h-[460px] sm:min-h-[500px]">
-          {/* Editorial Text Column */}
-          <div className="flex flex-col justify-between p-6 sm:p-10 md:p-12 lg:p-14 z-10">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-400">
-                  New Season Collection &bull; Accra, Ghana
-                </span>
-              </div>
-
-              <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal leading-[1.08] tracking-tight text-white max-w-xl">
-                Tops, Footwear &amp; Tailored Silhouettes.
-              </h1>
-
-              <p className="mt-4 max-w-md text-xs sm:text-sm text-neutral-300 font-light leading-relaxed">
-                Curated menswear and luxury essentials. Same-day delivery across East Legon, Cantonments, Osu, and Greater Accra.
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Link
-                href="/shop"
-                className="inline-flex items-center justify-center gap-2 bg-white text-neutral-950 font-semibold px-6 py-3.5 rounded-lg hover:bg-neutral-200 transition-all text-xs sm:text-sm tracking-wide"
-              >
-                <span>Explore Catalog</span>
-                <ArrowRight size={14} />
-              </Link>
-
-              <a
-                href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'm%20browsing%20the%20store%20and%20would%20like%20to%20order"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Order via WhatsApp with Tobi"
-                className="inline-flex items-center justify-center gap-2 border border-neutral-700 bg-neutral-900/60 text-neutral-200 hover:text-white hover:border-neutral-500 font-medium px-5 py-3.5 rounded-lg transition-all text-xs sm:text-sm"
-              >
-                <MessageCircle size={15} className="text-[#25D366]" />
-                <span>Order on WhatsApp</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Hero Visual Column */}
-          <div className="relative min-h-[300px] md:min-h-full w-full bg-neutral-950 border-t md:border-t-0 md:border-l border-neutral-800/80 overflow-hidden">
-            {products[0]?.images[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={optimizeImageUrl(products[0].images[0], { width: 900, quality: 'auto' })}
-                alt={products[0].name}
-                fetchPriority="high"
-                loading="eager"
-                decoding="async"
-                width={800}
-                height={800}
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
-                className="h-full w-full object-cover object-top opacity-90 transition-transform duration-700 hover:scale-105"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-neutral-700 font-serif text-5xl">
-                TOBI
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent md:hidden" />
-            <div className="absolute bottom-4 left-4 right-4 sm:right-auto bg-neutral-900/90 backdrop-blur-md border border-neutral-700/60 rounded-lg px-4 py-2.5 text-white">
-              <p className="text-xs font-semibold">Featured Drop</p>
-              <p className="text-[11px] text-neutral-400 font-mono">Immediate Accra Dispatch</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ─── 2. HERO SECTION (TJ'S Fashion Style Runway / Editorial Lookbook) ─── */}
+      <RunwayHeroLookbook products={safeProducts} />
 
       {/* ─── 3. FLASH DROP COUNTDOWN TICKER (Image 1 Mykart & Image 3 PressMart) ─── */}
       <section>
