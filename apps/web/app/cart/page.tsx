@@ -440,7 +440,7 @@ export default function CartPage() {
         {/* Left Column: Items & Delivery Form */}
         <div className="space-y-6">
           {/* Items Card */}
-          <div className="rounded-2xl border border-sand/60 bg-white p-6 shadow-xs divide-y divide-sand/30">
+          <div className="rounded-2xl border border-sand/60 bg-white p-4 sm:p-6 shadow-xs divide-y divide-sand/30">
             <h2 className="text-sm font-bold uppercase tracking-wider text-charcoal/60 mb-4 pb-2 border-b border-sand/30">
               Cart Items ({lines.length})
             </h2>
@@ -522,22 +522,22 @@ export default function CartPage() {
           </div>
 
           {/* Delivery & Destination Card */}
-          <div className="rounded-2xl border border-sand/60 bg-white p-6 shadow-xs space-y-5">
+          <div className="rounded-2xl border border-sand/60 bg-white p-4 sm:p-6 shadow-xs space-y-5">
             <h2 className="text-sm font-bold uppercase tracking-wider text-charcoal/60 pb-2 border-b border-sand/30">
               Delivery & Fulfillment
             </h2>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setFulfillmentType('DELIVERY')}
-                className={`flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl p-2.5 sm:p-3 text-[11px] sm:text-xs font-bold border transition ${
                   fulfillmentType === 'DELIVERY'
                     ? 'border-indigo bg-indigo/5 text-indigo shadow-xs'
                     : 'border-sand/70 text-charcoal/70 hover:border-indigo/40'
                 }`}
               >
-                <Truck size={16} />
+                <Truck size={15} />
                 <span>Doorstep Delivery</span>
               </button>
 
@@ -547,14 +547,14 @@ export default function CartPage() {
                   setFulfillmentType('PICKUP');
                   setZone(null);
                 }}
-                className={`flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl p-2.5 sm:p-3 text-[11px] sm:text-xs font-bold border transition ${
                   fulfillmentType === 'PICKUP'
                     ? 'border-indigo bg-indigo/5 text-indigo shadow-xs'
                     : 'border-sand/70 text-charcoal/70 hover:border-indigo/40'
                 }`}
               >
-                <Store size={16} />
-                <span>Flagship Pickup (Free)</span>
+                <Store size={15} />
+                <span>Flagship Pickup</span>
               </button>
             </div>
 

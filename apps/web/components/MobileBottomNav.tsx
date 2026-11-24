@@ -15,6 +15,11 @@ export function MobileBottomNav({ onOpenSearch }: { onOpenSearch?: () => void })
     setMounted(true);
   }, []);
 
+  // On product detail page, yield the bottom screen area to the dedicated product action bar
+  if (pathname.startsWith('/product/')) {
+    return null;
+  }
+
   const navItems = [
     {
       label: 'Home',

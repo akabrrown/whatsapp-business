@@ -111,16 +111,23 @@ export function LiveSearchBar({ categories = [] }: LiveSearchBarProps) {
         </div>
         
         {categories.length > 0 && (
-          <div className="relative ml-3" ref={catDropdownRef}>
+          <div className="relative ml-2 sm:ml-3 shrink-0" ref={catDropdownRef}>
             <button
               type="button"
               onClick={() => setCatDropdownOpen(!catDropdownOpen)}
               aria-label="Filter by category"
               aria-expanded={catDropdownOpen}
-              className="flex items-center gap-1.5 text-sm font-medium tracking-wide text-charcoal/70 hover:text-indigo transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-xs sm:text-sm font-medium tracking-wide text-charcoal/70 hover:text-indigo transition-colors cursor-pointer"
             >
-              {category ? categories.find(c => c.slug === category)?.name : "All Categories"}
-              <ChevronDown size={14} className={`transition-transform duration-200 ${catDropdownOpen ? 'rotate-180 text-indigo' : ''}`} />
+              {category ? (
+                categories.find((c) => c.slug === category)?.name
+              ) : (
+                <>
+                  <span className="hidden sm:inline">All Categories</span>
+                  <span className="sm:hidden">All</span>
+                </>
+              )}
+              <ChevronDown size={13} className={`transition-transform duration-200 ${catDropdownOpen ? 'rotate-180 text-indigo' : ''}`} />
             </button>
             
             {catDropdownOpen && (
@@ -154,7 +161,7 @@ export function LiveSearchBar({ categories = [] }: LiveSearchBarProps) {
           onFocus={() => { if (query.trim()) setOpen(true); }}
           placeholder="Search..."
           aria-label="Search collection"
-          className="flex-1 bg-transparent py-3 pl-3 pr-10 text-lg md:text-xl text-charcoal placeholder:text-charcoal/30 placeholder:font-light focus:outline-none rounded-none"
+          className="flex-1 min-w-0 bg-transparent py-2.5 sm:py-3 pl-2 sm:pl-3 pr-8 sm:pr-10 text-sm sm:text-base md:text-lg text-charcoal placeholder:text-charcoal/40 placeholder:font-light focus:outline-none rounded-none"
         />
         {query && (
           <button

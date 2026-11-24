@@ -58,12 +58,12 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         <header className="relative bg-cream">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
           {/* Brand */}
-          <Link href="/" className="headline text-xl tracking-wide md:text-2xl">
+          <Link href="/" className="headline text-lg sm:text-xl md:text-2xl tracking-wide shrink-0">
             TOBI <span className="text-rose">CLOTHINGS</span>
           </Link>
 
           {/* Actions: WhatsApp + Track + Search + Cart */}
-          <div className="flex items-center gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3.5">
             <a
               href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'd%20like%20to%20order"
               target="_blank"
@@ -78,7 +78,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
 
             <Link
               href="/track"
-              className="flex items-center gap-1 text-xs font-medium text-charcoal/70 transition-colors hover:text-indigo"
+              className="hidden sm:flex items-center gap-1 text-xs font-medium text-charcoal/70 transition-colors hover:text-indigo"
               title="Track Order"
             >
               <Truck size={18} aria-hidden />

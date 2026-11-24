@@ -100,7 +100,7 @@ export function ProductCard({
         )}
 
         {/* Badges Overlay */}
-        <div className="absolute left-2 top-2 flex flex-col gap-1 z-10">
+        <div className="absolute left-2 top-2 flex flex-col gap-1 z-10 max-w-[calc(100%-44px)]">
           {product.soldOut ? (
             <span className="rounded bg-charcoal/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-cream shadow-xs">
               Sold Out
@@ -113,7 +113,7 @@ export function ProductCard({
                 </span>
               )}
               {product.badge && (
-                <span className="rounded bg-indigo px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+                <span className="rounded bg-indigo px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs truncate max-w-full">
                   {product.badge}
                 </span>
               )}

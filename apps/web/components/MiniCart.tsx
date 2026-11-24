@@ -449,10 +449,10 @@ export function MiniCart() {
         className="relative z-10 flex h-full w-full max-w-lg flex-col bg-[#FAF8F5] shadow-2xl border-l border-sand/60 animate-in slide-in-from-right duration-300"
       >
         {/* Drawer Header */}
-        <div className="flex items-center justify-between border-b border-sand/40 bg-white px-6 py-4">
+        <div className="flex items-center justify-between border-b border-sand/40 bg-white px-4 sm:px-6 py-4">
           <div className="flex items-center gap-2">
             <ShoppingBag size={18} className="text-indigo" />
-            <h2 className="headline text-xl text-indigo">Your Shopping Bag</h2>
+            <h2 className="headline text-lg sm:text-xl text-indigo">Your Shopping Bag</h2>
             {lines.length > 0 && (
               <span className="rounded-full bg-indigo/10 px-2 py-0.5 text-xs font-bold text-indigo">
                 {lines.reduce((s, i) => s + i.qty, 0)}
@@ -471,7 +471,7 @@ export function MiniCart() {
 
         {/* Free Delivery Threshold Progress Bar */}
         {lines.length > 0 && freeDeliveryConfig.enabled && (
-          <div className="border-b border-sand/30 bg-indigo/[0.03] px-6 py-3">
+          <div className="border-b border-sand/30 bg-indigo/[0.03] px-4 sm:px-6 py-3">
             <div className="flex items-center justify-between text-xs font-semibold">
               <span className="flex items-center gap-1.5 text-charcoal">
                 <Truck size={14} className="text-indigo" />
@@ -497,7 +497,7 @@ export function MiniCart() {
         )}
 
         {/* Cart Item List / Empty State */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-4 scrollbar-thin">
           {lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center py-16">
               <div className="h-16 w-16 rounded-full bg-sand/30 flex items-center justify-center text-charcoal/30 mb-4">

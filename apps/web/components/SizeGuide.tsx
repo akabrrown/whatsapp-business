@@ -32,20 +32,20 @@ export function SizeGuide() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/80 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/80 p-2 sm:p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div 
-            className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded bg-cream p-6 shadow-2xl" 
+            className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-cream p-4 sm:p-6 shadow-2xl" 
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="headline text-2xl text-indigo">Size Guide</h2>
-              <button onClick={() => setOpen(false)} className="text-charcoal/50 hover:text-rose" aria-label="Close size guide">
+              <h2 className="headline text-xl sm:text-2xl text-indigo">Size Guide</h2>
+              <button onClick={() => setOpen(false)} className="text-charcoal/50 hover:text-rose p-1 rounded-lg" aria-label="Close size guide">
                 <X size={20} />
               </button>
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] border-collapse text-left text-sm">
+            <div className="overflow-x-auto -mx-1 sm:mx-0">
+              <table className="w-full min-w-[480px] border-collapse text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b-2 border-charcoal text-charcoal">
                     <th className="py-2 pr-4 font-semibold">Size</th>

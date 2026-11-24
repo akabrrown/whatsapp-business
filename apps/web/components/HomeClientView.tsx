@@ -82,8 +82,8 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
 
       {/* ─── 2. HERO SECTION (Double-Bezel Architecture & Button-in-Button CTA) ─── */}
       <section className="double-bezel">
-        <div className="double-bezel-inner relative overflow-hidden bg-gradient-to-br from-indigo/5 via-cream to-sand/15 p-5 sm:p-8 md:p-12 lg:p-14">
-          <div className="grid items-center gap-8 md:grid-cols-[1.15fr_0.85fr]">
+        <div className="double-bezel-inner relative overflow-hidden bg-gradient-to-br from-indigo/5 via-cream to-sand/15 p-4 sm:p-8 md:p-12 lg:p-14">
+          <div className="grid items-center gap-6 sm:gap-8 md:grid-cols-[1.15fr_0.85fr]">
             <div className="flex flex-col justify-center">
               {/* Live Search Bar directly accessible on mobile and desktop */}
               <div className="mb-4 max-w-md min-h-[46px]">
@@ -99,19 +99,19 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                 </span>
               </div>
 
-              <h1 className="headline text-3xl sm:text-5xl lg:text-6xl font-normal leading-[1.12] tracking-tight">
+              <h1 className="headline text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-[1.15] tracking-tight">
                 Tops, Footwears &amp; Everyday Luxury.
               </h1>
 
-              <p className="mt-4 max-w-lg text-xs sm:text-sm md:text-base leading-relaxed text-charcoal/80">
+              <p className="mt-3 sm:mt-4 max-w-lg text-xs sm:text-sm md:text-base leading-relaxed text-charcoal/80">
                 Hand-picked collections delivered to your doorstep in East Legon, Osu, Cantonments, Spintex &amp; across Accra. Browse online or finish instantly on WhatsApp with Tobi.
               </p>
 
               {/* High-End Button-in-Button Trailing Icon Architecture */}
-              <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-5 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Link
                   href="/shop"
-                  className="group inline-flex items-center gap-3 rounded-full bg-indigo pl-6 pr-2 py-2 text-xs sm:text-sm font-semibold text-cream shadow-md transition-spring hover:bg-indigo-deep active:scale-95"
+                  className="group inline-flex items-center justify-between sm:justify-start gap-3 rounded-full bg-indigo pl-6 pr-2 py-2 text-xs sm:text-sm font-semibold text-cream shadow-md transition-spring hover:bg-indigo-deep active:scale-95"
                 >
                   <span>Shop Collection</span>
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-cream transition-spring group-hover:scale-105 group-hover:translate-x-0.5">
@@ -124,7 +124,7 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Chat with WhatsApp Concierge to browse and order"
-                  className="group inline-flex items-center gap-2.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-5 py-2.5 text-xs sm:text-sm font-semibold text-wagreen-dark hover:bg-wagreen/20 transition-spring active:scale-95"
+                  className="group inline-flex items-center justify-center gap-2.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-5 py-2.5 text-xs sm:text-sm font-semibold text-wagreen-dark hover:bg-wagreen/20 transition-spring active:scale-95"
                 >
                   <MessageCircle size={16} />
                   <span>WhatsApp Concierge</span>
