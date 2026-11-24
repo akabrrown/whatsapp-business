@@ -80,83 +80,75 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
         <StoryCategoryBar categories={categories} />
       </section>
 
-      {/* ─── 2. HERO SECTION (Double-Bezel Architecture & Button-in-Button CTA) ─── */}
-      <section className="double-bezel">
-        <div className="double-bezel-inner relative overflow-hidden bg-gradient-to-br from-indigo/5 via-cream to-sand/15 p-4 sm:p-8 md:p-12 lg:p-14">
-          <div className="grid items-center gap-6 sm:gap-8 md:grid-cols-[1.15fr_0.85fr]">
-            <div className="flex flex-col justify-center">
-              {/* Live Search Bar directly accessible on mobile and desktop */}
-              <div className="mb-4 max-w-md min-h-[46px]">
-                <LiveSearchBar categories={categories} />
-              </div>
-
-              <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-indigo">
-                  <span className="h-1.5 w-1.5 rounded-full bg-sand shrink-0" /> Season Drop &apos;26
-                </span>
-                <span className="text-xs font-semibold text-charcoal/80 hidden sm:inline">
-                  Accra, Ghana
+      {/* ─── 2. HERO SECTION (Editorial Architecture) ─── */}
+      <section className="relative overflow-hidden rounded-2xl bg-[#121316] text-[#FAF8F5] border border-neutral-800 shadow-xl">
+        <div className="grid items-stretch md:grid-cols-[1.1fr_0.9fr] min-h-[460px] sm:min-h-[500px]">
+          {/* Editorial Text Column */}
+          <div className="flex flex-col justify-between p-6 sm:p-10 md:p-12 lg:p-14 z-10">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-400">
+                  New Season Collection &bull; Accra, Ghana
                 </span>
               </div>
 
-              <h1 className="headline text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-[1.15] tracking-tight">
-                Tops, Footwears &amp; Everyday Luxury.
+              <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal leading-[1.08] tracking-tight text-white max-w-xl">
+                Tops, Footwear &amp; Tailored Silhouettes.
               </h1>
 
-              <p className="mt-3 sm:mt-4 max-w-lg text-xs sm:text-sm md:text-base leading-relaxed text-charcoal/80">
-                Hand-picked collections delivered to your doorstep in East Legon, Osu, Cantonments, Spintex &amp; across Accra. Browse online or finish instantly on WhatsApp with Tobi.
+              <p className="mt-4 max-w-md text-xs sm:text-sm text-neutral-300 font-light leading-relaxed">
+                Curated menswear and luxury essentials. Same-day delivery across East Legon, Cantonments, Osu, and Greater Accra.
               </p>
-
-              {/* High-End Button-in-Button Trailing Icon Architecture */}
-              <div className="mt-5 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <Link
-                  href="/shop"
-                  className="group inline-flex items-center justify-between sm:justify-start gap-3 rounded-full bg-indigo pl-6 pr-2 py-2 text-xs sm:text-sm font-semibold text-cream shadow-md transition-spring hover:bg-indigo-deep active:scale-95"
-                >
-                  <span>Shop Collection</span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-cream transition-spring group-hover:scale-105 group-hover:translate-x-0.5">
-                    <ArrowRight size={15} />
-                  </span>
-                </Link>
-
-                <a
-                  href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'm%20browsing%20the%20store%20and%20would%20like%20to%20order"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Chat with WhatsApp Concierge to browse and order"
-                  className="group inline-flex items-center justify-center gap-2.5 rounded-full bg-wagreen/10 border border-wagreen/30 px-5 py-2.5 text-xs sm:text-sm font-semibold text-wagreen-dark hover:bg-wagreen/20 transition-spring active:scale-95"
-                >
-                  <MessageCircle size={16} />
-                  <span>WhatsApp Concierge</span>
-                </a>
-              </div>
             </div>
 
-            {/* Hero Visual Imagery */}
-            <div className="relative aspect-[4/3] sm:aspect-[16/10] md:aspect-square w-full min-h-[260px] sm:min-h-[340px] overflow-hidden rounded-2xl shadow-md border border-sand/30 bg-sand/10">
-              {products[0]?.images[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={optimizeImageUrl(products[0].images[0], { width: 800, quality: 'auto' })}
-                  alt={products[0].name}
-                  fetchPriority="high"
-                  loading="eager"
-                  decoding="async"
-                  width={700}
-                  height={700}
-                  crossOrigin="anonymous"
-                  referrerPolicy="no-referrer"
-                  className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full w-full min-h-[260px] items-center justify-center bg-indigo text-cream text-5xl font-serif">
-                  TOBI
-                </div>
-              )}
-              <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-auto rounded-xl bg-cream/95 backdrop-blur-md px-3.5 py-2.5 shadow-md border border-sand/30">
-                <p className="text-xs font-bold text-indigo">Accra Fast Delivery</p>
-                <p className="text-[11px] text-charcoal/70">Same-day dispatch available</p>
+            {/* Actions */}
+            <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <Link
+                href="/shop"
+                className="inline-flex items-center justify-center gap-2 bg-white text-neutral-950 font-semibold px-6 py-3.5 rounded-lg hover:bg-neutral-200 transition-all text-xs sm:text-sm tracking-wide"
+              >
+                <span>Explore Catalog</span>
+                <ArrowRight size={14} />
+              </Link>
+
+              <a
+                href="https://wa.me/233203813606?text=Hi%20Tobi%2C%20I'm%20browsing%20the%20store%20and%20would%20like%20to%20order"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Order via WhatsApp with Tobi"
+                className="inline-flex items-center justify-center gap-2 border border-neutral-700 bg-neutral-900/60 text-neutral-200 hover:text-white hover:border-neutral-500 font-medium px-5 py-3.5 rounded-lg transition-all text-xs sm:text-sm"
+              >
+                <MessageCircle size={15} className="text-[#25D366]" />
+                <span>Order on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Hero Visual Column */}
+          <div className="relative min-h-[300px] md:min-h-full w-full bg-neutral-950 border-t md:border-t-0 md:border-l border-neutral-800/80 overflow-hidden">
+            {products[0]?.images[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={optimizeImageUrl(products[0].images[0], { width: 900, quality: 'auto' })}
+                alt={products[0].name}
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
+                width={800}
+                height={800}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-cover object-top opacity-90 transition-transform duration-700 hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-neutral-700 font-serif text-5xl">
+                TOBI
               </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent md:hidden" />
+            <div className="absolute bottom-4 left-4 right-4 sm:right-auto bg-neutral-900/90 backdrop-blur-md border border-neutral-700/60 rounded-lg px-4 py-2.5 text-white">
+              <p className="text-xs font-semibold">Featured Drop</p>
+              <p className="text-[11px] text-neutral-400 font-mono">Immediate Accra Dispatch</p>
             </div>
           </div>
         </div>
@@ -186,53 +178,45 @@ export function HomeClientView({ products = [], categories = [] }: HomeClientVie
         </div>
       </section>
 
-      {/* ─── 5. 4-PILLAR VALUE PROPOSITION STRIP (PressMart & Mykart Inspiration) ─── */}
+      {/* ─── 5. 4-PILLAR VALUE PROPOSITION STRIP ─── */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-        <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
-            <div className="rounded-xl bg-indigo/10 p-2 text-indigo shrink-0">
-              <Truck size={18} />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-bold text-charcoal">Accra Delivery</h3>
-              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">East Legon, Osu, Spintex &amp; all zones</p>
-            </div>
+        <div className="rounded-xl border border-sand/60 bg-white p-4 flex items-start gap-3">
+          <div className="rounded-lg bg-neutral-100 p-2 text-neutral-900 shrink-0">
+            <Truck size={17} />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-neutral-900">Accra Delivery</h3>
+            <p className="text-[11px] text-neutral-500 leading-tight mt-0.5">East Legon, Osu, Spintex &amp; all zones</p>
           </div>
         </div>
 
-        <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
-            <div className="rounded-xl bg-wagreen/10 p-2 text-wagreen-dark shrink-0">
-              <MessageCircle size={18} />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-bold text-charcoal">WhatsApp Order</h3>
-              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">Direct concierge &amp; live fit check</p>
-            </div>
+        <div className="rounded-xl border border-sand/60 bg-white p-4 flex items-start gap-3">
+          <div className="rounded-lg bg-emerald-50 p-2 text-[#25D366] shrink-0">
+            <MessageCircle size={17} />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-neutral-900">WhatsApp Order</h3>
+            <p className="text-[11px] text-neutral-500 leading-tight mt-0.5">Direct concierge &amp; live fit check</p>
           </div>
         </div>
 
-        <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
-            <div className="rounded-xl bg-rose/10 p-2 text-rose shrink-0">
-              <Tag size={18} />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-bold text-charcoal">Flexible Pay</h3>
-              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">MoMo, Card &amp; Pay on Delivery</p>
-            </div>
+        <div className="rounded-xl border border-sand/60 bg-white p-4 flex items-start gap-3">
+          <div className="rounded-lg bg-neutral-100 p-2 text-neutral-900 shrink-0">
+            <Tag size={17} />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-neutral-900">Flexible Pay</h3>
+            <p className="text-[11px] text-neutral-500 leading-tight mt-0.5">MoMo, Card &amp; Pay on Delivery</p>
           </div>
         </div>
 
-        <div className="double-bezel">
-          <div className="double-bezel-inner flex items-start gap-3 bg-white/90 p-3.5 sm:p-4">
-            <div className="rounded-xl bg-sand/20 p-2 text-charcoal shrink-0">
-              <ShieldCheck size={18} />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-bold text-charcoal">100% Verified</h3>
-              <p className="text-[11px] text-charcoal/75 leading-tight mt-0.5">Quality fabrics &amp; inspected sizes</p>
-            </div>
+        <div className="rounded-xl border border-sand/60 bg-white p-4 flex items-start gap-3">
+          <div className="rounded-lg bg-neutral-100 p-2 text-neutral-900 shrink-0">
+            <ShieldCheck size={17} />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-neutral-900">Verified Quality</h3>
+            <p className="text-[11px] text-neutral-500 leading-tight mt-0.5">Inspected fabrics &amp; exact fit</p>
           </div>
         </div>
       </section>

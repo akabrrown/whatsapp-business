@@ -71,14 +71,14 @@ export function ProductCard({
 
   return (
     <div
-      className={`group relative flex flex-col rounded-xl bg-white/70 p-2 sm:p-2.5 transition-all duration-300 hover:shadow-md hover:bg-white border border-sand/20 ${
+      className={`group relative flex flex-col rounded-xl bg-white p-2.5 sm:p-3 transition-all duration-300 hover:shadow-md border border-neutral-200/80 ${
         large ? 'md:row-span-2' : ''
       }`}
     >
       {/* ─── Media Container ─── */}
       <Link
         href={`/product/${product.slug}`}
-        className="relative block aspect-[3/4] w-full overflow-hidden rounded-lg bg-sand/15"
+        className="relative block aspect-[3/4] w-full overflow-hidden rounded-lg bg-neutral-100"
       >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -94,27 +94,22 @@ export function ProductCard({
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-charcoal/40">
+          <div className="flex h-full w-full items-center justify-center text-xs text-neutral-400">
             Image coming soon
           </div>
         )}
 
-        {/* Badges Overlay */}
-        <div className="absolute left-2 top-2 flex flex-col gap-1 z-10 max-w-[calc(100%-44px)]">
+        {/* Minimal Badges Overlay */}
+        <div className="absolute left-2.5 top-2.5 flex flex-col gap-1 z-10 max-w-[calc(100%-44px)]">
           {product.soldOut ? (
-            <span className="rounded bg-charcoal/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-cream shadow-xs">
+            <span className="rounded bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">
               Sold Out
             </span>
           ) : (
             <>
               {discountPercent !== null && discountPercent > 0 && (
-                <span className="rounded bg-rose px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                <span className="rounded bg-neutral-900 text-white px-2 py-0.5 text-[10px] font-bold">
                   -{discountPercent}%
-                </span>
-              )}
-              {product.badge && (
-                <span className="rounded bg-indigo px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs truncate max-w-full">
-                  {product.badge}
                 </span>
               )}
             </>
@@ -126,10 +121,10 @@ export function ProductCard({
           type="button"
           onClick={toggleWish}
           aria-label={isWished ? 'Remove from wishlist' : 'Add to wishlist'}
-          className={`absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-90 before:absolute before:-inset-2 before:content-[''] ${
+          className={`absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-90 ${
             isWished
-              ? 'bg-rose text-white shadow-sm'
-              : 'bg-white/80 text-charcoal/70 hover:bg-white hover:text-rose'
+              ? 'bg-neutral-900 text-white'
+              : 'bg-white/80 text-neutral-700 hover:bg-white hover:text-black'
           }`}
         >
           <Heart
@@ -140,84 +135,38 @@ export function ProductCard({
         </button>
       </Link>
 
-      {/* ─── Product Info ─── */}
-      <div className="mt-2.5 flex flex-1 flex-col justify-between">
+      {/* ─── Product Info (Clean Editorial Typography) ─── */}
+      <div className="mt-3 flex flex-1 flex-col justify-between">
         <div>
-          {/* Color swatch dots preview (Veloura & Guza inspiration) */}
-          {colors.length > 0 && (
-            <div className="mb-1.5 flex items-center gap-1">
-              {colors.slice(0, 4).map((c) => {
-                const hex = COLOR_MAP[c.toLowerCase()] || '#d1d5db';
-                return (
-                  <span
-                    key={c}
-                    title={c}
-                    className="h-2.5 w-2.5 rounded-full border border-charcoal/20 shadow-2xs"
-                    style={{ backgroundColor: hex }}
-                  />
-                );
-              })}
-              {colors.length > 4 && (
-                <span className="text-[10px] font-medium text-charcoal/75">
-                  +{colors.length - 4}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Rating stars preview */}
-          <div className="mb-1 flex items-center gap-1 text-amber-500">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  size={11}
-                  className="fill-current text-amber-500"
-                />
-              ))}
-            </div>
-            <span className="text-[10px] font-semibold text-charcoal/75">
-              5.0
-            </span>
-          </div>
-
           {/* Title */}
           <Link
             href={`/product/${product.slug}`}
-            className="line-clamp-1 text-xs font-medium text-charcoal transition-colors hover:text-indigo sm:text-sm"
+            className="line-clamp-1 text-xs sm:text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-600"
           >
             {product.name}
           </Link>
 
           {/* Price */}
-          <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-sm font-bold text-indigo">
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-neutral-950 font-mono">
               {formatGHS(product.minPriceP)}
             </span>
             {product.compareAtPriceP &&
               product.compareAtPriceP > product.minPriceP && (
-                <span className="text-xs text-charcoal/60 line-through">
+                <span className="text-xs text-neutral-400 line-through font-mono">
                   {formatGHS(product.compareAtPriceP)}
                 </span>
               )}
           </div>
-
-          {/* Urgency indicator if low stock */}
-          {product.lowStock && !product.soldOut && (
-            <p className="mt-1 text-[10px] font-bold text-rose flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-rose animate-pulse" />
-              Only {product.totalAvailable} left
-            </p>
-          )}
         </div>
 
         {/* Action Button */}
-        <div className="mt-2.5 pt-1 border-t border-sand/20">
+        <div className="mt-3 pt-2 border-t border-neutral-100">
           {!product.soldOut ? (
             <AddToBag product={product} compact />
           ) : (
-            <span className="block text-center text-[11px] font-medium text-charcoal/70 py-1">
-              Out of stock
+            <span className="block text-center text-[11px] font-medium text-neutral-400 py-1">
+              Sold out
             </span>
           )}
         </div>
