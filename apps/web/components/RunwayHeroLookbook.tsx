@@ -23,6 +23,11 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
   const activeProduct = displayItems[activeIndex] || displayItems[0];
   const carouselRef = useRef<HTMLDivElement>(null);
 
+  // Touch & pointer swipe tracking for natural sliding physics
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchDelta, setTouchDelta] = useState<number>(0);
+  const isDragging = useRef<boolean>(false);
+
   // Auto-advance looks gently every 8 seconds if user is idle
   useEffect(() => {
     if (displayItems.length <= 1) return;
@@ -31,6 +36,35 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
     }, 8000);
     return () => clearInterval(timer);
   }, [displayItems.length]);
+
+  // Touch & Mouse Drag Handlers for immediate tactile sliding
+  const handleTouchStart = (clientX: number) => {
+    setTouchStart(clientX);
+    setTouchDelta(0);
+    isDragging.current = true;
+  };
+
+  const handleTouchMove = (clientX: number) => {
+    if (!isDragging.current || touchStart === null) return;
+    setTouchDelta(clientX - touchStart);
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging.current || touchStart === null) return;
+    isDragging.current = false;
+    const threshold = 40; // minimum swipe distance in px to trigger slide
+
+    if (touchDelta < -threshold) {
+      // Swiped Left -> Next Look
+      handleNext();
+    } else if (touchDelta > threshold) {
+      // Swiped Right -> Previous Look
+      handlePrev();
+    }
+
+    setTouchStart(null);
+    setTouchDelta(0);
+  };
 
   // Scroll active item thumbnail within its horizontal container ONLY (never jump page viewport)
   useEffect(() => {
@@ -197,8 +231,17 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
           </div>
         </div>
 
-        {/* Visual Stage Column: Multi-Plane Depth Model Stage (Catchy Front & Center on Mobile) */}
-        <div className="relative min-h-[260px] sm:min-h-[360px] lg:min-h-full w-full bg-gradient-to-b from-[#16181D] to-[#0A0B0D] flex items-center justify-center overflow-hidden lg:border-l border-neutral-800/80">
+        {/* Visual Stage Column: Multi-Plane Depth Model Stage with Direct Swipe & Drag Gestures */}
+        <div
+          onTouchStart={(e) => handleTouchStart(e.touches[0].clientX)}
+          onTouchMove={(e) => handleTouchMove(e.touches[0].clientX)}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={(e) => handleTouchStart(e.clientX)}
+          onMouseMove={(e) => handleTouchMove(e.clientX)}
+          onMouseUp={handleTouchEnd}
+          onMouseLeave={handleTouchEnd}
+          className="relative min-h-[260px] sm:min-h-[360px] lg:min-h-full w-full bg-gradient-to-b from-[#16181D] to-[#0A0B0D] flex items-center justify-center overflow-hidden lg:border-l border-neutral-800/80 cursor-grab active:cursor-grabbing select-none"
+        >
           {/* Subtle Ambient Runway Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
             <span className="font-serif text-[80px] sm:text-[140px] lg:text-[160px] font-normal text-white/[0.04] tracking-tighter uppercase whitespace-nowrap">
@@ -206,7 +249,7 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
             </span>
           </div>
 
-          {/* Staged Models Layer with Mobile-Optimized Translate Offsets */}
+          {/* Staged Models Layer with Real-Time Interactive Drag Offset */}
           <div className="relative w-full h-[250px] sm:h-[360px] lg:h-[460px] flex items-center justify-center">
             {displayItems.map((prod, idx) => {
               const offset = idx - activeIndex;
@@ -215,15 +258,22 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
               // Hide far away models for clean performance
               if (Math.abs(offset) > 1 && displayItems.length > 3) return null;
 
+              // Factor in live touch drag delta for real-time glide response
+              const dynamicTranslate = offset * 115 + (isDragging.current ? touchDelta * 0.6 : 0);
+
               return (
                 <div
                   key={prod.id}
-                  onClick={() => setActiveIndex(idx)}
-                  className={`absolute transition-all duration-700 ease-out cursor-pointer ${
-                    isCurrent ? 'z-20 pointer-events-auto' : 'z-10 opacity-30 hover:opacity-50'
-                  }`}
+                  onClick={() => {
+                    if (Math.abs(touchDelta) < 10) setActiveIndex(idx);
+                  }}
+                  className={`absolute ${
+                    isDragging.current ? 'transition-none' : 'transition-all duration-700 ease-out'
+                  } ${isCurrent ? 'z-20 pointer-events-auto' : 'z-10 opacity-35 hover:opacity-60'}`}
                   style={{
-                    transform: `translate3d(${offset * 105}px, 0, 0) scale(${isCurrent ? 1 : 0.72})`,
+                    transform: `translate3d(${dynamicTranslate}px, 0, 0) scale(${
+                      isCurrent ? 1 : 0.74
+                    })`,
                     filter: isCurrent ? 'none' : 'blur(4px) grayscale(40%)',
                   }}
                 >
@@ -236,7 +286,8 @@ export function RunwayHeroLookbook({ products }: RunwayHeroLookbookProps) {
                       decoding="async"
                       width={440}
                       height={580}
-                      className="h-[230px] sm:h-[330px] lg:h-[420px] w-auto object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.85)] transition-transform duration-500"
+                      draggable={false}
+                      className="h-[230px] sm:h-[330px] lg:h-[420px] w-auto object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.85)] pointer-events-none"
                     />
                   ) : (
                     <div className="h-[230px] sm:h-[330px] lg:h-[420px] w-[200px] flex items-center justify-center bg-neutral-900 text-neutral-600 font-serif text-3xl">
