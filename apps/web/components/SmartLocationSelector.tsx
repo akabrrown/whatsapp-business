@@ -253,13 +253,13 @@ export function SmartLocationSelector({
         </button>
       </div>
 
-      {/* Tab 1: Popular Accra Neighborhoods (Instant Selection Grid) */}
+      {/* Tab 1: Popular Accra Neighborhoods (1-per-line clean list layout) */}
       {activeTab === 'popular' && (
         <div className="space-y-2">
           <p className="text-[11px] font-bold uppercase tracking-wider text-charcoal/50">
             Select Your Delivery Area (Accra)
           </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
             {zonesList.map((z) => {
               const isSelected = selectedZone?.name?.toLowerCase() === z.name.toLowerCase();
               return (
@@ -267,27 +267,31 @@ export function SmartLocationSelector({
                   key={z.name}
                   type="button"
                   onClick={() => handleZoneClick(z)}
-                  className={`group relative flex flex-col items-start p-3 rounded-2xl border text-left transition ${
+                  className={`group relative flex items-center justify-between p-3 rounded-xl border text-left transition ${
                     isSelected
                       ? 'border-indigo bg-indigo/5 text-indigo shadow-xs ring-1 ring-indigo/30'
                       : 'border-sand/70 bg-white hover:border-indigo/40 hover:bg-sand/10 text-charcoal'
                   }`}
                 >
-                  <div className="w-full flex items-center justify-between">
-                    <span className="text-xs font-bold truncate pr-1">{z.name}</span>
-                    {isSelected ? (
-                      <span className="h-4 w-4 rounded-full bg-indigo text-white flex items-center justify-center shrink-0">
-                        <Check size={10} strokeWidth={3} />
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold font-mono text-charcoal/50">
-                        {formatGHS(z.feeP)}
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="text-xs font-bold text-charcoal group-hover:text-indigo transition">
+                      {z.name}
+                    </span>
+                    <span className="mt-0.5 text-[10px] text-charcoal/50 flex items-center gap-1">
+                      <Compass size={11} className="text-indigo/60" /> {z.tag}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-bold font-mono text-charcoal/80">
+                      {formatGHS(z.feeP)}
+                    </span>
+                    {isSelected && (
+                      <span className="h-5 w-5 rounded-full bg-indigo text-white flex items-center justify-center">
+                        <Check size={11} strokeWidth={3} />
                       </span>
                     )}
                   </div>
-                  <span className="mt-1 text-[10px] text-charcoal/50 flex items-center gap-1">
-                    <Compass size={10} className="text-indigo/60" /> {z.tag}
-                  </span>
                 </button>
               );
             })}
