@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, ShoppingBag } from 'lucide-react';
 import { api, type CatalogProduct } from '@/lib/api';
-import { RUNWAY_LOOKS, lookToCatalogProduct, BRAND_NAME } from '@/lib/haute-couture-data';
 import { ProductDetailView } from '@/components/ProductDetailView';
 import { ProductCard } from '@/components/ProductCard';
 
@@ -11,14 +10,13 @@ export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const runwayMatch = RUNWAY_LOOKS.find((l) => l.slug === slug);
-  const product = runwayMatch ? lookToCatalogProduct(runwayMatch) : await api.product(slug);
-  if (!product) return { title: 'Look Not Found' };
+  const product = await api.product(slug);
+  if (!product) return { title: 'Product Not Found' };
   const price = (product.minPriceP / 100).toFixed(2);
   const imageUrl = product.images[0] || '';
   return {
-    title: `${product.name} | ${BRAND_NAME}`,
-    description: product.description.slice(0, 160) || `Buy ${product.name} at ${BRAND_NAME}. Price: GH₵${price}`,
+    title: `${product.name} | TOBI CLOTHINGS`,
+    description: product.description.slice(0, 160) || `Buy ${product.name} at TOBI CLOTHINGS. Price: GH₵${price}`,
     openGraph: {
       title: `${product.name} — GH₵${price}`,
       description: product.description.slice(0, 160),
@@ -45,28 +43,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const runwayMatch = RUNWAY_LOOKS.find((l) => l.slug === slug);
-
-  let product: CatalogProduct | null = null;
-  let recommended: CatalogProduct[] = [];
-  let whatsappNumber = '233203813606';
-
-  if (runwayMatch) {
-    product = lookToCatalogProduct(runwayMatch);
-    // Other runway looks as recommended
-    recommended = RUNWAY_LOOKS.filter((l) => l.slug !== slug).slice(0, 4).map(lookToCatalogProduct);
-  } else {
-    const [fetchedProd, settings, fetchedRec] = await Promise.all([
-      api.product(slug).catch(() => null),
-      api.settings().catch(() => ({ whatsappNumber: '233203813606' })),
-      api.related(slug, 4).catch(() => []),
-    ]);
-    product = fetchedProd;
-    recommended = fetchedRec;
-    if (settings?.whatsappNumber) whatsappNumber = settings.whatsappNumber;
-  }
-
-  if (!product) notFound();
+  const [product, settings, recommended] = await Promise.all([
+    api.product(slug),
+    api.settings(),
+    api.related(slug, 4),
+  ]);
+  if (!product) notFound(); // §3.5: unknown slug resolves to a clean 404
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -87,7 +69,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       
       {/* Main Product Details View */}
-      <ProductDetailView product={product} whatsappNumber={whatsappNumber} />
+      <ProductDetailView product={product} whatsappNumber={settings.whatsappNumber} />
 
       {/* Recommended Products in Same Category */}
       {recommended.length > 0 && (

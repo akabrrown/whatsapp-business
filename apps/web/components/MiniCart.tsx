@@ -548,6 +548,7 @@ export function MiniCart() {
                           onClick={() => setQty(l.variantId, 0)}
                           className="text-charcoal/40 hover:text-rose p-0.5 transition"
                           title="Remove item"
+                          aria-label={`Remove ${l.name} from bag`}
                         >
                           <Trash2 size={13} />
                         </button>

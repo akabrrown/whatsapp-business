@@ -187,6 +187,7 @@ export function ShopCatalogView({
               onClick={() => setGridCols(2)}
               className={`p-1.5 rounded-lg transition-colors ${gridCols === 2 ? 'bg-indigo text-cream' : 'text-charcoal/60 hover:text-charcoal'}`}
               title="2 Columns"
+              aria-label="Display 2 columns per row"
             >
               <Grid2X2 size={15} />
             </button>
@@ -194,6 +195,7 @@ export function ShopCatalogView({
               onClick={() => setGridCols(3)}
               className={`p-1.5 rounded-lg transition-colors ${gridCols === 3 ? 'bg-indigo text-cream' : 'text-charcoal/60 hover:text-charcoal'}`}
               title="3 Columns"
+              aria-label="Display 3 columns per row"
             >
               <LayoutGrid size={15} />
             </button>
@@ -201,6 +203,7 @@ export function ShopCatalogView({
               onClick={() => setGridCols(4)}
               className={`p-1.5 rounded-lg transition-colors ${gridCols === 4 ? 'bg-indigo text-cream' : 'text-charcoal/60 hover:text-charcoal'}`}
               title="4 Columns"
+              aria-label="Display 4 columns per row"
             >
               <Grid3X3 size={15} />
             </button>
@@ -209,6 +212,7 @@ export function ShopCatalogView({
           {/* Mobile Filter Trigger Button */}
           <button
             onClick={() => setMobileFilterOpen(true)}
+            aria-label={`Open product filters, ${activeFilterCount} active`}
             className="md:hidden flex items-center gap-1.5 rounded-xl border border-sand/40 bg-white px-3.5 py-2 text-xs font-bold text-charcoal shadow-2xs active:scale-95"
           >
             <SlidersHorizontal size={14} />

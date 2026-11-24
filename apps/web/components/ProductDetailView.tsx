@@ -441,7 +441,7 @@ export function ProductDetailView({
       </div>
 
       {/* ─── Sticky Mobile Action Bar (Native App Inspiration) ─── */}
-      <div className="fixed bottom-14 left-0 right-0 z-30 md:hidden bg-white/95 backdrop-blur-md border-t border-sand/40 p-3 shadow-lg flex items-center justify-between gap-3">
+      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 md:hidden bg-white/95 backdrop-blur-md border-t border-sand/40 p-3 shadow-lg flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] text-charcoal/50 uppercase font-semibold">Total Price</p>
           <p className="headline text-base font-bold text-indigo">{formatGHS(price)}</p>

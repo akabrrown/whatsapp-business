@@ -54,7 +54,12 @@ export function SearchOverlay({ categories = [] }: SearchOverlayProps) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-cream/95 backdrop-blur-md animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search catalog"
+          className="fixed inset-0 z-[100] flex flex-col bg-cream/95 backdrop-blur-md animate-in fade-in duration-200"
+        >
           <div className="flex items-center justify-between p-6 md:p-8">
             <span className="font-serif text-2xl tracking-tight text-charcoal">Search</span>
             <button 

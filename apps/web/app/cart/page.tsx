@@ -477,6 +477,7 @@ export default function CartPage() {
                       onClick={() => setQty(l.variantId, 0)}
                       className="text-charcoal/40 hover:text-rose p-1 transition"
                       title="Remove item"
+                      aria-label={`Remove ${l.name} from bag`}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -487,6 +488,7 @@ export default function CartPage() {
                       <button
                         type="button"
                         onClick={() => setQty(l.variantId, l.qty - 1)}
+                        aria-label="Decrease quantity"
                         className="h-7 w-7 flex items-center justify-center rounded text-charcoal hover:bg-white transition"
                       >
                         <Minus size={13} />
@@ -496,6 +498,7 @@ export default function CartPage() {
                         type="button"
                         disabled={l.maxQty !== undefined && l.qty >= l.maxQty}
                         onClick={() => setQty(l.variantId, l.qty + 1)}
+                        aria-label="Increase quantity"
                         className="h-7 w-7 flex items-center justify-center rounded text-charcoal hover:bg-white transition disabled:opacity-30"
                       >
                         <Plus size={13} />

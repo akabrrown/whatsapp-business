@@ -126,7 +126,7 @@ export function ProductCard({
           type="button"
           onClick={toggleWish}
           aria-label={isWished ? 'Remove from wishlist' : 'Add to wishlist'}
-          className={`absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-90 ${
+          className={`absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-90 before:absolute before:-inset-2 before:content-[''] ${
             isWished
               ? 'bg-rose text-white shadow-sm'
               : 'bg-white/80 text-charcoal/70 hover:bg-white hover:text-rose'

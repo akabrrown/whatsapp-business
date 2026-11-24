@@ -66,8 +66,8 @@ export function AddToBag({
         }}
         className={
           compact
-            ? 'flex items-center gap-1 border border-indigo/40 px-2.5 py-1 text-xs text-indigo hover:bg-indigo hover:text-cream'
-            : 'flex w-full items-center justify-center gap-2 rounded bg-indigo px-6 py-3 text-sm font-medium text-cream hover:bg-indigo-deep'
+            ? 'flex items-center justify-center gap-1 rounded-full border border-indigo/40 px-3 py-1.5 text-xs font-semibold text-indigo hover:bg-indigo hover:text-cream transition-colors min-h-[36px]'
+            : 'flex w-full items-center justify-center gap-2 rounded-xl bg-indigo px-6 py-3.5 text-sm font-semibold text-cream hover:bg-indigo-deep transition-colors shadow-xs min-h-[44px]'
         }
       >
         {busy ? (

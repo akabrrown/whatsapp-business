@@ -2,7 +2,6 @@
 import type { Metadata } from 'next';
 import { api, type CatalogProduct, type Category } from '@/lib/api';
 import { ShopCatalogView } from '@/components/ShopCatalogView';
-import { CATALOG_PRODUCTS, HAUTE_CATEGORIES, BRAND_NAME } from '@/lib/haute-couture-data';
 
 export const revalidate = 60;
 
@@ -13,16 +12,26 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   try {
     const { category } = await params;
-    const active = HAUTE_CATEGORIES.find((c) => c.slug === category);
-    const name = active?.name ?? 'The Runway Collection';
+    const tree = await api.categories();
+    const safeTree = Array.isArray(tree) ? tree : [];
+
+    const flat: any[] = [];
+    const add = (c: any) => {
+      flat.push(c);
+      if (c.children && Array.isArray(c.children)) c.children.forEach(add);
+    };
+    safeTree.forEach(add);
+
+    const active = flat.find((c) => c.slug === category);
+    const name = active?.name ?? 'The Collection';
     return {
-      title: `${name} | ${BRAND_NAME}`,
-      description: `Shop ${name.toLowerCase()} from ${BRAND_NAME}. Spring Summer 2027 Couture, Senators, Robes & Bespoke Menswear delivered across Accra and worldwide.`,
+      title: `${name} | TOBI CLOTHINGS`,
+      description: `Shop ${name.toLowerCase()} from TOBI CLOTHINGS. Tops, footwears, buttoms, bags & eyewears delivered across Accra.`,
     };
   } catch {
     return {
-      title: `The Runway Collection | ${BRAND_NAME}`,
-      description: `Shop curated haute couture menswear from ${BRAND_NAME} delivered across Accra and worldwide.`,
+      title: 'The Collection | TOBI CLOTHINGS',
+      description: 'Shop curated fashion from TOBI CLOTHINGS delivered across Accra.',
     };
   }
 }
@@ -38,35 +47,32 @@ export default async function ShopPage({
 
   try {
     [products, tree] = await Promise.all([
-      api.catalog(category).catch(() => []),
-      api.categories().catch(() => []),
+      api.catalog(category),
+      api.categories(),
     ]);
   } catch {}
 
-  // If backend returns products, prepend or merge with Haute Couture runway looks
-  const combinedProducts = [
-    ...CATALOG_PRODUCTS,
-    ...(Array.isArray(products) ? products : []),
-  ];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeTree = Array.isArray(tree) ? tree : [];
 
-  const combinedTree = [
-    ...HAUTE_CATEGORIES,
-    ...(Array.isArray(tree) ? tree : []),
-  ];
+  const flat: any[] = [];
+  const add = (c: any) => {
+    flat.push(c);
+    if (c.children && Array.isArray(c.children)) c.children.forEach(add);
+  };
+  safeTree.forEach(add);
 
-  const active = combinedTree.find(
+  const active = flat.find(
     (c) =>
       c.slug === category || c.slug === decodeURIComponent(category || ''),
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <ShopCatalogView
-        initialProducts={combinedProducts}
-        categories={combinedTree}
-        activeCategorySlug={category}
-        categoryName={active?.name ?? 'The Runway Collection'}
-      />
-    </div>
+    <ShopCatalogView
+      initialProducts={safeProducts}
+      categories={safeTree}
+      activeCategorySlug={category}
+      categoryName={active?.name ?? 'The Collection'}
+    />
   );
 }

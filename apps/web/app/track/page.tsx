@@ -161,7 +161,7 @@ function TrackContent() {
   };
 
   return (
-    <div className="min-h-screen bg-cream px-4 py-12 sm:px-6 lg:px-8">
+    <div className="py-6 sm:py-8 space-y-6">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">

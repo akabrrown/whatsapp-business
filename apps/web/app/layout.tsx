@@ -1,28 +1,20 @@
 import type { Metadata, Viewport } from 'next';
-import { Syncopate, Space_Grotesk, Inter } from 'next/font/google';
+import { Fraunces, Inter } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/lib/cart';
-import { RunwayNavbar } from '@/components/RunwayNavbar';
-import { RunwayFooter } from '@/components/RunwayFooter';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { ClientOverlays } from '@/components/ClientOverlays';
 import { api } from '@/lib/api';
 
-const syncopate = Syncopate({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-syncopate',
+  variable: '--font-fraunces',
   display: 'swap',
+  style: ['normal'],
   preload: true,
 });
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  variable: '--font-space-grotesk',
-  display: 'swap',
-  preload: true,
-});
-
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -37,27 +29,27 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://mystore-web.vercel.app'),
-  title: 'ATELIER KWAME — Spring Summer 2027 Runway Haute Couture (Accra)',
-  description: 'Atelier Kwame Spring Summer 2027 Runway Collection. Bespoke Kaftans, Senators, Ceremonial Robes, and Tailored Menswear in Accra, Ghana. Shop the looks online or order via WhatsApp Concierge.',
-  keywords: ['runway', 'haute couture', 'menswear', 'kaftans', 'senators', 'smocks', 'Accra fashion', 'Ghana couture', 'bespoke tailoring', 'atelier kwame'],
-  authors: [{ name: 'Atelier Kwame', url: 'https://atelierkwame.com' }],
+  title: 'TOBI CLOTHINGS: SHOP & WEAR BY TOBI: Tops, footwears, buttoms, bags & eyewears in ACCRA',
+  description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra. Shop the collection online or chat with us directly.',
+  keywords: ['tops', 'footwears', 'buttoms', 'bags', 'eyewears', 'fashion', 'Accra', 'Ghana', 'WhatsApp shopping', 'tobi clothings'],
+  authors: [{ name: 'Tobi', url: 'https://myclothingsstore.com' }],
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
   },
   manifest: '/manifest.json',
   openGraph: {
-    title: 'ATELIER KWAME — Spring Summer 2027 Runway',
-    description: 'Bespoke Kaftans, Senators, Ceremonial Robes, and Tailored Menswear in Accra, Ghana.',
+    title: 'TOBI CLOTHINGS',
+    description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra.',
     type: 'website',
     locale: 'en_GH',
-    siteName: 'ATELIER KWAME',
-    images: [{ url: '/runway/hero-look-8-green-tuxedo.jpg', width: 1200, height: 630, alt: 'ATELIER KWAME Runway Look 8' }],
+    siteName: 'TOBI CLOTHINGS',
+    images: [{ url: '/og-image.svg', width: 1200, height: 630, alt: 'TOBI CLOTHINGS' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ATELIER KWAME — Runway Haute Couture',
-    description: 'Bespoke Kaftans, Senators, Ceremonial Robes, and Tailored Menswear in Accra, Ghana.',
+    title: 'TOBI CLOTHINGS',
+    description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra.',
   },
   robots: {
     index: true,
@@ -76,9 +68,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FashionStore',
-    name: 'ATELIER KWAME',
-    url: 'https://atelierkwame.com',
-    description: 'Bespoke Kaftans, Senators, Ceremonial Robes, and Tailored Menswear in Accra, Ghana.',
+    name: 'TOBI CLOTHINGS',
+    url: 'https://tobiclothings.com',
+    description: 'Tops, footwears, buttoms, bags, eyewears and the little things, ordered over WhatsApp and delivered across Accra.',
     telephone: '+233203813606',
     address: {
       '@type': 'PostalAddress',
@@ -87,12 +79,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     },
     currenciesAccepted: 'GHS',
     paymentAccepted: 'Mobile Money, Credit Card',
-    priceRange: 'GH₵1,850 - GH₵3,500',
+    priceRange: 'GH₵30 - GH₵1,500',
   };
 
   return (
-    <html lang="en" className={`${syncopate.variable} ${spaceGrotesk.variable} ${inter.variable}`} suppressHydrationWarning>
-      <body suppressHydrationWarning className="bg-white text-runway-black selection:bg-gold/20 selection:text-black">
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -118,11 +110,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Skip to content
         </a>
         <CartProvider>
-          <RunwayNavbar />
-          <main id="main-content" className="min-h-[75vh] w-full">
+          <Navbar categories={safeCategories} />
+          <main id="main-content" className="mx-auto max-w-6xl px-4 md:px-6 pt-24 md:pt-32 pb-24 md:pb-12 min-h-[75vh]">
             {children}
           </main>
-          <RunwayFooter />
+          <Footer />
+          <MobileBottomNav />
           <ClientOverlays />
         </CartProvider>
       </body>
